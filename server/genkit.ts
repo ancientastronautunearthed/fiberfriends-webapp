@@ -449,7 +449,7 @@ export async function generateMilestoneChallenge(userAchievements: any, userStat
       category: "health",
       difficulty: "hard",
       points: 300,
-      requirements: { consecutiveDays: 30, type: "milestone_achievement" },
+      requirements: { technique: "reflection", reflection_steps: 5, consecutive_days: 30 },
       milestone: "30-Day Consistency Champion"
     };
   }
