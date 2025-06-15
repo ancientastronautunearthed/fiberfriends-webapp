@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { ChatWebSocketServer } from "./websocket";
+import { SimpleChatServer } from "./simpleWebSocket";
 import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema } from "@shared/schema";
 import { 
   generateNutritionalAnalysis, 
@@ -306,8 +306,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Initialize WebSocket server
-  const chatWS = new ChatWebSocketServer(httpServer);
-  console.log('Chat WebSocket server initialized');
+  const chatWS = new SimpleChatServer(httpServer);
+  console.log('Simple Chat WebSocket server initialized');
   
   return httpServer;
 }
