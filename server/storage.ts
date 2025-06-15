@@ -33,7 +33,7 @@ export interface IStorage {
   // Community Post operations
   getCommunityPosts(category?: string): Promise<CommunityPost[]>;
   createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost>;
-  updateCommunityPost(id: number, updates: Partial<CommunityPost>): Promise<CommunityPost>;
+  updateCommunityPost(id: string, updates: Partial<CommunityPost>): Promise<CommunityPost>;
   
   // Dashboard stats
   getDashboardStats(userId: string): Promise<any>;
@@ -103,9 +103,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDailyLog(log: InsertDailyLog): Promise<DailyLog> {
+    const logWithId = {
+      ...log,
+      id: crypto.randomUUID(),
+    };
     const [result] = await db
       .insert(dailyLogs)
-      .values(log)
+      .values(logWithId)
       .returning();
     return result;
   }
@@ -129,14 +133,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
+    const postWithId = {
+      ...post,
+      id: crypto.randomUUID(),
+    };
     const [result] = await db
       .insert(communityPosts)
-      .values(post)
+      .values(postWithId)
       .returning();
     return result;
   }
 
-  async updateCommunityPost(id: number, updates: Partial<CommunityPost>): Promise<CommunityPost> {
+  async updateCommunityPost(id: string, updates: Partial<CommunityPost>): Promise<CommunityPost> {
     const [result] = await db
       .update(communityPosts)
       .set(updates)

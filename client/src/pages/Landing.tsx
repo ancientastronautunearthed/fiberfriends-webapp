@@ -1,9 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const { toast } = useToast();
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      toast({
+        title: "Sign in failed",
+        description: "Please try again or contact support if the issue persists.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
