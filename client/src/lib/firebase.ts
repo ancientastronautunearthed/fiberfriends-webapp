@@ -3,12 +3,12 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC3AhSg8eAklY-Df6PcDkWqO30MmTjzhEg",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "fiber-friends-9b614.firebaseapp.com",
-  projectId: "fiber-friends",
-  storageBucket: "fiber-friends.firebasestorage.app",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
   messagingSenderId: "202818399028",
-  appId: "1:202818399028:web:87d262008300781f8cfd361",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase only if no apps exist
