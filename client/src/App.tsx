@@ -13,6 +13,7 @@ import CommunityForum from "@/pages/CommunityForum";
 import SimplifiedChat from "@/pages/SimplifiedChat";
 import AICompanion from "@/pages/AICompanion";
 import UserProfile from "@/pages/UserProfile";
+import TestChat from "@/pages/TestChat";
 import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
@@ -30,6 +31,7 @@ function Router() {
         <Route path="/food" component={FoodLogger} />
         <Route path="/community" component={CommunityForum} />
         <Route path="/chat" component={SimplifiedChat} />
+        <Route path="/test-chat" component={TestChat} />
         <Route path="/companion" component={AICompanion} />
         <Route path="/profile" component={UserProfile} />
       </Layout>

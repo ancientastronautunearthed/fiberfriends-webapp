@@ -23,10 +23,6 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const isAuthenticated = !!user;
 
   const connect = useCallback(() => {
-    if (!isAuthenticated) {
-      return;
-    }
-
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}${url}`;
