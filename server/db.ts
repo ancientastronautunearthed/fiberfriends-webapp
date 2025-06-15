@@ -1,15 +1,13 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+// server/db.ts
 
-neonConfig.webSocketConstructor = ws;
+import * as admin from 'firebase-admin';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Check if the app is already initialized to prevent errors
+if (!admin.apps.length) {
+  // Environment variables for Firebase Admin are automatically provided
+  // by the Firebase App Hosting environment. For local development, you would
+  // need to set up a service account file.
+  admin.initializeApp();
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export const adminDb = admin.firestore();
