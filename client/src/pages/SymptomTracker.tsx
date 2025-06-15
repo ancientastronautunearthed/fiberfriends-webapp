@@ -219,9 +219,9 @@ export default function SymptomTracker() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="minimal">Minimal (< 30 min)</SelectItem>
+                  <SelectItem value="minimal">Minimal (&lt; 30 min)</SelectItem>
                   <SelectItem value="moderate">Moderate (30-60 min)</SelectItem>
-                  <SelectItem value="high">High (> 60 min)</SelectItem>
+                  <SelectItem value="high">High (&gt; 60 min)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

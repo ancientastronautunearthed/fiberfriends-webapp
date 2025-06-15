@@ -47,14 +47,14 @@ export default function UserProfile() {
   useEffect(() => {
     if (user) {
       setProfileData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        age: user.age?.toString() || "",
-        height: user.height || "",
-        weight: user.weight || "",
-        location: user.location || "",
-        diagnosisStatus: user.diagnosisStatus || "",
-        hobbies: user.hobbies || "",
+        firstName: user?.firstName || "",
+        lastName: user?.lastName || "",
+        age: user?.age?.toString() || "",
+        height: user?.height || "",
+        weight: user?.weight || "",
+        location: user?.location || "",
+        diagnosisStatus: user?.diagnosisStatus || "",
+        hobbies: user?.hobbies || "",
       });
     }
   }, [user]);
@@ -209,7 +209,7 @@ export default function UserProfile() {
                   <Input
                     value={profileData.height}
                     onChange={(e) => setProfileData(prev => ({ ...prev, height: e.target.value }))}
-                    placeholder="e.g., 5'6\""
+                    placeholder="e.g., 5'6&quot;"
                   />
                 </div>
                 <div>
