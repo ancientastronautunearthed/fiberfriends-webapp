@@ -1,8 +1,20 @@
-export async function generateNutritionalAnalysis(foodDescription: string, mealType: string) {
+export async function generateNutritionalAnalysis(foodDescription: string, mealType: string, userProfile?: any) {
+  // Extract safety information from user profile
+  const allergies = userProfile?.foodAllergies || [];
+  const medications = userProfile?.currentMedications || [];
+  const allergiesText = allergies.length > 0 ? `\n    CRITICAL FOOD ALLERGIES: ${allergies.join(', ')}` : '';
+  const medicationsText = medications.length > 0 ? `\n    CURRENT MEDICATIONS: ${medications.join(', ')}` : '';
+  
   const prompt = `
     Analyze the following ${mealType} meal for a Morgellons disease patient and provide specialized nutritional information:
     
     Food Description: ${foodDescription}
+    ${allergiesText}
+    ${medicationsText}
+    
+    CRITICAL SAFETY REQUIREMENTS:
+    ${allergies.length > 0 ? `- MUST check for allergens: ${allergies.join(', ')} - NEVER recommend foods containing these` : ''}
+    ${medications.length > 0 ? `- MUST consider drug-food interactions with: ${medications.join(', ')}` : ''}
     
     MORGELLONS-SPECIFIC ANALYSIS FOCUS:
     - Anti-inflammatory properties and inflammation impact
@@ -22,10 +34,11 @@ export async function generateNutritionalAnalysis(foodDescription: string, mealT
       "fiber": fiber_grams_number,
       "antiInflammatoryScore": 1_to_5_rating,
       "morgellonsFriendly": true_or_false,
-      "critique": "specialized_feedback_about_the_meal_for_morgellons_management_including_specific_benefits_or_concerns"
+      "safetyWarnings": ["array_of_allergy_or_medication_concerns_if_any"],
+      "critique": "specialized_feedback_about_the_meal_for_morgellons_management_including_specific_benefits_or_concerns_plus_safety_notes"
     }
     
-    Focus on Morgellons-specific nutritional considerations, anti-inflammatory properties, and practical dietary guidance for symptom management.
+    Focus on Morgellons-specific nutritional considerations, anti-inflammatory properties, and practical dietary guidance for symptom management. PRIORITIZE SAFETY ABOVE ALL.
   `;
 
   try {
@@ -209,6 +222,15 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     userContext = {}
   } = context;
 
+  // Extract critical safety information
+  const foodAllergies = userContext?.foodAllergies || [];
+  const currentMedications = userContext?.currentMedications || [];
+  const safetyContext = foodAllergies.length > 0 || currentMedications.length > 0 
+    ? `\n    CRITICAL SAFETY INFORMATION:
+    ${foodAllergies.length > 0 ? `- Food Allergies: ${foodAllergies.join(', ')} - NEVER recommend these foods` : ''}
+    ${currentMedications.length > 0 ? `- Current Medications: ${currentMedications.join(', ')} - Consider drug interactions` : ''}` 
+    : '';
+
   // Build conversation context from history
   const recentMessages = conversationHistory.slice(-6).map((msg: any) => 
     `${msg.messageType === 'user' ? 'User' : 'Luna'}: ${msg.content}`
@@ -266,6 +288,7 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     - Food Favorites: ${userContext.foodPreferences?.favorites?.length ? userContext.foodPreferences.favorites.join(', ') : 'None specified'}
     - Smoking: ${userContext.habits?.smoking ? 'Yes' : 'No'}${userContext.smokingDuration ? ` (Duration: ${userContext.smokingDuration}, Frequency: ${userContext.smokingFrequency})` : ''}
     - Alcohol: ${userContext.habits?.alcohol ? 'Yes' : 'No'}${userContext.alcoholDuration ? ` (Duration: ${userContext.alcoholDuration}, Frequency: ${userContext.alcoholFrequency})` : ''}
+    ${safetyContext}
     - Exercise Frequency: ${userContext.habits?.exercise || 'Not specified'}
     - Hobbies: ${userContext.hobbies || 'Not specified'}
     

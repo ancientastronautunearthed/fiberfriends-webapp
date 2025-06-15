@@ -45,6 +45,8 @@ export const users = pgTable("users", {
   hasFibers: boolean("has_fibers").default(false),
   otherDiseases: text("other_diseases").array(),
   foodPreferences: jsonb("food_preferences"), // {dislikes: [], favorites: []}
+  foodAllergies: text("food_allergies").array(), // Critical for Luna's meal planning
+  currentMedications: text("current_medications").array(), // Critical for drug-food interactions
   
   // Enhanced lifestyle habits with detailed smoking/alcohol info
   habits: jsonb("habits"), // {smoking: boolean, alcohol: boolean, exercise: string}
