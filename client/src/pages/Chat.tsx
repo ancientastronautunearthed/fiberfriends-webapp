@@ -36,8 +36,7 @@ interface ChatMessage {
 }
 
 export default function Chat() {
-  const { user, isLoading } = useFirebaseAuth();
-  const isAuthenticated = !!user;
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
