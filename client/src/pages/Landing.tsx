@@ -9,11 +9,18 @@ export default function Landing() {
 
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      console.log("Starting Google sign-in...");
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("Sign-in successful:", result.user);
+      toast({
+        title: "Welcome to Fiber Friends!",
+        description: "You're now signed in and ready to start your health journey.",
+      });
     } catch (error) {
+      console.error("Sign-in error:", error);
       toast({
         title: "Sign in failed",
-        description: "Please try again or contact support if the issue persists.",
+        description: String(error) || "Please try again or contact support if the issue persists.",
         variant: "destructive",
       });
     }
