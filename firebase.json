@@ -1,28 +1,15 @@
 {
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(js|css)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=31536000"
-          }
-        ]
-      }
-    ]
+  "apphosting": {
+    "source": ".",
+    "environmentVariables": {
+      "VITE_FIREBASE_API_KEY": "${secret:VITE_FIREBASE_API_KEY}",
+      "VITE_FIREBASE_PROJECT_ID": "${secret:VITE_FIREBASE_PROJECT_ID}",
+      "VITE_FIREBASE_APP_ID": "${secret:VITE_FIREBASE_APP_ID}",
+      "GEMINI_API_KEY": "${secret:GEMINI_API_KEY}"
+    },
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "startCommand": "npm start"
   },
   "firestore": {
     "rules": "firestore.rules",

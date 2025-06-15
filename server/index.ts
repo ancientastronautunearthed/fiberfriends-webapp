@@ -37,11 +37,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  console.log("Firebase-only mode: Backend API disabled");
-  console.log("All data operations handled by Firebase/Firestore");
+  console.log("Firebase App Hosting mode: Full-stack application");
+  console.log("API routes enabled for Firebase App Hosting backend");
   
-  // Create minimal server for Vite only - no API routes
-  const server = createServer(app);
+  // Import and register Firebase App Hosting routes
+  const { registerRoutes } = await import("./firebaseRoutes");
+  const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

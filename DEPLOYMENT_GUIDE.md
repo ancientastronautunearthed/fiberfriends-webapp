@@ -1,14 +1,15 @@
-# Fiber Friends - Firebase Hosting Deployment Guide
+# Fiber Friends - Firebase App Hosting Deployment Guide
 
 ## Overview
-This application is fully self-contained and runs entirely on Firebase services. Ready for Firebase Hosting deployment.
+This application is configured for Firebase App Hosting, which supports both frontend and backend in a single deployment.
 
 ## Firebase Architecture
-- **Frontend**: React/Vite static files on Firebase Hosting
+- **Frontend**: React/Vite client on Firebase App Hosting
+- **Backend**: Express.js server with AI endpoints on Firebase App Hosting
 - **Authentication**: Firebase Auth with Google Sign-in
 - **Database**: Cloud Firestore
+- **AI Services**: Gemini AI integration for health insights
 - **Security**: Firestore security rules
-- **Configuration**: Firebase config files included
 
 ## Prerequisites
 1. Firebase CLI installed: `npm install -g firebase-tools`
@@ -26,47 +27,45 @@ VITE_FIREBASE_APP_ID=your_firebase_app_id
 
 ## Deployment Steps
 
-### 1. Initialize Firebase (one-time setup)
-```bash
-firebase login
-firebase init
-```
-Select:
-- Hosting: Configure files for Firebase Hosting
-- Firestore: Configure security rules and indexes files
+### 1. Create Backend in Firebase Console
+1. Go to Firebase Console → App Hosting
+2. Click "Create backend"
+3. Connect your GitHub repository
+4. Configure build settings:
+   - Build command: `npm run build`
+   - Output directory: `dist`
+   - Start command: `npm start`
 
-### 2. Build the Application
+### 2. Configure Environment Variables
+In Firebase Console → App Hosting → Your backend → Environment variables:
+Add these secrets:
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_PROJECT_ID` 
+- `VITE_FIREBASE_APP_ID`
+- `GEMINI_API_KEY`
+
+### 3. Deploy Backend
 ```bash
-npm run build
+firebase apphosting:backends:create
 ```
 
-### 3. Deploy to Firebase Hosting
-```bash
-firebase deploy
-```
-
-This will deploy:
-- Static files to Firebase Hosting
-- Firestore security rules
-- Firestore indexes
+Or use the Firebase Console to trigger deployment from your connected repository.
 
 ### 4. Configure Authentication Domains
+Your app will be deployed to a Firebase App Hosting URL like:
+`https://your-backend-id--your-project-id.web.app`
+
 In Firebase Console → Authentication → Settings → Authorized domains:
-Add your Firebase Hosting domain:
-```
-your-project-id.web.app
-your-project-id.firebaseapp.com
-```
+Add your App Hosting domain
 
 In Google Cloud Console → APIs & Services → Credentials:
 Add to OAuth 2.0 client:
-- **Authorized JavaScript origins**: `https://your-project-id.web.app`
-- **Authorized redirect URIs**: `https://your-project-id.web.app/__/auth/handler`
+- **Authorized JavaScript origins**: Your App Hosting URL
+- **Authorized redirect URIs**: `https://your-app-url/__/auth/handler`
 
 ## Production URL
 Your app will be available at:
-- `https://your-project-id.web.app`
-- `https://your-project-id.firebaseapp.com`
+- `https://your-backend-id--your-project-id.web.app`
 
 ## Custom Domain (Optional)
 1. In Firebase Console → Hosting → Add custom domain
@@ -79,11 +78,13 @@ Your app will be available at:
 - `firestore.indexes.json` - Database indexes
 - Build output in `dist/` folder
 
-## Independent Operation Verified
-✅ No server dependencies - purely static hosting
-✅ No external databases - uses Cloud Firestore
-✅ No API endpoints - uses Firebase SDK directly
-✅ Authentication via Firebase Auth
+## Firebase App Hosting Features
+✅ Full-stack application with Express.js backend
+✅ AI-powered health insights via Gemini API
+✅ Real-time data operations with Cloud Firestore
+✅ Secure authentication via Firebase Auth
+✅ Server-side API endpoints for advanced functionality
+✅ Environment variable management for secrets
 ✅ Complete Firebase ecosystem integration
 
-The application is now completely independent and ready for Firebase Hosting deployment.
+The application is now configured for Firebase App Hosting deployment with both frontend and backend capabilities.
