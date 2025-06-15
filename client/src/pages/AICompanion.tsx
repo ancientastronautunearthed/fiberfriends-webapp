@@ -259,7 +259,7 @@ export default function AICompanion() {
           focusAreas: companion?.focusAreas || ["symptom management", "emotional support"]
         },
         userContext
-      });
+      }, user?.uid || "");
 
       // Handle structured response format
       const responseContent = typeof aiResponse === 'object' && aiResponse.response 
