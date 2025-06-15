@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, Brain, Zap, Moon } from "lucide-react";
 import { useLocation } from "wouter";
@@ -50,7 +50,7 @@ export default function DailySymptomPrompt() {
       setIsSubmitting(true);
 
       // Submit daily symptom log
-      const symptomLogData = await apiRequest("POST", "/api/daily-symptom-log", {
+      const response = await apiRequest("POST", "/api/daily-symptom-log", {
         symptoms: selectedSymptoms,
         mood: mood[0],
         energy: energy[0],
@@ -59,7 +59,13 @@ export default function DailySymptomPrompt() {
         notes
       });
 
+      const symptomLogData = await response.json();
+
       if (symptomLogData?.success) {
+        // Invalidate queries to refresh the daily symptom check status
+        await queryClient.invalidateQueries({ queryKey: ["/api/daily-symptom-check"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
         toast({
           title: "Symptom Log Submitted",
           description: "Your daily symptoms have been recorded successfully.",
@@ -80,23 +86,22 @@ export default function DailySymptomPrompt() {
             }
           });
 
-          // Navigate to AI Companion with generated tasks
-          setLocation("/ai-companion");
-          
           toast({
             title: "Daily Tasks Generated",
             description: "Luna has prepared your personalized daily activities.",
           });
         } catch (taskError) {
           console.error("Error generating tasks:", taskError);
-          // Still navigate to AI companion even if task generation fails
-          setLocation("/ai-companion");
-          
           toast({
             title: "Daily Tasks",
             description: "Your symptom log is complete. Luna is ready to chat!",
           });
         }
+
+        // Navigate to AI Companion after everything is complete
+        setTimeout(() => {
+          setLocation("/ai-companion");
+        }, 500); // Small delay to ensure state updates propagate
       }
     } catch (error) {
       console.error("Error submitting symptom log:", error);

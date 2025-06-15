@@ -8,8 +8,8 @@ export function useDailySymptomCheck() {
 
   return {
     needsSymptomLog: data?.needsSymptomLog || false,
-    lastSubmission: data?.lastSubmission,
-    today: data?.today,
+    lastSubmission: data?.lastSubmission || null,
+    today: data?.today || null,
     isLoading
   };
 }
