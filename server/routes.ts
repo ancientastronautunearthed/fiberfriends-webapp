@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
 import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema, insertChallengeSchema, insertUserChallengeSchema } from "@shared/schema";
 import { 
@@ -19,13 +19,94 @@ import { recommendationEngine } from "./recommendationEngine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupFirebaseAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      
+      // Create dev user if doesn't exist
+      if (!user && userId === 'dev-user-123') {
+        user = await storage.upsertUser({
+          id: 'dev-user-123',
+          email: 'dev@example.com',
+          firstName: 'Dev',
+          lastName: 'User',
+          profileImageUrl: null,
+          points: 150,
+          trophyCase: ['early_adopter'],
+          height: null,
+          weight: null,
+          age: null,
+          gender: null,
+          location: null,
+          diagnosisStatus: null,
+          misdiagnoses: [],
+          diagnosisTimeline: null,
+          hasFibers: false,
+          otherDiseases: [],
+          foodPreferences: null,
+          habits: null,
+          hobbies: null
+        });
+
+        // Create some sample challenges
+        const sampleChallenges = [
+          {
+            id: crypto.randomUUID(),
+            title: "Morning Symptom Check",
+            description: "Track your symptoms for 3 consecutive mornings",
+            category: "health",
+            type: "daily",
+            difficulty: "easy",
+            points: 10,
+            requirements: { consecutive_days: 3, time_of_day: "morning" },
+            timeLimit: 72,
+            isActive: true
+          },
+          {
+            id: crypto.randomUUID(),
+            title: "Hydration Hero",
+            description: "Drink 8 glasses of water daily for a week",
+            category: "health",
+            type: "weekly",
+            difficulty: "medium",
+            points: 25,
+            requirements: { daily_glasses: 8, duration_days: 7 },
+            timeLimit: 168,
+            isActive: true
+          },
+          {
+            id: crypto.randomUUID(),
+            title: "Mindful Moments",
+            description: "Practice 5 minutes of mindfulness daily",
+            category: "mindfulness",
+            type: "personalized",
+            difficulty: "easy",
+            points: 15,
+            requirements: { daily_minutes: 5, technique: "breathing" },
+            timeLimit: 24,
+            isActive: true
+          }
+        ];
+
+        for (const challenge of sampleChallenges) {
+          await storage.createChallenge(challenge);
+        }
+
+        // Create sample user challenges
+        await storage.assignChallengeToUser({
+          id: crypto.randomUUID(),
+          userId: 'dev-user-123',
+          challengeId: sampleChallenges[0].id,
+          status: 'completed',
+          progress: { days_completed: 3, total_days: 3 },
+          pointsEarned: 10
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
