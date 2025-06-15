@@ -13,6 +13,7 @@ import {
   userChallenges,
   userAchievements,
   leaderboards,
+  challengeCreationLimits,
   type User, 
   type UpsertUser,
   type AiCompanion,
@@ -40,7 +41,9 @@ import {
   type UserAchievement,
   type InsertUserAchievement,
   type Leaderboard,
-  type InsertLeaderboard
+  type InsertLeaderboard,
+  type ChallengeCreationLimit,
+  type InsertChallengeCreationLimit
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, inArray } from "drizzle-orm";
@@ -626,6 +629,55 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updatedUser;
+  }
+
+  // Challenge creation rate limiting
+  async getChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit | undefined> {
+    const [limit] = await db
+      .select()
+      .from(challengeCreationLimits)
+      .where(and(
+        eq(challengeCreationLimits.userId, userId),
+        eq(challengeCreationLimits.date, date)
+      ));
+    return limit;
+  }
+
+  async updateChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit> {
+    const existing = await this.getChallengeCreationLimit(userId, date);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(challengeCreationLimits)
+        .set({
+          challengesCreated: existing.challengesCreated + 1,
+          lastCreatedAt: new Date()
+        })
+        .where(eq(challengeCreationLimits.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(challengeCreationLimits)
+        .values({
+          id: crypto.randomUUID(),
+          userId,
+          date,
+          challengesCreated: 1,
+          lastCreatedAt: new Date()
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async canCreateChallenge(userId: string): Promise<boolean> {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const limit = await this.getChallengeCreationLimit(userId, today);
+    
+    // Allow 3 challenges per day
+    const DAILY_LIMIT = 3;
+    return !limit || limit.challengesCreated < DAILY_LIMIT;
   }
 }
 
