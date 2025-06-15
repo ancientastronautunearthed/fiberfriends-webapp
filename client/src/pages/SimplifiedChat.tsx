@@ -25,6 +25,14 @@ interface ChatMessage {
 
 export default function SimplifiedChat() {
   const { user } = useFirebaseAuth();
+  // Use test user for chat functionality
+  const testUser = user || { 
+    id: 'test-user', 
+    firstName: 'Test', 
+    lastName: 'User',
+    email: 'test@example.com'
+  };
+  
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
 
@@ -75,7 +83,7 @@ export default function SimplifiedChat() {
     const message: ChatMessage = {
       id: Date.now().toString(),
       content: newMessage.trim(),
-      authorName: user?.firstName || user?.email || 'You',
+      authorName: testUser?.firstName || testUser?.email || 'You',
       timestamp: new Date().toLocaleTimeString()
     };
     
@@ -88,17 +96,7 @@ export default function SimplifiedChat() {
     return room?.name || 'Select a room';
   };
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <MessageCircle className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-          <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>
-          <p className="text-slate-600">You need to be signed in to access the chat.</p>
-        </div>
-      </div>
-    );
-  }
+  // Chat is now accessible without authentication for testing
 
   return (
     <div className="space-y-6">
