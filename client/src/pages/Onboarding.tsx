@@ -246,20 +246,28 @@ export default function Onboarding() {
       const profileData = {
         firstName: data.firstName,
         lastName: data.lastName,
+        dateOfBirth: data.dateOfBirth,
         age: data.age,
         gender: data.gender,
         height: data.height,
         weight: data.weight,
         location: data.location,
+        
+        // Employment Information
+        isEmployed: data.isEmployed,
+        workHours: data.workHours,
+        incomeLevel: data.incomeLevel,
+        
         diagnosisStatus: data.diagnosisStatus,
         misdiagnoses: data.misdiagnoses || [],
         diagnosisTimeline: data.diagnosisTimeline,
         hasFibers: data.hasFibers,
         otherDiseases: data.otherDiseases || [],
-        foodPreferences: {
-          dislikes: data.foodDislikes || [],
-          favorites: data.foodFavorites || [],
-        },
+        
+        // Enhanced Food Preferences
+        foodDislikes: [...(data.foodDislikes || []), ...(data.customFoodDislikes ? [data.customFoodDislikes] : [])],
+        foodFavorites: [...(data.foodFavorites || []), ...(data.customFoodFavorites ? [data.customFoodFavorites] : [])],
+        foodAllergies: data.foodAllergies || [],
         habits: {
           smoking: data.smokingHabit,
           alcohol: data.alcoholHabit,
