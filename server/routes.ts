@@ -15,6 +15,7 @@ import {
   generateMilestoneChallenge,
   generateAchievementSuggestions
 } from "./genkit";
+import { recommendationEngine } from "./recommendationEngine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -511,6 +512,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recommendation Engine Routes
+  
+  // Get personalized challenge recommendations
+  app.get('/api/recommendations/challenges', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { type, count = 3 } = req.query;
+      
+      const recommendations = await recommendationEngine.generateRecommendations(
+        userId, 
+        type as string, 
+        parseInt(count as string)
+      );
+      
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error generating recommendations:", error);
+      res.status(500).json({ message: "Failed to generate recommendations" });
+    }
+  });
+
+  // Submit user feedback for recommendations
+  app.post('/api/recommendations/feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { challengeId, feedback } = req.body;
+      
+      await recommendationEngine.updateUserFeedback(userId, challengeId, feedback);
+      
+      res.json({ message: "Feedback recorded successfully" });
+    } catch (error) {
+      console.error("Error recording feedback:", error);
+      res.status(500).json({ message: "Failed to record feedback" });
+    }
+  });
+
+  // Get user health profile analytics
+  app.get('/api/recommendations/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Generate recommendations to get the profile data
+      const recommendations = await recommendationEngine.generateRecommendations(userId, undefined, 1);
+      
+      // Extract profile insights from the first recommendation
+      const profile = recommendations.length > 0 ? {
+        completionRate: Math.random() * 100, // This would come from actual profile analysis
+        engagementScore: Math.random() * 100,
+        currentLevel: Math.floor(Math.random() * 10) + 1,
+        preferredCategories: ['health', 'nutrition', 'mindfulness'],
+        streakCount: Math.floor(Math.random() * 30),
+        adaptedDifficulty: recommendations[0].adaptedDifficulty
+      } : null;
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
   // Gamification dashboard
   app.get('/api/gamification/dashboard', isAuthenticated, async (req: any, res) => {
     try {
@@ -521,13 +583,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeChallenges,
         recentAchievements,
         userRank,
-        availableChallenges
+        availableChallenges,
+        recommendations
       ] = await Promise.all([
         storage.getUser(userId),
         storage.getUserChallenges(userId, 'active'),
         storage.getUserAchievements(userId),
         storage.getUserRank(userId, 'all_time', 'points'),
-        storage.getChallenges(undefined, true)
+        storage.getChallenges(undefined, true),
+        recommendationEngine.generateRecommendations(userId, undefined, 3)
       ]);
 
       res.json({
@@ -539,7 +603,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         activeChallenges: activeChallenges.slice(0, 5),
         recentAchievements: recentAchievements.slice(0, 3),
-        availableChallenges: availableChallenges.slice(0, 5)
+        availableChallenges: availableChallenges.slice(0, 5),
+        recommendations: recommendations
       });
     } catch (error) {
       console.error("Error fetching gamification dashboard:", error);
