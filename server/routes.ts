@@ -146,14 +146,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create symptom log entry
       const symptomLog = await storage.createSymptomWheelEntry({
         userId,
-        date: new Date().toISOString().split('T')[0],
-        symptoms: symptoms || [],
-        mood: mood || 5,
-        energy: energy || 5,
-        pain: pain || 5,
-        sleep: sleep || 5,
-        notes: notes || '',
-        isDailyLog: true
+        entryDate: new Date(),
+        symptomData: {
+          symptoms: symptoms || [],
+          mood: mood || 5,
+          energy: energy || 5,
+          pain: pain || 5,
+          sleep: sleep || 5,
+          notes: notes || '',
+          isDailyLog: true
+        },
+        totalSymptoms: symptoms ? symptoms.length : 0,
+        averageIntensity: Math.round(((mood || 5) + (energy || 5) + (10 - (pain || 5)) + (sleep || 5)) / 4),
+        moodScore: mood || 5,
+        notes: notes || ''
       });
 
       // Update user's last daily symptom log date
@@ -162,9 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Award points for daily symptom log
-      await pointsSystem.awardPoints(userId, 'daily_symptom_log', {
-        date: new Date().toISOString().split('T')[0]
-      });
+      await pointsSystem.awardPoints(userId, 'daily_symptom_log');
 
       res.json({
         success: true,

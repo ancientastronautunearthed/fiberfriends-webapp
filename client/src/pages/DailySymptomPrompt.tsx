@@ -50,7 +50,7 @@ export default function DailySymptomPrompt() {
       setIsSubmitting(true);
 
       // Submit daily symptom log
-      const symptomLogResponse = await apiRequest("POST", "/api/daily-symptom-log", {
+      const symptomLogData = await apiRequest("POST", "/api/daily-symptom-log", {
         symptoms: selectedSymptoms,
         mood: mood[0],
         energy: energy[0],
@@ -59,7 +59,7 @@ export default function DailySymptomPrompt() {
         notes
       });
 
-      if (symptomLogResponse.success) {
+      if (symptomLogData?.success) {
         toast({
           title: "Symptom Log Submitted",
           description: "Your daily symptoms have been recorded successfully.",
@@ -68,24 +68,35 @@ export default function DailySymptomPrompt() {
         // Generate daily tasks based on symptom data
         setIsGeneratingTasks(true);
         
-        const tasksResponse = await apiRequest("POST", "/api/generate-daily-tasks", {
-          symptomData: {
-            symptoms: selectedSymptoms,
-            mood: mood[0],
-            energy: energy[0],
-            pain: pain[0],
-            sleep: sleep[0],
-            notes
-          }
-        });
+        try {
+          const tasksResponse = await apiRequest("POST", "/api/generate-daily-tasks", {
+            symptomData: {
+              symptoms: selectedSymptoms,
+              mood: mood[0],
+              energy: energy[0],
+              pain: pain[0],
+              sleep: sleep[0],
+              notes
+            }
+          });
 
-        // Navigate to AI Companion with generated tasks
-        setLocation("/ai-companion");
-        
-        toast({
-          title: "Daily Tasks Generated",
-          description: "Luna has prepared your personalized daily activities.",
-        });
+          // Navigate to AI Companion with generated tasks
+          setLocation("/ai-companion");
+          
+          toast({
+            title: "Daily Tasks Generated",
+            description: "Luna has prepared your personalized daily activities.",
+          });
+        } catch (taskError) {
+          console.error("Error generating tasks:", taskError);
+          // Still navigate to AI companion even if task generation fails
+          setLocation("/ai-companion");
+          
+          toast({
+            title: "Daily Tasks",
+            description: "Your symptom log is complete. Luna is ready to chat!",
+          });
+        }
       }
     } catch (error) {
       console.error("Error submitting symptom log:", error);

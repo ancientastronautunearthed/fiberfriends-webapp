@@ -4,10 +4,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useDailySymptomCheck } from "@/hooks/useDailySymptomCheck";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
 import LunaCreation from "@/pages/LunaCreation";
 import Dashboard from "@/pages/Dashboard";
+import DailySymptomPrompt from "@/pages/DailySymptomPrompt";
 import SymptomTracker from "@/pages/SymptomTracker";
 import SymptomWheel from "@/pages/SymptomWheel";
 import SymptomPatterns from "@/pages/SymptomPatterns";
@@ -27,8 +29,9 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  const { needsSymptomLog, isLoading: isCheckingSymptomLog } = useDailySymptomCheck();
 
-  if (isLoading) {
+  if (isLoading || isCheckingSymptomLog) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -51,11 +54,22 @@ function Router() {
     return <Onboarding />;
   }
 
-  // Show main app for authenticated users with completed profiles
+  // Show daily symptom prompt for users who haven't logged symptoms today
+  if (user && user.onboardingCompleted && needsSymptomLog) {
+    return (
+      <Switch>
+        <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
+        <Route component={DailySymptomPrompt} />
+      </Switch>
+    );
+  }
+
+  // Show main app for authenticated users with completed profiles who have logged symptoms today
   return (
     <Switch>
       <Layout>
         <Route path="/" component={AICompanion} />
+        <Route path="/ai-companion" component={AICompanion} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/tracking" component={SymptomTracker} />
         <Route path="/symptom-wheel" component={SymptomWheel} />
@@ -71,6 +85,7 @@ function Router() {
         <Route path="/activities" component={HealthyActivities} />
         <Route path="/profile" component={UserProfile} />
         <Route path="/test-luna" component={TestLuna} />
+        <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
       </Layout>
       <Route component={NotFound} />
     </Switch>
