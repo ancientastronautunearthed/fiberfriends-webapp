@@ -47,9 +47,38 @@ export default function Landing() {
             <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
               Track symptoms, log nutrition, connect with community, and get AI-powered insights for your Morgellons Disease management journey.
             </p>
-            <Button onClick={handleLogin} size="lg" className="px-8 py-4 text-lg">
-              Get Started Today
-            </Button>
+            <div className="space-y-4">
+              <Button onClick={handleLogin} size="lg" className="px-8 py-4 text-lg">
+                Get Started Today
+              </Button>
+              <div className="text-center">
+                <Button 
+                  onClick={() => {
+                    // Create test user session
+                    localStorage.setItem('test-mode', 'true');
+                    localStorage.setItem('test-user', JSON.stringify({
+                      id: "test-user",
+                      email: "demo@fiberfriendsapp.com",
+                      firstName: "Demo",
+                      lastName: "User",
+                      profileImageUrl: null,
+                      onboardingCompleted: true,
+                      points: 150,
+                      totalPoints: 150,
+                      currentTier: "Explorer",
+                      streakDays: 5,
+                      longestStreak: 10,
+                      location: "San Francisco, CA"
+                    }));
+                    window.location.reload();
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  Demo Mode (No Sign-in Required)
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Features Grid */}

@@ -15,6 +15,23 @@ export function useFirebaseAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Check for test mode first
+    const testMode = localStorage.getItem('test-mode');
+    const testUserData = localStorage.getItem('test-user');
+    
+    if (testMode === 'true' && testUserData) {
+      try {
+        const testUser = JSON.parse(testUserData);
+        setUser(testUser);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        console.error('Error parsing test user data:', error);
+        localStorage.removeItem('test-mode');
+        localStorage.removeItem('test-user');
+      }
+    }
 
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -101,6 +118,16 @@ export function useFirebaseAuth() {
 
   const signOut = async () => {
     try {
+      // Handle test mode logout
+      if (localStorage.getItem('test-mode') === 'true') {
+        localStorage.removeItem('test-mode');
+        localStorage.removeItem('test-user');
+        setUser(null);
+        setIsAuthenticated(false);
+        window.location.reload();
+        return;
+      }
+      
       await firebaseSignOut(auth);
       setUser(null);
       setIsAuthenticated(false);

@@ -8,13 +8,14 @@ import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Navigation() {
-  const { user } = useFirebaseAuth();
+  const { user, signOut } = useFirebaseAuth();
   const [location] = useLocation();
   const { toast } = useToast();
+  const isTestMode = localStorage.getItem('test-mode') === 'true';
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOut();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
