@@ -37,6 +37,8 @@ const onboardingSchema = z.object({
   // Lifestyle & Preferences
   foodDislikes: z.array(z.string()).optional(),
   foodFavorites: z.array(z.string()).optional(),
+  foodAllergies: z.array(z.string()).optional(),
+  currentMedications: z.array(z.string()).optional(),
   smokingHabit: z.boolean(),
   smokingDuration: z.string().optional(), // How long they've smoked
   smokingFrequency: z.string().optional(), // How often they smoke
@@ -86,6 +88,8 @@ export default function Onboarding() {
   const [commonDiseases, setCommonDiseases] = useState<string[]>([]);
   const [foodDislikes, setFoodDislikes] = useState<string[]>([]);
   const [foodFavorites, setFoodFavorites] = useState<string[]>([]);
+  const [foodAllergies, setFoodAllergies] = useState<string[]>([]);
+  const [currentMedications, setCurrentMedications] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -225,30 +229,51 @@ export default function Onboarding() {
     form.setValue("otherDiseases", updated);
   };
 
-  const addFoodItem = (item: string, type: 'dislikes' | 'favorites') => {
+  const addFoodItem = (item: string, type: 'dislikes' | 'favorites' | 'allergies') => {
     if (!item) return;
     
     if (type === 'dislikes') {
       const updated = [...foodDislikes, item];
       setFoodDislikes(updated);
       form.setValue("foodDislikes", updated);
-    } else {
+    } else if (type === 'favorites') {
       const updated = [...foodFavorites, item];
       setFoodFavorites(updated);
       form.setValue("foodFavorites", updated);
+    } else if (type === 'allergies') {
+      const updated = [...foodAllergies, item];
+      setFoodAllergies(updated);
+      form.setValue("foodAllergies", updated);
     }
   };
 
-  const removeFoodItem = (item: string, type: 'dislikes' | 'favorites') => {
+  const removeFoodItem = (item: string, type: 'dislikes' | 'favorites' | 'allergies') => {
     if (type === 'dislikes') {
       const updated = foodDislikes.filter(f => f !== item);
       setFoodDislikes(updated);
       form.setValue("foodDislikes", updated);
-    } else {
+    } else if (type === 'favorites') {
       const updated = foodFavorites.filter(f => f !== item);
       setFoodFavorites(updated);
       form.setValue("foodFavorites", updated);
+    } else if (type === 'allergies') {
+      const updated = foodAllergies.filter(a => a !== item);
+      setFoodAllergies(updated);
+      form.setValue("foodAllergies", updated);
     }
+  };
+
+  const addMedication = (medication: string) => {
+    if (!medication) return;
+    const updated = [...currentMedications, medication];
+    setCurrentMedications(updated);
+    form.setValue("currentMedications", updated);
+  };
+
+  const removeMedication = (medication: string) => {
+    const updated = currentMedications.filter(m => m !== medication);
+    setCurrentMedications(updated);
+    form.setValue("currentMedications", updated);
   };
 
   return (
@@ -587,6 +612,96 @@ export default function Onboarding() {
                             type="button"
                             onClick={() => removeFoodItem(food, 'favorites')}
                             className="text-green-600 hover:text-green-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Food Allergies - Critical for meal planning */}
+                  <div>
+                    <Label>Food Allergies (Critical for Luna's meal planning)</Label>
+                    <p className="text-sm text-red-600 mb-2">Important: List any foods that cause allergic reactions</p>
+                    <div className="flex gap-2 mb-2">
+                      <Input 
+                        placeholder="Enter a food allergy..." 
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addFoodItem((e.target as HTMLInputElement).value, 'allergies');
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addFoodItem(input.value, 'allergies');
+                          input.value = '';
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {foodAllergies.map((food) => (
+                        <span 
+                          key={food}
+                          className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                        >
+                          {food}
+                          <button 
+                            type="button"
+                            onClick={() => removeFoodItem(food, 'allergies')}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Current Medications - Critical for meal planning interactions */}
+                  <div>
+                    <Label>Current Medications (Critical for meal planning)</Label>
+                    <p className="text-sm text-blue-600 mb-2">Include all medications, supplements, and vitamins - Luna will consider drug-food interactions</p>
+                    <div className="flex gap-2 mb-2">
+                      <Input 
+                        placeholder="Enter medication name..." 
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addMedication((e.target as HTMLInputElement).value);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addMedication(input.value);
+                          input.value = '';
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {currentMedications.map((medication) => (
+                        <span 
+                          key={medication}
+                          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                        >
+                          {medication}
+                          <button 
+                            type="button"
+                            onClick={() => removeMedication(medication)}
+                            className="text-blue-600 hover:text-blue-800"
                           >
                             ×
                           </button>
