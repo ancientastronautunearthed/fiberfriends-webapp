@@ -6,6 +6,41 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, User, Send, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { generateAICompanionResponse } from "@/lib/api";
+
+// TypeScript declarations for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+declare var SpeechRecognition: {
+  prototype: SpeechRecognition;
+  new(): SpeechRecognition;
+};
 
 export default function AICompanion() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -15,7 +50,7 @@ export default function AICompanion() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const [messages, setMessages] = useState([
     {
@@ -53,12 +88,123 @@ export default function AICompanion() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
+  // Initialize speech recognition and synthesis
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Initialize Speech Recognition
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+        
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setMessage(transcript);
+          setIsListening(false);
+        };
+        
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          toast({
+            title: "Voice Recognition Error",
+            description: "Unable to capture voice input. Please try again.",
+            variant: "destructive",
+          });
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognitionRef.current = recognition;
+      }
+      
+      // Initialize Speech Synthesis
+      if (window.speechSynthesis) {
+        synthesisRef.current = window.speechSynthesis;
+      }
+    }
+  }, [toast]);
+
+  // Voice interaction functions
+  const speakText = (text: string) => {
+    if (!voiceEnabled || !synthesisRef.current) return;
+    
+    synthesisRef.current.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    utterance.volume = 0.8;
+    
+    const voices = synthesisRef.current.getVoices();
+    const femaleVoice = voices.find(voice => 
+      voice.name.toLowerCase().includes('female') || 
+      voice.name.toLowerCase().includes('woman') ||
+      voice.name.toLowerCase().includes('sarah') ||
+      voice.name.toLowerCase().includes('samantha')
+    );
+    
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    synthesisRef.current.speak(utterance);
+  };
+
+  const startListening = () => {
+    if (!recognitionRef.current) {
+      toast({
+        title: "Voice Recognition Unavailable",
+        description: "Your browser doesn't support voice recognition.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      recognitionRef.current.start();
+    } catch (error) {
+      console.error('Failed to start recognition:', error);
+      toast({
+        title: "Voice Recognition Error",
+        description: "Unable to start voice recognition. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  };
+
+  const toggleVoice = () => {
+    setVoiceEnabled(!voiceEnabled);
+    if (isSpeaking && synthesisRef.current) {
+      synthesisRef.current.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
   const { data: companion } = useQuery({
     queryKey: ["/api/ai-companion"],
     enabled: isAuthenticated,
   });
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) return;
 
     const userMessage = {
@@ -69,31 +215,44 @@ export default function AICompanion() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = message;
     setMessage("");
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponses = [
-        "I understand what you're going through. It's important to track these patterns and celebrate the small victories. Would you like to discuss any specific symptoms you're experiencing today?",
-        "That's a great observation! Maintaining consistency with your routine seems to be helping. How has your nutrition been lately?",
-        "Thank you for sharing that with me. Remember that progress isn't always linear, and it's okay to have ups and downs. What matters is that you're taking active steps to manage your health.",
-        "I'm here to support you on this journey. Based on your recent logs, I can see you're making thoughtful choices about your health. Is there anything specific you'd like to focus on this week?",
-      ];
+    try {
+      // Generate AI response using Gemini
+      const aiResponse = await generateAICompanionResponse(currentMessage, {
+        recentMessages: messages.slice(-3),
+        companionName: "Luna"
+      });
 
       const aiMessage = {
         id: messages.length + 2,
         type: "ai" as const,
-        content: aiResponses[Math.floor(Math.random() * aiResponses.length)],
+        content: aiResponse,
         timestamp: new Date().toISOString(),
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    }, 1500);
-
-    toast({
-      title: "Message sent!",
-      description: "Luna is thinking of a response...",
-    });
+      
+      // Speak the AI response if voice is enabled
+      if (voiceEnabled) {
+        speakText(aiResponse);
+      }
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      const fallbackMessage = {
+        id: messages.length + 2,
+        type: "ai" as const,
+        content: "I'm here to support you. Sometimes I have trouble connecting, but I'm always listening when you need to talk. How are you feeling right now?",
+        timestamp: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, fallbackMessage]);
+      
+      if (voiceEnabled) {
+        speakText(fallbackMessage.content);
+      }
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -161,21 +320,61 @@ export default function AICompanion() {
 
         {/* Message Input */}
         <div className="border-t border-slate-200 p-6">
+          {/* Voice Controls */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={isListening ? "destructive" : "outline"}
+              size="sm"
+              onClick={isListening ? stopListening : startListening}
+              disabled={isSpeaking}
+              className="flex items-center gap-2"
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              {isListening ? "Stop Listening" : "Voice Input"}
+            </Button>
+            
+            <Button
+              variant={voiceEnabled ? "outline" : "secondary"}
+              size="sm"
+              onClick={toggleVoice}
+              className="flex items-center gap-2"
+            >
+              {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {voiceEnabled ? "Voice On" : "Voice Off"}
+            </Button>
+            
+            {isSpeaking && (
+              <div className="flex items-center gap-2 text-sm text-purple-600">
+                <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></div>
+                Luna is speaking...
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3">
             <Input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
+              placeholder={isListening ? "Listening..." : "Type your message or use voice input..."}
               className="flex-1"
+              disabled={isListening}
             />
-            <Button onClick={handleSendMessage} disabled={!message.trim()}>
+            <Button onClick={handleSendMessage} disabled={!message.trim() || isListening}>
               <Send className="w-4 h-4" />
             </Button>
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            {companionName} is designed to provide supportive conversation and insights, not medical advice.
-          </p>
+          
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-slate-500">
+              {companionName} is designed to provide supportive conversation and insights, not medical advice.
+            </p>
+            {isListening && (
+              <p className="text-xs text-purple-600 font-medium">
+                Speak now...
+              </p>
+            )}
+          </div>
         </div>
       </Card>
     </div>
