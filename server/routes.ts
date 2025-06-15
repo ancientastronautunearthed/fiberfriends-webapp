@@ -17,6 +17,7 @@ import {
 } from "./genkit";
 import { recommendationEngine } from "./recommendationEngine";
 import { pointsSystem } from "./pointsSystem";
+import { generateLunaPersonality, type LunaPersonality } from "./lunaGenerator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -1008,6 +1009,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching gamification dashboard:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Luna Generation Routes
+  
+  // Generate Luna personality and image
+  app.post('/api/luna/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { personality } = req.body;
+      
+      const generatedLuna = await generateLunaPersonality(personality);
+      
+      // Award points for creating Luna
+      await pointsSystem.awardPoints(userId, 'AI_COMPANION_CREATE', 'Created personalized Luna companion');
+      
+      res.json(generatedLuna);
+    } catch (error) {
+      console.error("Error generating Luna:", error);
+      res.status(500).json({ message: "Failed to generate Luna companion" });
+    }
+  });
+
+  // Preview Luna with partial choices
+  app.post('/api/luna/preview', async (req, res) => {
+    try {
+      const { personality } = req.body;
+      
+      // Generate just the image preview for quick feedback
+      const imageUrl = await generateLunaImage(personality);
+      
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error("Error generating Luna preview:", error);
+      res.status(500).json({ message: "Failed to generate Luna preview" });
     }
   });
 
