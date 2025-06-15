@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from './useAuth';
+import { useFirebaseAuth } from './useFirebaseAuth';
 
 interface WebSocketMessage {
   type: string;
@@ -19,7 +19,8 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { user } = useFirebaseAuth();
+  const isAuthenticated = !!user;
 
   const connect = useCallback(() => {
     if (!isAuthenticated) {

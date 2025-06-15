@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,11 +12,8 @@ import {
   MessageCircle, 
   Send, 
   Users, 
-  Plus,
-  Wifi,
-  WifiOff
+  Plus
 } from 'lucide-react';
-import { isUnauthorizedError } from '@/lib/authUtils';
 
 interface ChatRoom {
   id: string;
@@ -41,7 +36,8 @@ interface ChatMessage {
 }
 
 export default function Chat() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useFirebaseAuth();
+  const isAuthenticated = !!user;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
@@ -54,17 +50,11 @@ export default function Chat() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
+      // Redirect to login for now
+      window.location.href = "/";
       return;
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading]);
 
   // Fetch chat rooms
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<ChatRoom[]>({
