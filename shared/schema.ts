@@ -185,6 +185,17 @@ export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit
   createdAt: true,
 });
 
+export const insertSymptomPatternSchema = createInsertSchema(symptomPatterns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSymptomCorrelationSchema = createInsertSchema(symptomCorrelations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertAiCompanion = z.infer<typeof insertAiCompanionSchema>;
@@ -193,3 +204,7 @@ export type InsertDailyLog = z.infer<typeof insertDailyLogSchema>;
 export type DailyLog = typeof dailyLogs.$inferSelect;
 export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
 export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertSymptomPattern = z.infer<typeof insertSymptomPatternSchema>;
+export type SymptomPattern = typeof symptomPatterns.$inferSelect;
+export type InsertSymptomCorrelation = z.infer<typeof insertSymptomCorrelationSchema>;
+export type SymptomCorrelation = typeof symptomCorrelations.$inferSelect;

@@ -31,6 +31,7 @@ export default function Navigation() {
   const navItems = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/tracking", label: "Tracking", icon: ClipboardCheck },
+    { path: "/patterns", label: "Patterns", icon: TrendingUp },
     { path: "/community", label: "Community", icon: Users },
     { path: "/companion", label: "AI Companion", icon: Bot },
   ];
