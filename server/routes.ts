@@ -16,6 +16,7 @@ import {
   generateAchievementSuggestions
 } from "./genkit";
 import { recommendationEngine } from "./recommendationEngine";
+import { pointsSystem } from "./pointsSystem";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -888,13 +889,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Gamification dashboard
+  // Points System Routes
+  
+  // Award points for specific activity
+  app.post('/api/points/award', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { activityType, description, metadata } = req.body;
+      
+      const pointsEarned = await pointsSystem.awardPoints(userId, activityType, description, metadata);
+      
+      res.json({ 
+        pointsEarned,
+        message: `Earned ${pointsEarned} points for ${activityType}` 
+      });
+    } catch (error) {
+      console.error("Error awarding points:", error);
+      res.status(500).json({ message: "Failed to award points" });
+    }
+  });
+
+  // Get user points summary
+  app.get('/api/points/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const summary = await pointsSystem.getUserPointsSummary(userId);
+      
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching points summary:", error);
+      res.status(500).json({ message: "Failed to fetch points summary" });
+    }
+  });
+
+  // Get recent point activities
+  app.get('/api/points/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const activities = await storage.getRecentPointActivities(userId, limit);
+      
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching point activities:", error);
+      res.status(500).json({ message: "Failed to fetch point activities" });
+    }
+  });
+
+  // Badge Routes
+  
+  // Get user badges
+  app.get('/api/badges/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const badges = await storage.getUserBadges(userId);
+      
+      res.json(badges);
+    } catch (error) {
+      console.error("Error fetching user badges:", error);
+      res.status(500).json({ message: "Failed to fetch user badges" });
+    }
+  });
+
+  // Get available badges to work toward
+  app.get('/api/badges/available', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const availableBadges = await pointsSystem.getAvailableBadges(userId);
+      
+      res.json(availableBadges);
+    } catch (error) {
+      console.error("Error fetching available badges:", error);
+      res.status(500).json({ message: "Failed to fetch available badges" });
+    }
+  });
+
+  // Enhanced gamification dashboard with points system
   app.get('/api/gamification/dashboard', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
       const [
         user,
+        pointsSummary,
         activeChallenges,
         recentAchievements,
         userRank,
@@ -902,6 +980,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recommendations
       ] = await Promise.all([
         storage.getUser(userId),
+        pointsSystem.getUserPointsSummary(userId),
         storage.getUserChallenges(userId, 'active'),
         storage.getUserAchievements(userId),
         storage.getUserRank(userId, 'all_time', 'points'),
@@ -912,10 +991,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         user: {
           points: user?.points || 0,
+          totalPoints: user?.totalPoints || 0,
+          currentTier: user?.currentTier || 'Newcomer',
+          pointsToNextTier: user?.nextTierPoints || 100,
+          streakDays: user?.streakDays || 0,
           rank: userRank,
           totalChallenges: activeChallenges.length,
           totalAchievements: recentAchievements.length
         },
+        pointsSummary,
         activeChallenges: activeChallenges.slice(0, 5),
         recentAchievements: recentAchievements.slice(0, 3),
         availableChallenges: availableChallenges.slice(0, 5),

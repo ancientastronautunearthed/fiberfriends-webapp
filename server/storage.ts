@@ -973,6 +973,117 @@ export class DatabaseStorage implements IStorage {
     const DAILY_LIMIT = 3;
     return !limit || limit.challengesCreated < DAILY_LIMIT;
   }
+
+  // Points System operations
+  async createPointActivity(activity: InsertPointActivity): Promise<PointActivity> {
+    const [created] = await db
+      .insert(pointActivities)
+      .values({
+        id: crypto.randomUUID(),
+        ...activity,
+      })
+      .returning();
+    return created;
+  }
+
+  async getPointActivitiesByType(userId: string, activityType: string): Promise<PointActivity[]> {
+    return await db
+      .select()
+      .from(pointActivities)
+      .where(and(
+        eq(pointActivities.userId, userId),
+        eq(pointActivities.activityType, activityType)
+      ))
+      .orderBy(desc(pointActivities.createdAt));
+  }
+
+  async getRecentPointActivities(userId: string, limit: number): Promise<PointActivity[]> {
+    return await db
+      .select()
+      .from(pointActivities)
+      .where(eq(pointActivities.userId, userId))
+      .orderBy(desc(pointActivities.createdAt))
+      .limit(limit);
+  }
+
+  async getActivityCount(userId: string, activityType: string): Promise<number> {
+    const activities = await this.getPointActivitiesByType(userId, activityType);
+    return activities.length;
+  }
+
+  // Daily Activity operations
+  async getDailyActivity(userId: string, date: string): Promise<DailyActivity | undefined> {
+    const [activity] = await db
+      .select()
+      .from(dailyActivities)
+      .where(and(
+        eq(dailyActivities.userId, userId),
+        eq(dailyActivities.date, date)
+      ));
+    return activity;
+  }
+
+  async createDailyActivity(activity: InsertDailyActivity): Promise<DailyActivity> {
+    const [created] = await db
+      .insert(dailyActivities)
+      .values({
+        id: crypto.randomUUID(),
+        ...activity,
+      })
+      .returning();
+    return created;
+  }
+
+  async updateDailyActivity(id: string, updates: Partial<DailyActivity>): Promise<DailyActivity> {
+    const [updated] = await db
+      .update(dailyActivities)
+      .set({ 
+        ...updates,
+        updatedAt: new Date() 
+      })
+      .where(eq(dailyActivities.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Badge operations
+  async createUserBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
+    const [created] = await db
+      .insert(userBadges)
+      .values({
+        id: crypto.randomUUID(),
+        ...userBadge,
+      })
+      .returning();
+    return created;
+  }
+
+  async getUserBadges(userId: string): Promise<UserBadge[]> {
+    return await db
+      .select()
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId))
+      .orderBy(desc(userBadges.unlockedAt));
+  }
+
+  async hasUserBadge(userId: string, badgeId: string): Promise<boolean> {
+    const [badge] = await db
+      .select()
+      .from(userBadges)
+      .where(and(
+        eq(userBadges.userId, userId),
+        eq(userBadges.badgeId, badgeId)
+      ));
+    return !!badge;
+  }
+
+  async getCommunityLikesReceived(userId: string): Promise<number> {
+    // This would count likes received on user's community posts
+    // For now, return a placeholder count based on posts
+    const posts = await this.getCommunityPosts();
+    const userPosts = posts.filter(p => p.authorId === userId);
+    return userPosts.reduce((total, post) => total + (post.likes || 0), 0);
+  }
 }
 
 export const storage = new DatabaseStorage();
