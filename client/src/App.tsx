@@ -29,7 +29,8 @@ function Router() {
     <Switch>
       <Route path="/landing" component={Landing} />
       <Layout>
-        <Route path="/" component={Dashboard} />
+        <Route path="/" component={AICompanion} />
+        <Route path="/dashboard" component={Dashboard} />
         <Route path="/tracking" component={SymptomTracker} />
         <Route path="/symptom-wheel" component={SymptomWheel} />
         <Route path="/patterns" component={SymptomPatterns} />

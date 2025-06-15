@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, User, Send, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Bot, User, Send, Mic, MicOff, Volume2, VolumeX, Calendar, Heart, Activity, Apple } from "lucide-react";
 import { generateAICompanionResponse, getConversationHistory, getHealthInsights } from "@/lib/api";
 
 // TypeScript declarations for Web Speech API
@@ -88,11 +88,11 @@ export default function AICompanion() {
       }));
       setMessages(formattedMessages);
     } else if (!historyLoading && (!conversationHistory || conversationHistory.length === 0)) {
-      // Initialize with welcome message if no history
+      // Initialize with proactive welcome message offering daily overview
       setMessages([{
         id: 1,
         type: "ai" as const,
-        content: "Hello! I'm Luna, your AI health companion. I'm here to support you on your Morgellons journey. How are you feeling today?",
+        content: "Good morning! I'm Luna, your AI health companion with specialized knowledge in Morgellons disease management. I'm here to support you on your health journey.\n\nWould you like me to provide your daily task overview, or is there something specific you'd like to discuss about your symptoms, diet, or wellbeing today?",
         timestamp: new Date().toISOString(),
       }]);
     }
@@ -314,6 +314,22 @@ export default function AICompanion() {
     }
   };
 
+  const handleQuickAction = async (actionType: string) => {
+    const quickActionMessages = {
+      daily_overview: "Could you provide me with my daily task overview? I'd like to see what I should focus on today for my health journey.",
+      health_checkin: "I'd like to do a health check-in. Can you guide me through how I'm feeling and any symptoms I should track today?",
+      symptom_discussion: "I want to discuss my current symptoms. Can you help me understand patterns and provide insights about what I'm experiencing?",
+      nutrition_tips: "I'm looking for nutrition advice specifically for managing Morgellons symptoms. What anti-inflammatory foods should I focus on today?"
+    };
+
+    const message = quickActionMessages[actionType as keyof typeof quickActionMessages];
+    if (message) {
+      setInput(message);
+      // Auto-send the message
+      await handleSendMessage(message);
+    }
+  };
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -369,6 +385,51 @@ export default function AICompanion() {
             </div>
           ))}
         </div>
+
+        {/* Quick Actions */}
+        {messages.length <= 1 && (
+          <div className="border-t border-slate-200 p-4 bg-slate-50">
+            <p className="text-sm text-slate-600 mb-3">Quick Actions:</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAction("daily_overview")}
+                className="flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Daily Task Overview
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAction("health_checkin")}
+                className="flex items-center gap-2"
+              >
+                <Heart className="w-4 h-4" />
+                Health Check-in
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAction("symptom_discussion")}
+                className="flex items-center gap-2"
+              >
+                <Activity className="w-4 h-4" />
+                Discuss Symptoms
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAction("nutrition_tips")}
+                className="flex items-center gap-2"
+              >
+                <Apple className="w-4 h-4" />
+                Nutrition Tips
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Message Input */}
         <div className="border-t border-slate-200 p-6">

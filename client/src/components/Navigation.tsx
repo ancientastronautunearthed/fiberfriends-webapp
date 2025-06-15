@@ -29,7 +29,8 @@ export default function Navigation() {
   };
 
   const navItems = [
-    { path: "/", label: "Dashboard", icon: Home },
+    { path: "/", label: "AI Companion", icon: Bot },
+    { path: "/dashboard", label: "Dashboard", icon: Home },
     { path: "/tracking", label: "Tracking", icon: ClipboardCheck },
     { path: "/symptom-wheel", label: "Wheel", icon: Target },
     { path: "/patterns", label: "Patterns", icon: TrendingUp },
@@ -38,7 +39,6 @@ export default function Navigation() {
     { path: "/achievements", label: "Achievements", icon: Award },
     { path: "/community", label: "Community", icon: Users },
     { path: "/chat", label: "Chat", icon: MessageCircle },
-    { path: "/companion", label: "AI Companion", icon: Bot },
   ];
 
   const isActive = (path: string) => {
