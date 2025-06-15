@@ -26,7 +26,7 @@ export function WaterIntakeTracker({ challengeId, targetGlasses, onProgress, onC
   }, [totalConsumed, targetGlasses, progress]);
 
   const handleGlassClick = (index: number) => {
-    if (glassesConsumed[index]) return; // Already filled
+    if (glassesConsumed[index]) return; // Already consumed
     
     setAnimatingGlass(index);
     setTimeout(() => {
@@ -77,8 +77,8 @@ export function WaterIntakeTracker({ challengeId, targetGlasses, onProgress, onC
           </div>
           <Progress value={progress} className="w-full" />
           <p className="text-sm text-muted-foreground">
-            {totalConsumed === targetGlasses ? "Goal completed! 🎉" : 
-             `${targetGlasses - totalConsumed} glasses remaining`}
+            {totalConsumed === targetGlasses ? "Daily hydration goal completed! 🎉" : 
+             `${targetGlasses - totalConsumed} glasses remaining to drink`}
           </p>
         </div>
 
@@ -93,20 +93,29 @@ export function WaterIntakeTracker({ challengeId, targetGlasses, onProgress, onC
                 className={getGlassStyle(index, isFilled)}
                 onClick={() => handleGlassClick(index)}
               >
-                {/* Glass interior water animation */}
-                {isFilled && (
-                  <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-b-lg animate-[fillWater_0.5s_ease-out]" />
+                {/* Glass interior water animation - starts full, empties when consumed */}
+                {!isFilled && (
+                  <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-b-lg" />
                 )}
                 
                 {/* Glass number label */}
                 <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground">
-                  {index + 1}
+                  Glass {index + 1}
                 </div>
                 
-                {/* Water droplet icon for empty glasses */}
-                {!isFilled && (
+                {/* Check mark for consumed glasses */}
+                {isFilled && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Droplets className="w-6 h-6 text-blue-300" />
+                    <div className="text-green-500 text-xl">✓</div>
+                  </div>
+                )}
+                
+                {/* Drink instruction for full glasses */}
+                {!isFilled && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 px-2 py-1 rounded text-xs text-blue-600 font-medium">
+                      DRINK
+                    </div>
                   </div>
                 )}
               </div>
