@@ -479,6 +479,17 @@ export default function Onboarding() {
                     </div>
                   </div>
 
+                  <div>
+                    <Label htmlFor="dateOfBirth">Date of Birth (for birthday bonus points!)</Label>
+                    <Input 
+                      type="date" 
+                      {...form.register("dateOfBirth")} 
+                    />
+                    {form.formState.errors.dateOfBirth && (
+                      <p className="text-red-500 text-sm">{form.formState.errors.dateOfBirth.message}</p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="age">Age</Label>
@@ -583,6 +594,55 @@ export default function Onboarding() {
                     />
                     <Label htmlFor="hasFibers">I have experienced fiber-like symptoms</Label>
                   </div>
+
+                  {/* Employment Information */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="font-semibold text-slate-700">Employment Information</h3>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="isEmployed"
+                        checked={form.watch("isEmployed")}
+                        onCheckedChange={(checked) => form.setValue("isEmployed", checked as boolean)}
+                      />
+                      <Label htmlFor="isEmployed">I am currently employed</Label>
+                    </div>
+
+                    {form.watch("isEmployed") && (
+                      <>
+                        <div>
+                          <Label htmlFor="workHours">Work Schedule</Label>
+                          <Select onValueChange={(value) => form.setValue("workHours", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your work hours" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {WORK_HOURS_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="incomeLevel">Income Level (Optional)</Label>
+                          <Select onValueChange={(value) => form.setValue("incomeLevel", value as any)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select income level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low income</SelectItem>
+                              <SelectItem value="middle">Middle income</SelectItem>
+                              <SelectItem value="high">High income</SelectItem>
+                              <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -684,90 +744,124 @@ export default function Onboarding() {
                 <div className="space-y-6">
                   <div>
                     <Label>Food Dislikes (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-2">Foods you avoid or dislike</p>
-                    <div className="flex gap-2 mb-2">
+                    <p className="text-sm text-slate-600 mb-3">Foods that trigger symptoms or you want to avoid</p>
+                    
+                    {/* Checkbox Grid for Common Dislikes */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                      {FOOD_DISLIKES_OPTIONS.map((option) => {
+                        const isChecked = foodDislikes.includes(option);
+                        return (
+                          <div key={option} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`dislike-${option}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  addFoodItem(option, 'dislikes');
+                                } else {
+                                  removeFoodItem(option, 'dislikes');
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`dislike-${option}`} className="text-sm">{option}</Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Dislikes Input */}
+                    <div>
+                      <Label htmlFor="customFoodDislikes">Other dislikes (custom)</Label>
                       <Input 
-                        placeholder="Enter a food you dislike..." 
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addFoodItem((e.target as HTMLInputElement).value, 'dislikes');
-                            (e.target as HTMLInputElement).value = '';
-                          }
-                        }}
+                        {...form.register("customFoodDislikes")}
+                        placeholder="Enter any other foods you dislike, separated by commas..." 
                       />
-                      <Button 
-                        type="button" 
-                        onClick={(e) => {
-                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                          addFoodItem(input.value, 'dislikes');
-                          input.value = '';
-                        }}
-                      >
-                        Add
-                      </Button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {foodDislikes.map((food) => (
-                        <span 
-                          key={food}
-                          className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                        >
-                          {food}
-                          <button 
-                            type="button"
-                            onClick={() => removeFoodItem(food, 'dislikes')}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
+
+                    {/* Selected Dislikes Display */}
+                    {foodDislikes.length > 0 && (
+                      <div className="mt-3">
+                        <Label className="text-sm text-slate-600">Selected dislikes:</Label>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {foodDislikes.map((food) => (
+                            <span 
+                              key={food}
+                              className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                            >
+                              {food}
+                              <button 
+                                type="button"
+                                onClick={() => removeFoodItem(food, 'dislikes')}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <Label>Food Favorites (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-2">Foods you enjoy or find helpful</p>
-                    <div className="flex gap-2 mb-2">
+                    <p className="text-sm text-slate-600 mb-3">Foods you enjoy or find helpful for your health</p>
+                    
+                    {/* Checkbox Grid for Common Favorites */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                      {FOOD_FAVORITES_OPTIONS.map((option) => {
+                        const isChecked = foodFavorites.includes(option);
+                        return (
+                          <div key={option} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`favorite-${option}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  addFoodItem(option, 'favorites');
+                                } else {
+                                  removeFoodItem(option, 'favorites');
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`favorite-${option}`} className="text-sm">{option}</Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Favorites Input */}
+                    <div>
+                      <Label htmlFor="customFoodFavorites">Other favorites (custom)</Label>
                       <Input 
-                        placeholder="Enter a food you love..." 
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addFoodItem((e.target as HTMLInputElement).value, 'favorites');
-                            (e.target as HTMLInputElement).value = '';
-                          }
-                        }}
+                        {...form.register("customFoodFavorites")}
+                        placeholder="Enter any other foods you love, separated by commas..." 
                       />
-                      <Button 
-                        type="button" 
-                        onClick={(e) => {
-                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                          addFoodItem(input.value, 'favorites');
-                          input.value = '';
-                        }}
-                      >
-                        Add
-                      </Button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {foodFavorites.map((food) => (
-                        <span 
-                          key={food}
-                          className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                        >
-                          {food}
-                          <button 
-                            type="button"
-                            onClick={() => removeFoodItem(food, 'favorites')}
-                            className="text-green-600 hover:text-green-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
+
+                    {/* Selected Favorites Display */}
+                    {foodFavorites.length > 0 && (
+                      <div className="mt-3">
+                        <Label className="text-sm text-slate-600">Selected favorites:</Label>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {foodFavorites.map((food) => (
+                            <span 
+                              key={food}
+                              className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                            >
+                              {food}
+                              <button 
+                                type="button"
+                                onClick={() => removeFoodItem(food, 'favorites')}
+                                className="text-green-600 hover:text-green-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Food Allergies - Critical for meal planning */}

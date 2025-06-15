@@ -42,6 +42,7 @@ export const POINT_VALUES = {
   ONBOARDING_COMPLETE: 100,
   FIRST_TIME_BONUS: 25, // First time doing any activity
   WEEKEND_BONUS: 5, // Extra points for weekend activities
+  BIRTHDAY_BONUS: 100, // Double points on user's birthday
   
   // Referral & Social
   REFERRAL_SIGNUP: 200,
@@ -236,6 +237,25 @@ export const BADGE_DEFINITIONS = [
 
 export class PointsSystem {
   
+  // Check if it's user's birthday and apply double points
+  private async isBirthdayBonus(userId: string): Promise<boolean> {
+    try {
+      const user = await storage.getUser(userId);
+      if (!user?.dateOfBirth) return false;
+      
+      const today = new Date();
+      const birthDate = new Date(user.dateOfBirth);
+      
+      return (
+        today.getMonth() === birthDate.getMonth() &&
+        today.getDate() === birthDate.getDate()
+      );
+    } catch (error) {
+      console.error('Error checking birthday bonus:', error);
+      return false;
+    }
+  }
+
   // Award points for specific activity
   async awardPoints(
     userId: string, 
@@ -243,7 +263,7 @@ export class PointsSystem {
     description?: string, 
     metadata?: any
   ): Promise<number> {
-    const pointsEarned = POINT_VALUES[activityType] || 0;
+    let pointsEarned = POINT_VALUES[activityType] || 0;
     
     if (pointsEarned <= 0) {
       return 0;
