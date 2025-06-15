@@ -17,6 +17,10 @@ import {
   userAchievements,
   leaderboards,
   challengeCreationLimits,
+  pointActivities,
+  dailyActivities,
+  badgeDefinitions,
+  userBadges,
   type User, 
   type UpsertUser,
   type AiCompanion,
@@ -48,6 +52,14 @@ import {
   type UserChallenge,
   type InsertUserChallenge,
   type UserAchievement,
+  type PointActivity,
+  type InsertPointActivity,
+  type DailyActivity,
+  type InsertDailyActivity,
+  type BadgeDefinition,
+  type InsertBadgeDefinition,
+  type UserBadge,
+  type InsertUserBadge,
   type InsertUserAchievement,
   type Leaderboard,
   type InsertLeaderboard,
@@ -145,6 +157,23 @@ export interface IStorage {
   getChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit | undefined>;
   updateChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit>;
   canCreateChallenge(userId: string): Promise<boolean>;
+
+  // Points System operations
+  createPointActivity(activity: InsertPointActivity): Promise<PointActivity>;
+  getPointActivitiesByType(userId: string, activityType: string): Promise<PointActivity[]>;
+  getRecentPointActivities(userId: string, limit: number): Promise<PointActivity[]>;
+  getActivityCount(userId: string, activityType: string): Promise<number>;
+
+  // Daily Activity operations
+  getDailyActivity(userId: string, date: string): Promise<DailyActivity | undefined>;
+  createDailyActivity(activity: InsertDailyActivity): Promise<DailyActivity>;
+  updateDailyActivity(id: string, updates: Partial<DailyActivity>): Promise<DailyActivity>;
+
+  // Badge operations
+  createUserBadge(userBadge: InsertUserBadge): Promise<UserBadge>;
+  getUserBadges(userId: string): Promise<UserBadge[]>;
+  hasUserBadge(userId: string, badgeId: string): Promise<boolean>;
+  getCommunityLikesReceived(userId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {

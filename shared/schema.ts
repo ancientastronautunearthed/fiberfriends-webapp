@@ -74,9 +74,17 @@ export const users = pgTable("users", {
   // Onboarding completion tracking
   onboardingCompleted: boolean("onboarding_completed").default(false),
   
-  // Gamification
+  // Enhanced Gamification System
   points: integer("points").default(0),
+  totalPoints: integer("total_points").default(0), // Lifetime points earned
+  currentTier: varchar("current_tier").default("Newcomer"),
+  nextTierPoints: integer("next_tier_points").default(100),
+  streakDays: integer("streak_days").default(0),
+  longestStreak: integer("longest_streak").default(0),
+  lastActiveDate: varchar("last_active_date"),
   trophyCase: text("trophy_case").array(),
+  unlockedBadges: text("unlocked_badges").array(),
+  weeklyGoalProgress: jsonb("weekly_goal_progress"), // Track weekly activity goals
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -608,3 +616,80 @@ export const insertChallengeCreationLimitSchema = createInsertSchema(challengeCr
 
 export type InsertChallengeCreationLimit = z.infer<typeof insertChallengeCreationLimitSchema>;
 export type ChallengeCreationLimit = typeof challengeCreationLimits.$inferSelect;
+
+// Point Activities Tracking
+export const pointActivities = pgTable("point_activities", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  activityType: varchar("activity_type").notNull(), // 'symptom_log', 'food_log', 'chat_message', etc.
+  pointsEarned: integer("points_earned").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"), // Additional activity details
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Daily Activity Summary for streak tracking
+export const dailyActivities = pgTable("daily_activities", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: varchar("date").notNull(), // YYYY-MM-DD format
+  activitiesCompleted: text("activities_completed").array(), // Track which activities were done
+  totalPoints: integer("total_points").default(0),
+  streakEligible: boolean("streak_eligible").default(false), // Did enough activities to count for streak
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Badge Definitions
+export const badgeDefinitions = pgTable("badge_definitions", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  iconUrl: varchar("icon_url"),
+  category: varchar("category"), // 'engagement', 'achievement', 'milestone', 'special'
+  tier: varchar("tier"), // 'bronze', 'silver', 'gold', 'platinum', 'diamond'
+  requirements: jsonb("requirements"), // Criteria to unlock badge
+  pointsReward: integer("points_reward").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Badge Unlocks
+export const userBadges = pgTable("user_badges", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  badgeId: varchar("badge_id").notNull().references(() => badgeDefinitions.id),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+  progress: jsonb("progress"), // Current progress toward badge if partially unlocked
+});
+
+// Point activity schema
+export const insertPointActivitySchema = createInsertSchema(pointActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDailyActivitySchema = createInsertSchema(dailyActivities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBadgeDefinitionSchema = createInsertSchema(badgeDefinitions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
+  id: true,
+  unlockedAt: true,
+});
+
+export type InsertPointActivity = z.infer<typeof insertPointActivitySchema>;
+export type PointActivity = typeof pointActivities.$inferSelect;
+export type InsertDailyActivity = z.infer<typeof insertDailyActivitySchema>;
+export type DailyActivity = typeof dailyActivities.$inferSelect;
+export type InsertBadgeDefinition = z.infer<typeof insertBadgeDefinitionSchema>;
+export type BadgeDefinition = typeof badgeDefinitions.$inferSelect;
+export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
+export type UserBadge = typeof userBadges.$inferSelect;
