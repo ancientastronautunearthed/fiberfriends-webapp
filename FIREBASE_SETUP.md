@@ -1,45 +1,85 @@
-# Firebase Setup Instructions for Fiber Friends
+# Firebase Setup Instructions
 
-## Required Firebase Configuration Steps
+## 1. Create Firebase Project
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click "Create a project"
+3. Enter project name: `fiber-friends` (or your preferred name)
+4. Enable Google Analytics (optional)
+5. Create project
 
-### 1. Firestore Security Rules
-Copy the rules from `firestore.rules` into your Firebase Console:
-1. Go to Firebase Console → Firestore Database → Rules
-2. Replace the default rules with the content from `firestore.rules`
-3. Click "Publish" to apply the rules
+## 2. Configure Authentication
+1. In Firebase Console → Authentication → Get started
+2. Sign-in method → Google → Enable
+3. Add support email address
+4. Save
 
-### 2. Authentication Setup
-1. Go to Firebase Console → Authentication → Sign-in method
-2. Enable Google Sign-in provider
-3. Add your domain to authorized domains:
-   - For development: `localhost`, `127.0.0.1`, your Replit preview URL
-   - For production: your custom domain or `.replit.app` domain
+## 3. Create Firestore Database
+1. In Firebase Console → Firestore Database → Create database
+2. Start in test mode (security rules will be deployed later)
+3. Choose location closest to your users
+4. Done
 
-### 3. Required Environment Variables
-Ensure these Firebase secrets are configured in your Replit environment:
-- `VITE_FIREBASE_API_KEY` - Your Firebase API key
-- `VITE_FIREBASE_PROJECT_ID` - Your Firebase project ID  
-- `VITE_FIREBASE_APP_ID` - Your Firebase app ID
+## 4. Get Firebase Configuration
+1. In Firebase Console → Project Settings (gear icon)
+2. General tab → Your apps → Web app
+3. Click "Add app" if not created, or click existing app
+4. Copy the config values:
+   - `apiKey` → `VITE_FIREBASE_API_KEY`
+   - `projectId` → `VITE_FIREBASE_PROJECT_ID`
+   - `appId` → `VITE_FIREBASE_APP_ID`
 
-### 4. Firestore Collections Structure
-The application will automatically create these collections:
-- `users` - User profiles and settings
-- `dailySymptomLogs` - Daily health check-ins
-- `aiCompanions` - AI companion configurations
-- `conversationHistory` - Chat messages with AI companions
-- `aiHealthInsights` - Personalized health insights
-- `communityPosts` - Community forum posts
-- `challenges` - Health challenges and activities
-- `userChallenges` - User participation in challenges
-- `achievements` - Available achievements
-- `userAchievements` - User unlocked achievements
-- `pointActivities` - Points earning history
-- `anonymizedResearchData` - Anonymized health data for research
+## 5. Configure Environment Variables
+Create `.env.local` file in project root:
+```env
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_PROJECT_ID=your_project_id_here
+VITE_FIREBASE_APP_ID=your_app_id_here
+```
 
-## Migration Status
-✅ Firebase Authentication integrated
-✅ Firestore service layer created
-✅ Daily symptom logging converted
-✅ Research data system converted
-✅ Security rules defined
-⚠️ Requires Firestore rules deployment in Firebase Console
+## 6. Deploy to Firebase Hosting
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Initialize Firebase in your project
+firebase init
+
+# Select:
+# - Hosting: Configure files for Firebase Hosting
+# - Firestore: Configure security rules and indexes
+
+# Build the app
+npm run build
+
+# Deploy everything
+firebase deploy
+```
+
+## 7. Configure OAuth Domains
+After deployment, your app will be at `https://your-project-id.web.app`
+
+### Firebase Console
+Authentication → Settings → Authorized domains → Add:
+- `your-project-id.web.app`
+- `your-project-id.firebaseapp.com`
+
+### Google Cloud Console
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select your Firebase project
+3. APIs & Services → Credentials
+4. Edit OAuth 2.0 client ID
+5. Add to "Authorized JavaScript origins":
+   - `https://your-project-id.web.app`
+6. Add to "Authorized redirect URIs":
+   - `https://your-project-id.web.app/__/auth/handler`
+7. Save
+
+## 8. Test Deployment
+1. Visit your app at `https://your-project-id.web.app`
+2. Test Google sign-in
+3. Verify all features work
+
+Your app is now completely independent and deployed on Firebase!
