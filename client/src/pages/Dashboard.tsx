@@ -11,6 +11,7 @@ import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, Clipboard
 
 export default function Dashboard() {
   const { user, isLoading } = useFirebaseAuth();
+  const { toast } = useToast();
 
   const { data: dashboardStats } = useQuery({
     queryKey: ["dashboard-stats", user?.id],
