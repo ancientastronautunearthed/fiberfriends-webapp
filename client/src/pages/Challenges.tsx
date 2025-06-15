@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Target, Calendar, Star, Gift, Zap, Heart, Users, Brain } from "lucide-react";
+import { ChallengeTracker } from "@/components/challenge-trackers/ChallengeTracker";
+import { Trophy, Target, Calendar, Star, Gift, Zap, Heart, Users, Brain, Play } from "lucide-react";
 
 export default function Challenges() {
   const [selectedTab, setSelectedTab] = useState("available");

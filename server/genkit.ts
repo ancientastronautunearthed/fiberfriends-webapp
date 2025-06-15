@@ -193,14 +193,32 @@ export async function generateDailyChallenge() {
     - Gentle movement
     - Mindfulness
     
-    Format as a JSON object:
+    Format as a JSON object with trackable requirements:
     {
       "title": "challenge_title",
-      "description": "challenge_description",
+      "description": "challenge_description", 
       "points": points_reward_number,
       "category": "nutrition|wellness|movement|mindfulness",
-      "difficulty": "easy|medium|hard"
+      "difficulty": "easy|medium|hard",
+      "requirements": {
+        // For breathing exercises:
+        "technique": "breathing",
+        "daily_minutes": 5,
+        
+        // For water intake:
+        "daily_glasses": 8,
+        
+        // For journaling:
+        "daily_words": 150,
+        "duration_days": 7,
+        
+        // For symptom tracking:
+        "consecutive_days": 3,
+        "time_of_day": "morning"
+      }
     }
+    
+    Choose ONE appropriate requirement type based on the challenge category.
     
     Make it achievable and encouraging.
   `;
