@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
+import LunaCreation from "@/pages/LunaCreation";
 import Dashboard from "@/pages/Dashboard";
 import SymptomTracker from "@/pages/SymptomTracker";
 import SymptomWheel from "@/pages/SymptomWheel";

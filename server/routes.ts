@@ -17,7 +17,7 @@ import {
 } from "./genkit";
 import { recommendationEngine } from "./recommendationEngine";
 import { pointsSystem } from "./pointsSystem";
-import { generateLunaPersonality, type LunaPersonality } from "./lunaGenerator";
+import { generateLunaPersonality, generateLunaImage, type LunaPersonality } from "./lunaGenerator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware

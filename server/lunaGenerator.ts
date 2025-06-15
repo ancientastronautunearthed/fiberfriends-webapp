@@ -33,7 +33,7 @@ export interface GeneratedLuna {
   greeting: string;
 }
 
-export async function generateLunaImage(personality: LunaPersonality): Promise<string> {
+async function generateLunaImageInternal(personality: LunaPersonality): Promise<string> {
   try {
     // Create a detailed prompt based on user choices
     const prompt = createImagePrompt(personality);
@@ -107,9 +107,13 @@ function getEyeColorCode(eyeColor: string): string {
   return colorMap[eyeColor] || '92400e';
 }
 
+export async function generateLunaImage(personality: LunaPersonality): Promise<string> {
+  return generateLunaImageInternal(personality);
+}
+
 export async function generateLunaPersonality(choices: LunaPersonality): Promise<GeneratedLuna> {
   try {
-    const imageUrl = await generateLunaImage(choices);
+    const imageUrl = await generateLunaImageInternal(choices);
     
     const personalityPrompt = `Based on these personality choices for Luna, an AI health companion for Morgellons disease patients:
     - Tone: ${choices.tone}
