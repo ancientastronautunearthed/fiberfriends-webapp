@@ -118,6 +118,42 @@ export const symptomCorrelations = pgTable("symptom_correlations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Chat Rooms
+export const chatRooms = pgTable("chat_rooms", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category").notNull(), // general, support, research, etc.
+  isPrivate: boolean("is_private").default(false),
+  createdBy: varchar("created_by").notNull(),
+  memberCount: integer("member_count").default(0),
+  lastActivity: timestamp("last_activity").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Chat Messages
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey(),
+  roomId: varchar("room_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  content: text("content").notNull(),
+  messageType: varchar("message_type").default("text"), // text, image, file, system
+  replyToId: varchar("reply_to_id"), // For threaded conversations
+  isEdited: boolean("is_edited").default(false),
+  editedAt: timestamp("edited_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Chat Room Members
+export const chatRoomMembers = pgTable("chat_room_members", {
+  id: varchar("id").primaryKey(),
+  roomId: varchar("room_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  role: varchar("role").default("member"), // member, moderator, admin
+  joinedAt: timestamp("joined_at").defaultNow(),
+  lastRead: timestamp("last_read").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   aiCompanions: many(aiCompanions),
@@ -125,6 +161,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   communityPosts: many(communityPosts),
   symptomPatterns: many(symptomPatterns),
   symptomCorrelations: many(symptomCorrelations),
+  chatMessages: many(chatMessages),
+  chatRoomMembers: many(chatRoomMembers),
+  createdChatRooms: many(chatRooms),
 }));
 
 export const aiCompanionsRelations = relations(aiCompanions, ({ one }) => ({
@@ -158,6 +197,41 @@ export const symptomPatternsRelations = relations(symptomPatterns, ({ one }) => 
 export const symptomCorrelationsRelations = relations(symptomCorrelations, ({ one }) => ({
   user: one(users, {
     fields: [symptomCorrelations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const chatRoomsRelations = relations(chatRooms, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [chatRooms.createdBy],
+    references: [users.id],
+  }),
+  messages: many(chatMessages),
+  members: many(chatRoomMembers),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  room: one(chatRooms, {
+    fields: [chatMessages.roomId],
+    references: [chatRooms.id],
+  }),
+  author: one(users, {
+    fields: [chatMessages.userId],
+    references: [users.id],
+  }),
+  replyTo: one(chatMessages, {
+    fields: [chatMessages.replyToId],
+    references: [chatMessages.id],
+  }),
+}));
+
+export const chatRoomMembersRelations = relations(chatRoomMembers, ({ one }) => ({
+  room: one(chatRooms, {
+    fields: [chatRoomMembers.roomId],
+    references: [chatRooms.id],
+  }),
+  user: one(users, {
+    fields: [chatRoomMembers.userId],
     references: [users.id],
   }),
 }));
@@ -208,3 +282,27 @@ export type InsertSymptomPattern = z.infer<typeof insertSymptomPatternSchema>;
 export type SymptomPattern = typeof symptomPatterns.$inferSelect;
 export type InsertSymptomCorrelation = z.infer<typeof insertSymptomCorrelationSchema>;
 export type SymptomCorrelation = typeof symptomCorrelations.$inferSelect;
+
+export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
+  id: true,
+  createdAt: true,
+  lastActivity: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatRoomMemberSchema = createInsertSchema(chatRoomMembers).omit({
+  id: true,
+  joinedAt: true,
+  lastRead: true,
+});
+
+export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatRoomMember = z.infer<typeof insertChatRoomMemberSchema>;
+export type ChatRoomMember = typeof chatRoomMembers.$inferSelect;

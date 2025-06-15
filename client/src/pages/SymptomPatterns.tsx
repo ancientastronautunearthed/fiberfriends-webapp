@@ -146,7 +146,6 @@ export default function SymptomPatterns() {
         .filter((log: any) => log.logType === 'symptoms')
         .flatMap((log: any) => {
           const data = log.data;
-          console.log('Processing log:', log.date, data);
           return Object.entries(data.symptoms || {}).map(([symptom, severity]) => ({
             symptom,
             severity: Number(severity),
@@ -154,9 +153,6 @@ export default function SymptomPatterns() {
             contextFactors: data.contextFactors || []
           }));
         });
-      
-      console.log('Total symptom data points:', symptomData.length);
-      console.log('Sample symptom data:', symptomData.slice(0, 5));
 
       // Group by symptom type
       const symptomGroups = symptomData.reduce((groups, data) => {
@@ -183,8 +179,6 @@ export default function SymptomPatterns() {
 
       // Calculate correlations between symptoms
       const symptoms = Object.keys(symptomGroups);
-      console.log('Symptoms found:', symptoms);
-      console.log('Symptom groups:', Object.keys(symptomGroups).map(s => `${s}: ${symptomGroups[s].length} entries`));
       
       for (let i = 0; i < symptoms.length; i++) {
         for (let j = i + 1; j < symptoms.length; j++) {
@@ -195,9 +189,7 @@ export default function SymptomPatterns() {
             symptomGroups[symptom2]
           );
           
-          console.log(`Correlation between ${symptom1} and ${symptom2}:`, correlation);
-          
-          if (Math.abs(correlation) > 0.01) { // Very low threshold for testing
+          if (Math.abs(correlation) > 0.1) {
             results.correlations.push({
               primarySymptom: symptom1,
               correlatedSymptom: symptom2,
@@ -209,45 +201,7 @@ export default function SymptomPatterns() {
       }
 
       // Identify triggers across all symptoms
-      console.log('Symptom data for triggers:', symptomData.slice(0, 3));
       results.triggers = identifyTriggers(symptomData);
-      console.log('Triggers found:', results.triggers);
-
-      // Force some test correlations if none found
-      if (results.correlations.length === 0 && symptoms.length >= 2) {
-        console.log('No correlations found, creating test correlations');
-        results.correlations.push({
-          primarySymptom: symptoms[0],
-          correlatedSymptom: symptoms[1],
-          correlationStrength: 65,
-          occurrenceCount: 10
-        });
-        if (symptoms.length >= 3) {
-          results.correlations.push({
-            primarySymptom: symptoms[1],
-            correlatedSymptom: symptoms[2],
-            correlationStrength: 45,
-            occurrenceCount: 8
-          });
-        }
-      }
-
-      // Force some test triggers if none found
-      if (results.triggers.length === 0) {
-        console.log('No triggers found, creating test triggers');
-        results.triggers.push({
-          trigger: 'stress',
-          correlation: 0.3,
-          occurrences: 5,
-          description: 'Stress appears to correlate with increased symptom severity'
-        });
-        results.triggers.push({
-          trigger: 'weather_change',
-          correlation: 0.25,
-          occurrences: 4,
-          description: 'Weather changes may trigger symptom flare-ups'
-        });
-      }
 
       // Generate AI insights
       const insights = [];
