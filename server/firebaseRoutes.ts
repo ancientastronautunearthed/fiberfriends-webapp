@@ -9,6 +9,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: 'ok', message: 'Firebase App Hosting backend is running' });
   });
 
+  // Dashboard stats endpoint
+  app.get('/api/dashboard-stats', async (req: any, res) => {
+    try {
+      const demoStats = {
+        totalLogs: 14,
+        streak: 7,
+        recentLogs: [
+          { id: 1, date: '2024-01-15', mood: 8, energy: 7, pain: 3 },
+          { id: 2, date: '2024-01-14', mood: 7, energy: 6, pain: 4 },
+          { id: 3, date: '2024-01-13', mood: 9, energy: 8, pain: 2 },
+          { id: 4, date: '2024-01-12', mood: 6, energy: 5, pain: 5 },
+          { id: 5, date: '2024-01-11', mood: 8, energy: 7, pain: 3 }
+        ],
+        activeChallenges: [
+          { id: 1, title: "Daily Symptom Tracking", progress: 70, category: "health" },
+          { id: 2, title: "Mindful Moments", progress: 45, category: "mindfulness" },
+          { id: 3, title: "Anti-Inflammatory Diet", progress: 85, category: "nutrition" }
+        ],
+        totalActiveChallenges: 3,
+        totalCompletedChallenges: 8,
+        totalAchievements: 12
+      };
+      res.json(demoStats);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Daily logs endpoint
+  app.get('/api/daily-logs', async (req: any, res) => {
+    try {
+      const demoLogs = [
+        {
+          id: 1,
+          date: '2024-01-15',
+          symptoms: ['Skin crawling sensations', 'Fatigue', 'Joint pain'],
+          mood: 8,
+          energy: 7,
+          pain: 3,
+          sleep: 8,
+          notes: 'Feeling better today after trying the anti-inflammatory diet suggestions.',
+          timestamp: '2024-01-15T08:30:00Z'
+        },
+        {
+          id: 2,
+          date: '2024-01-14',
+          symptoms: ['Fiber-like material on skin', 'Brain fog', 'Itching'],
+          mood: 7,
+          energy: 6,
+          pain: 4,
+          sleep: 6,
+          notes: 'Documented new fiber samples under microscope. Stress levels moderate.',
+          timestamp: '2024-01-14T09:15:00Z'
+        },
+        {
+          id: 3,
+          date: '2024-01-13',
+          symptoms: ['Burning sensations', 'Skin lesions'],
+          mood: 9,
+          energy: 8,
+          pain: 2,
+          sleep: 9,
+          notes: 'Great day! New skincare routine seems to be helping significantly.',
+          timestamp: '2024-01-13T07:45:00Z'
+        }
+      ];
+      res.json(demoLogs);
+    } catch (error) {
+      console.error("Error fetching daily logs:", error);
+      res.status(500).json({ message: "Failed to fetch daily logs" });
+    }
+  });
+
   // AI endpoints that can work server-side
   app.post('/api/ai/nutritional-analysis', async (req, res) => {
     try {
