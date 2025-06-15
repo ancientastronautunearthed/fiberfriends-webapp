@@ -62,9 +62,12 @@ export default function SymptomPatterns() {
     enabled: isAuthenticated,
   });
 
+  const logsArray = Array.isArray(symptomLogs) ? symptomLogs : [];
+  const patternsArray = Array.isArray(existingPatterns) ? existingPatterns : [];
+
   // Run pattern analysis
   const analyzePatterns = async () => {
-    if (!symptomLogs || symptomLogs.length < 7) {
+    if (!logsArray || logsArray.length < 7) {
       toast({
         title: "Insufficient Data",
         description: "Need at least 7 days of symptom logs to analyze patterns.",
@@ -77,7 +80,7 @@ export default function SymptomPatterns() {
 
     try {
       // Convert logs to SymptomData format
-      const symptomData: SymptomData[] = symptomLogs
+      const symptomData: SymptomData[] = logsArray
         .filter((log: any) => log.logType === 'symptoms')
         .flatMap((log: any) => {
           const data = log.data;
@@ -138,8 +141,8 @@ export default function SymptomPatterns() {
       results.triggers = identifyTriggers(symptomData);
 
       // Generate AI insights
-      const allPatterns = Object.values(results.patterns).flat();
-      const allTrends = Object.values(results.trends).flat();
+      const allPatterns = Object.values(results.patterns).flat() as any[];
+      const allTrends = Object.values(results.trends).flat() as any[];
       results.insights = await generatePatternInsights(
         allPatterns,
         allTrends,
@@ -186,7 +189,7 @@ export default function SymptomPatterns() {
         </div>
         <Button 
           onClick={analyzePatterns} 
-          disabled={isAnalyzing || !symptomLogs || symptomLogs.length < 7}
+          disabled={isAnalyzing || !logsArray || logsArray.length < 7}
           className="flex items-center gap-2"
         >
           <Brain className="w-4 h-4" />
@@ -206,13 +209,13 @@ export default function SymptomPatterns() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">
-                {symptomLogs?.filter((log: any) => log.logType === 'symptoms').length || 0}
+                {logsArray.filter((log: any) => log.logType === 'symptoms').length || 0}
               </div>
               <div className="text-sm text-slate-600">Symptom Entries</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">
-                {existingPatterns?.length || 0}
+                {patternsArray.length || 0}
               </div>
               <div className="text-sm text-slate-600">Known Patterns</div>
             </div>
@@ -386,7 +389,7 @@ export default function SymptomPatterns() {
       )}
 
       {/* Help Text */}
-      {!analysisData && symptomLogs && symptomLogs.length >= 7 && (
+      {!analysisData && logsArray && logsArray.length >= 7 && (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">

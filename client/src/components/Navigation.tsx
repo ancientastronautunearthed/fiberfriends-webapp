@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
-import { Bell, Star, User, Home, ClipboardCheck, Users, Bot, Menu } from "lucide-react";
+import { Bell, Star, User, Home, ClipboardCheck, TrendingUp, Users, Bot, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
