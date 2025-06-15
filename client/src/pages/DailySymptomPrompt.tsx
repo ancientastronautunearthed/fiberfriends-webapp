@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { createDailySymptomLog, awardPoints, submitAnonymizedResearchData } from "@/lib/firestore";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, Brain, Zap, Moon } from "lucide-react";
 import { useLocation } from "wouter";
@@ -28,6 +29,7 @@ const commonSymptoms = [
 export default function DailySymptomPrompt() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useFirebaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [mood, setMood] = useState([5]);
@@ -46,63 +48,62 @@ export default function DailySymptomPrompt() {
   };
 
   const handleSubmit = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to submit your symptoms.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
-      // Submit daily symptom log
-      const response = await apiRequest("POST", "/api/daily-symptom-log", {
+      // Prepare symptom data
+      const symptomData = {
         symptoms: selectedSymptoms,
         mood: mood[0],
         energy: energy[0],
         pain: pain[0],
         sleep: sleep[0],
-        notes
+        notes,
+        timestamp: new Date().toISOString()
+      };
+
+      // Submit daily symptom log to Firestore
+      await createDailySymptomLog(user.id, symptomData);
+
+      // Award points for daily logging
+      await awardPoints(user.id, "daily_symptom_log", 10, "Completed daily symptom log");
+
+      // Submit anonymized research data
+      const anonymizedData = {
+        demographic: {
+          ageRange: user.ageRange || "not_specified",
+          location: user.location || "not_specified"
+        },
+        symptoms: selectedSymptoms,
+        metrics: {
+          mood: mood[0],
+          energy: energy[0],
+          pain: pain[0],
+          sleep: sleep[0]
+        },
+        entryDate: new Date().toISOString().split('T')[0],
+        qualityScore: selectedSymptoms.length > 0 ? 85 : 60
+      };
+      
+      await submitAnonymizedResearchData(user.id, anonymizedData);
+
+      toast({
+        title: "Symptom Log Submitted",
+        description: "Your daily symptoms have been recorded successfully and contributed to research.",
       });
 
-      const symptomLogData = await response.json();
+      // Navigate to AI Companion
+      setLocation("/ai-companion");
 
-      if (symptomLogData?.success) {
-        // Invalidate queries to refresh the daily symptom check status
-        await queryClient.invalidateQueries({ queryKey: ["/api/daily-symptom-check"] });
-        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-
-        toast({
-          title: "Symptom Log Submitted",
-          description: "Your daily symptoms have been recorded successfully.",
-        });
-
-        // Generate daily tasks based on symptom data
-        setIsGeneratingTasks(true);
-        
-        try {
-          const tasksResponse = await apiRequest("POST", "/api/generate-daily-tasks", {
-            symptomData: {
-              symptoms: selectedSymptoms,
-              mood: mood[0],
-              energy: energy[0],
-              pain: pain[0],
-              sleep: sleep[0],
-              notes
-            }
-          });
-
-          toast({
-            title: "Daily Tasks Generated",
-            description: "Luna has prepared your personalized daily activities.",
-          });
-        } catch (taskError) {
-          console.error("Error generating tasks:", taskError);
-          toast({
-            title: "Daily Tasks",
-            description: "Your symptom log is complete. Luna is ready to chat!",
-          });
-        }
-
-        // Navigate to AI Companion after everything is complete
-        setTimeout(() => {
-          setLocation("/ai-companion");
-        }, 500); // Small delay to ensure state updates propagate
-      }
     } catch (error) {
       console.error("Error submitting symptom log:", error);
       toast({
