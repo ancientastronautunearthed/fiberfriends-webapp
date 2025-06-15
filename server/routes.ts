@@ -18,6 +18,7 @@ import {
 import { recommendationEngine } from "./recommendationEngine";
 import { pointsSystem } from "./pointsSystem";
 import { generateLunaPersonality, generateLunaImage, type LunaPersonality } from "./lunaGenerator";
+import { weatherService } from "./weatherService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -935,6 +936,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching point activities:", error);
       res.status(500).json({ message: "Failed to fetch point activities" });
+    }
+  });
+
+  // Weather and Activity Routes
+  
+  // Get personalized activity recommendations
+  app.get('/api/activities/recommendations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const recommendations = await weatherService.getPersonalizedActivities(userId);
+      
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting activity recommendations:", error);
+      res.status(500).json({ message: "Failed to get activity recommendations" });
+    }
+  });
+
+  // Get current weather for user's location
+  app.get('/api/weather/current', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.location) {
+        return res.status(400).json({ message: "User location not set" });
+      }
+
+      const weather = await weatherService.getCurrentWeather(user.location);
+      
+      if (!weather) {
+        return res.status(503).json({ message: "Weather service unavailable" });
+      }
+
+      res.json(weather);
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+      res.status(500).json({ message: "Failed to fetch weather data" });
+    }
+  });
+
+  // Check if user has a day off
+  app.get('/api/schedule/work-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const isWorkDay = await weatherService.isWorkDay(userId);
+      
+      const now = new Date();
+      const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+      const timeString = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+
+      res.json({
+        isWorkDay,
+        currentDay: dayName,
+        currentTime: timeString,
+        message: isWorkDay 
+          ? `It's ${dayName} - hope you're having a good work day!`
+          : `It's ${dayName} - a perfect day to focus on your health and well-being!`
+      });
+    } catch (error) {
+      console.error("Error checking work status:", error);
+      res.status(500).json({ message: "Failed to check work status" });
     }
   });
 
