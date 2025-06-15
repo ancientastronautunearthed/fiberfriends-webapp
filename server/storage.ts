@@ -1,6 +1,7 @@
 // server/storage.ts
 
 import { adminDb } from "./db";
+import * as admin from 'firebase-admin';
 import {
   users,
   aiCompanions,
