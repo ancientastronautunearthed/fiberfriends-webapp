@@ -55,11 +55,48 @@ export const users = pgTable("users", {
 // AI Companions
 export const aiCompanions = pgTable("ai_companions", {
   id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   companionName: varchar("companion_name").notNull(),
   companionImageUrl: varchar("companion_image_url"),
   personaKeywords: text("persona_keywords").array(),
+  personality: text("personality"),
+  preferences: jsonb("preferences"),
+  voiceEnabled: boolean("voice_enabled").default(true),
+  conversationStyle: varchar("conversation_style").default("supportive"),
+  memoryContext: jsonb("memory_context"),
+  lastInteraction: timestamp("last_interaction"),
+  totalConversations: integer("total_conversations").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Conversation History
+export const conversationHistory = pgTable("conversation_history", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  companionId: varchar("companion_id").notNull().references(() => aiCompanions.id, { onDelete: "cascade" }),
+  messageType: varchar("message_type").notNull(),
+  content: text("content").notNull(),
+  context: jsonb("context"),
+  sentiment: varchar("sentiment"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  metadata: jsonb("metadata"),
+});
+
+// AI Health Insights
+export const aiHealthInsights = pgTable("ai_health_insights", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  companionId: varchar("companion_id").notNull().references(() => aiCompanions.id, { onDelete: "cascade" }),
+  insightType: varchar("insight_type").notNull(),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  dataSource: varchar("data_source"),
+  confidence: real("confidence"),
+  actionable: boolean("actionable").default(false),
+  dismissed: boolean("dismissed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  relevantData: jsonb("relevant_data"),
 });
 
 // Daily Logs
@@ -253,18 +290,45 @@ export const usersRelations = relations(users, ({ many }) => ({
   communityPosts: many(communityPosts),
   symptomPatterns: many(symptomPatterns),
   symptomCorrelations: many(symptomCorrelations),
+  symptomWheelEntries: many(symptomWheelEntries),
   chatMessages: many(chatMessages),
   chatRoomMembers: many(chatRoomMembers),
   createdChatRooms: many(chatRooms),
   userChallenges: many(userChallenges),
   userAchievements: many(userAchievements),
   leaderboards: many(leaderboards),
+  conversationHistory: many(conversationHistory),
+  aiHealthInsights: many(aiHealthInsights),
 }));
 
-export const aiCompanionsRelations = relations(aiCompanions, ({ one }) => ({
+export const aiCompanionsRelations = relations(aiCompanions, ({ one, many }) => ({
   user: one(users, {
     fields: [aiCompanions.userId],
     references: [users.id],
+  }),
+  conversationHistory: many(conversationHistory),
+  healthInsights: many(aiHealthInsights),
+}));
+
+export const conversationHistoryRelations = relations(conversationHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [conversationHistory.userId],
+    references: [users.id],
+  }),
+  companion: one(aiCompanions, {
+    fields: [conversationHistory.companionId],
+    references: [aiCompanions.id],
+  }),
+}));
+
+export const aiHealthInsightsRelations = relations(aiHealthInsights, ({ one }) => ({
+  user: one(users, {
+    fields: [aiHealthInsights.userId],
+    references: [users.id],
+  }),
+  companion: one(aiCompanions, {
+    fields: [aiHealthInsights.companionId],
+    references: [aiCompanions.id],
   }),
 }));
 
