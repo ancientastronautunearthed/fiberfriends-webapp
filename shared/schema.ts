@@ -44,9 +44,16 @@ export const users = pgTable("users", {
   diagnosisTimeline: text("diagnosis_timeline"),
   hasFibers: boolean("has_fibers").default(false),
   otherDiseases: text("other_diseases").array(),
-  foodPreferences: jsonb("food_preferences"), // {dislikes: [], favorites: []}
+  dateOfBirth: varchar("date_of_birth"), // For birthday bonus points
+  foodDislikes: text("food_dislikes").array(), // Comprehensive list with custom options
+  foodFavorites: text("food_favorites").array(), // Comprehensive list with custom options
   foodAllergies: text("food_allergies").array(), // Critical for Luna's meal planning
   currentMedications: text("current_medications").array(), // Critical for drug-food interactions
+  
+  // Employment Information
+  isEmployed: boolean("is_employed").default(false),
+  workHours: varchar("work_hours"), // e.g., "9am-5pm", "Night shift", "Part-time"
+  incomeLevel: varchar("income_level"), // Optional: "low", "middle", "high", "prefer-not-to-say"
   
   // Enhanced lifestyle habits with detailed smoking/alcohol info
   habits: jsonb("habits"), // {smoking: boolean, alcohol: boolean, exercise: string}
@@ -63,8 +70,7 @@ export const users = pgTable("users", {
   hasSiblings: boolean("has_siblings").default(false),
   siblingsCount: integer("siblings_count"),
   
-  // Birthday & Important Dates for Reminders and Gift Ideas
-  dateOfBirth: varchar("date_of_birth"),
+  // Important Dates for Reminders and Gift Ideas
   importantBirthdays: text("important_birthdays"), // JSON string: [{id, relationship, name, dateOfBirth}]
   socialPreferences: text("social_preferences"), // How they prefer to socialize
   

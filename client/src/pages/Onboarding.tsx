@@ -21,11 +21,17 @@ const onboardingSchema = z.object({
   // Basic Information
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"), // For birthday bonus points
   age: z.number().min(1).max(150),
   gender: z.enum(["male", "female", "non-binary", "prefer-not-to-say"]),
   height: z.string().min(1, "Height is required"),
   weight: z.string().min(1, "Weight is required"),
   location: z.string().min(1, "Location is required"),
+  
+  // Employment Information
+  isEmployed: z.boolean(),
+  workHours: z.string().optional(), // e.g., "9am-5pm", "Night shift", "Part-time"
+  incomeLevel: z.enum(["low", "middle", "high", "prefer-not-to-say"]).optional(),
   
   // Medical History
   diagnosisStatus: z.enum(["diagnosed", "suspected"]),
@@ -34,17 +40,21 @@ const onboardingSchema = z.object({
   hasFibers: z.boolean(),
   otherDiseases: z.array(z.string()).optional(),
   
-  // Lifestyle & Preferences
+  // Enhanced Food Preferences
   foodDislikes: z.array(z.string()).optional(),
+  customFoodDislikes: z.string().optional(), // Custom text field
   foodFavorites: z.array(z.string()).optional(),
+  customFoodFavorites: z.string().optional(), // Custom text field
   foodAllergies: z.array(z.string()).optional(),
   currentMedications: z.array(z.string()).optional(),
+  
+  // Lifestyle Habits
   smokingHabit: z.boolean(),
-  smokingDuration: z.string().optional(), // How long they've smoked
-  smokingFrequency: z.string().optional(), // How often they smoke
+  smokingDuration: z.string().optional(),
+  smokingFrequency: z.string().optional(),
   alcoholHabit: z.boolean(),
-  alcoholDuration: z.string().optional(), // How long they've been drinking
-  alcoholFrequency: z.string().optional(), // How often they drink
+  alcoholDuration: z.string().optional(),
+  alcoholFrequency: z.string().optional(),
   exerciseFrequency: z.enum(["daily", "weekly", "monthly", "rarely", "never"]),
   
   // Personal & Family Information
@@ -56,14 +66,38 @@ const onboardingSchema = z.object({
   siblingsCount: z.number().optional(),
   
   // Important Dates for Reminders
-  importantBirthdays: z.string().optional(), // JSON string of birthday objects
-  socialPreferences: z.string().optional(), // How they prefer to socialize
+  importantBirthdays: z.string().optional(),
+  socialPreferences: z.string().optional(),
   
   // Optional Profile
   hobbies: z.string().optional(),
 });
 
 type OnboardingData = z.infer<typeof onboardingSchema>;
+
+// Comprehensive food preference lists
+const FOOD_DISLIKES_OPTIONS = [
+  "Dairy products", "Gluten/Wheat", "Spicy foods", "Seafood", "Red meat", "Poultry", 
+  "Eggs", "Nuts", "Soy products", "Mushrooms", "Onions", "Garlic", "Tomatoes", 
+  "Citrus fruits", "Beans/Legumes", "Cruciferous vegetables", "Processed foods",
+  "Artificial sweeteners", "High-sodium foods", "Fried foods", "Refined sugar",
+  "Alcohol", "Caffeine", "Carbonated drinks", "High-fat foods"
+];
+
+const FOOD_FAVORITES_OPTIONS = [
+  "Fresh fruits", "Leafy greens", "Lean proteins", "Whole grains", "Nuts and seeds",
+  "Fish", "Chicken", "Turkey", "Beef", "Pork", "Eggs", "Dairy products",
+  "Root vegetables", "Bell peppers", "Berries", "Citrus fruits", "Avocados",
+  "Sweet potatoes", "Quinoa", "Brown rice", "Oats", "Beans/Legumes",
+  "Olive oil", "Coconut oil", "Dark chocolate", "Green tea", "Herbal teas"
+];
+
+const WORK_HOURS_OPTIONS = [
+  "9am-5pm (Standard)", "8am-4pm", "7am-3pm", "10am-6pm", "11am-7pm",
+  "Evening shift (3pm-11pm)", "Night shift (11pm-7am)", "Rotating shifts",
+  "Part-time mornings", "Part-time afternoons", "Part-time evenings",
+  "Weekends only", "Flexible hours", "Remote work", "Unemployed/Not working"
+];
 
 // Birthday Add Button Component with Relationship Selection
 const BirthdayAddButton = ({ onAdd }: { onAdd: (relationship: string, name: string, dateOfBirth: string) => void }) => {
@@ -190,7 +224,9 @@ export default function Onboarding() {
       misdiagnoses: [],
       otherDiseases: [],
       foodDislikes: [],
+      customFoodDislikes: "",
       foodFavorites: [],
+      customFoodFavorites: "",
       foodAllergies: [],
       currentMedications: [],
       hasFibers: false,
@@ -198,6 +234,7 @@ export default function Onboarding() {
       alcoholHabit: false,
       hasChildren: false,
       hasSiblings: false,
+      isEmployed: false,
       exerciseFrequency: "rarely",
       importantBirthdays: "[]"
     },
