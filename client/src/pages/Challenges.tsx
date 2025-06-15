@@ -19,12 +19,12 @@ export default function Challenges() {
   const queryClient = useQueryClient();
 
   // Fetch available challenges
-  const { data: challenges, isLoading: challengesLoading } = useQuery({
+  const { data: challenges = [], isLoading: challengesLoading } = useQuery({
     queryKey: ["/api/challenges"]
   });
 
   // Fetch user's challenges
-  const { data: userChallenges, isLoading: userChallengesLoading } = useQuery({
+  const { data: userChallenges = [], isLoading: userChallengesLoading } = useQuery({
     queryKey: ["/api/user-challenges"]
   });
 
