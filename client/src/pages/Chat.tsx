@@ -44,26 +44,6 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Handle authentication loading
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>
-          <p className="text-slate-600">You need to be signed in to access the chat.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Fetch chat rooms using Firestore
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<ChatRoom[]>({
     queryKey: ['chat-rooms'],
@@ -99,6 +79,26 @@ export default function Chat() {
     },
     enabled: isAuthenticated,
   });
+
+  // Handle authentication loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>
+          <p className="text-slate-600">You need to be signed in to access the chat.</p>
+        </div>
+      </div>
+    );
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

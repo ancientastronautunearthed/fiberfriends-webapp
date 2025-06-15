@@ -10,7 +10,7 @@ import SymptomTracker from "@/pages/SymptomTracker";
 import SymptomPatterns from "@/pages/SymptomPatterns";
 import FoodLogger from "@/pages/FoodLogger";
 import CommunityForum from "@/pages/CommunityForum";
-import Chat from "@/pages/Chat";
+import SimplifiedChat from "@/pages/SimplifiedChat";
 import AICompanion from "@/pages/AICompanion";
 import UserProfile from "@/pages/UserProfile";
 import Layout from "@/components/Layout";
@@ -38,7 +38,7 @@ function Router() {
           <Route path="/patterns" component={SymptomPatterns} />
           <Route path="/food" component={FoodLogger} />
           <Route path="/community" component={CommunityForum} />
-          <Route path="/chat" component={Chat} />
+          <Route path="/chat" component={SimplifiedChat} />
           <Route path="/companion" component={AICompanion} />
           <Route path="/profile" component={UserProfile} />
         </Layout>
