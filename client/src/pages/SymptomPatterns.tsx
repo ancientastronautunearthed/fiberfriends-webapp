@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +19,8 @@ import {
   BarChart3,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
+  ClipboardCheck
 } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { 
@@ -287,6 +290,33 @@ export default function SymptomPatterns() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Empty State - Insufficient Data */}
+      {!analysisData && (!logsArray || logsArray.length < 7) && !logsLoading && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <BarChart3 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Start Tracking Your Symptoms</h3>
+              <p className="text-slate-600 mb-4">
+                You need at least 7 days of symptom logs to analyze patterns. Start by logging your daily symptoms in the tracker.
+              </p>
+              <div className="space-y-2">
+                <Link href="/symptom-tracker">
+                  <Button>Go to Symptom Tracker</Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  onClick={createSampleData}
+                  className="ml-2"
+                >
+                  Create Sample Data
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analysis Results */}
       {analysisData && (
