@@ -85,6 +85,7 @@ function Router() {
         <Route path="/achievements" component={Achievements} />
         <Route path="/recommendations" component={Recommendations} />
         <Route path="/activities" component={HealthyActivities} />
+        <Route path="/environmental-triggers" component={EnvironmentalTriggers} />
         <Route path="/community-insights" component={CommunityInsights} />
         <Route path="/profile" component={UserProfile} />
         <Route path="/test-luna" component={TestLuna} />

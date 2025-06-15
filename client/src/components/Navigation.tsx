@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
-import { Bell, Star, User, Home, ClipboardCheck, TrendingUp, Users, Bot, MessageCircle, Menu, Trophy, Award, Brain, Target, Activity } from "lucide-react";
+import { Bell, Star, User, Home, ClipboardCheck, TrendingUp, Users, Bot, MessageCircle, Menu, Trophy, Award, Brain, Target, Activity, Cloud } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -34,6 +34,7 @@ export default function Navigation() {
     { path: "/tracking", label: "Tracking", icon: ClipboardCheck },
     { path: "/symptom-wheel", label: "Wheel", icon: Target },
     { path: "/patterns", label: "Patterns", icon: TrendingUp },
+    { path: "/environmental-triggers", label: "Environment", icon: Cloud },
     { path: "/activities", label: "Activities", icon: Activity },
     { path: "/recommendations", label: "Smart Recs", icon: Brain },
     { path: "/challenges", label: "Challenges", icon: Trophy },
