@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { 
   User,
   onAuthStateChanged,
-  signInWithRedirect,
-  signOut as firebaseSignOut,
-  getRedirectResult
+  signInWithPopup,
+  signOut as firebaseSignOut
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { getUser, createUser } from "@/lib/firestore";
@@ -16,19 +15,6 @@ export function useFirebaseAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Handle redirect result on page load
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          await handleUserLogin(result.user);
-        }
-      } catch (error) {
-        console.error("Error handling redirect result:", error);
-      }
-    };
-
-    handleRedirectResult();
 
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -84,9 +70,14 @@ export function useFirebaseAuth() {
 
   const signIn = async () => {
     try {
-      await signInWithRedirect(auth, googleProvider);
+      console.log("Starting Google sign-in...");
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result.user) {
+        await handleUserLogin(result.user);
+      }
     } catch (error) {
       console.error("Error signing in:", error);
+      throw error;
     }
   };
 
