@@ -299,9 +299,9 @@ export default function HealthyActivities() {
                         <h4 className="font-medium text-gray-900 mb-2">Health Benefits:</h4>
                         <div className="flex flex-wrap gap-1">
                           {activity.healthBenefits.map((benefit, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
+                            <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
                               {benefit}
-                            </Badge>
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -311,9 +311,9 @@ export default function HealthyActivities() {
                           <h4 className="font-medium text-gray-900 mb-2">Equipment Needed:</h4>
                           <div className="flex flex-wrap gap-1">
                             {activity.equipmentNeeded.map((equipment, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
+                              <span key={index} className="px-2 py-1 border border-gray-300 text-gray-700 rounded text-xs">
                                 {equipment}
-                              </Badge>
+                              </span>
                             ))}
                           </div>
                         </div>

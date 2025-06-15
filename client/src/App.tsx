@@ -20,6 +20,7 @@ import TestChat from "@/pages/TestChat";
 import Challenges from "@/pages/Challenges";
 import Achievements from "@/pages/Achievements";
 import Recommendations from "@/pages/Recommendations";
+import HealthyActivities from "@/pages/HealthyActivities";
 import TestLuna from "@/pages/TestLuna";
 import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
@@ -67,6 +68,7 @@ function Router() {
         <Route path="/challenges" component={Challenges} />
         <Route path="/achievements" component={Achievements} />
         <Route path="/recommendations" component={Recommendations} />
+        <Route path="/activities" component={HealthyActivities} />
         <Route path="/profile" component={UserProfile} />
         <Route path="/test-luna" component={TestLuna} />
       </Layout>

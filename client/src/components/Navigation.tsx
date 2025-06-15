@@ -34,6 +34,7 @@ export default function Navigation() {
     { path: "/tracking", label: "Tracking", icon: ClipboardCheck },
     { path: "/symptom-wheel", label: "Wheel", icon: Target },
     { path: "/patterns", label: "Patterns", icon: TrendingUp },
+    { path: "/activities", label: "Activities", icon: Activity },
     { path: "/recommendations", label: "Smart Recs", icon: Brain },
     { path: "/challenges", label: "Challenges", icon: Trophy },
     { path: "/achievements", label: "Achievements", icon: Award },
