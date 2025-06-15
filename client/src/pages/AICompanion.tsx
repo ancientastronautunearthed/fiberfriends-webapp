@@ -199,11 +199,6 @@ export default function AICompanion() {
     }
   };
 
-  const { data: companion } = useQuery({
-    queryKey: ["/api/ai-companion"],
-    enabled: isAuthenticated,
-  });
-
   const handleSendMessage = async () => {
     if (!message.trim()) return;
 
@@ -270,7 +265,7 @@ export default function AICompanion() {
     );
   }
 
-  const companionName = companion?.companionName || "Luna";
+  const companionName = "Luna";
 
   return (
     <div className="space-y-8">
