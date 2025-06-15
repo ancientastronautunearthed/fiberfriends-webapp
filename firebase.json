@@ -4,8 +4,8 @@
     "rewrites": [
       {
         "source": "**",
-        "apphosting": {
-          "backendId": "fiberfriends-webapp",
+        "run": {
+          "serviceId": "fiberfriends-webapp",
           "region": "us-central1"
         }
       }
