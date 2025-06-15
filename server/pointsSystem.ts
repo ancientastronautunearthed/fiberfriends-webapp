@@ -269,6 +269,12 @@ export class PointsSystem {
       return 0;
     }
 
+    // Check for birthday bonus (double points)
+    const isBirthday = await this.isBirthdayBonus(userId);
+    if (isBirthday) {
+      pointsEarned *= 2;
+    }
+
     // Check for bonuses
     let totalPoints = pointsEarned;
     const now = new Date();
