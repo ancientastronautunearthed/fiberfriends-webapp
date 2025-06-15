@@ -43,7 +43,7 @@ import {
   type InsertLeaderboard
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -416,36 +416,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserChallenges(userId: string, status?: string): Promise<any[]> {
+    let whereCondition;
+    if (status) {
+      whereCondition = and(eq(userChallenges.userId, userId), eq(userChallenges.status, status));
+    } else {
+      whereCondition = eq(userChallenges.userId, userId);
+    }
+    
     const userChallengeRows = await db
       .select()
       .from(userChallenges)
-      .where(
-        status 
-          ? and(eq(userChallenges.userId, userId), eq(userChallenges.status, status))
-          : eq(userChallenges.userId, userId)
-      )
+      .where(whereCondition)
       .orderBy(desc(userChallenges.startedAt));
 
-    // Get all challenge IDs to fetch in batch
-    const challengeIds = userChallengeRows.map(uc => uc.challengeId);
-    
-    let challengeMap = new Map();
-    if (challengeIds.length > 0) {
-      const challengesData = await db
+    // Fetch challenge details for each user challenge
+    const results = [];
+    for (const userChallenge of userChallengeRows) {
+      const [challenge] = await db
         .select()
         .from(challenges)
-        .where(challenges.id);
+        .where(eq(challenges.id, userChallenge.challengeId));
       
-      challengesData.forEach(challenge => {
-        challengeMap.set(challenge.id, challenge);
+      results.push({
+        ...userChallenge,
+        challenge: challenge || null
       });
     }
-
-    // Combine user challenges with challenge data
-    return userChallengeRows.map(userChallenge => ({
-      ...userChallenge,
-      challenge: challengeMap.get(userChallenge.challengeId) || null
-    }));
+    
+    return results;
   }
 
   async getUserChallenge(userId: string, challengeId: string): Promise<UserChallenge | undefined> {
