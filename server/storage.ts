@@ -80,9 +80,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAiCompanion(companion: InsertAiCompanion): Promise<AiCompanion> {
+    const companionWithId = {
+      ...companion,
+      id: crypto.randomUUID(),
+    };
     const [result] = await db
       .insert(aiCompanions)
-      .values(companion)
+      .values(companionWithId)
       .returning();
     return result;
   }

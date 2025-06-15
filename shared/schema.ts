@@ -53,7 +53,7 @@ export const users = pgTable("users", {
 
 // AI Companions
 export const aiCompanions = pgTable("ai_companions", {
-  id: serial("id").primaryKey(),
+  id: varchar("id").primaryKey(),
   userId: varchar("user_id").notNull(),
   companionName: varchar("companion_name").notNull(),
   companionImageUrl: varchar("companion_image_url"),
@@ -63,7 +63,7 @@ export const aiCompanions = pgTable("ai_companions", {
 
 // Daily Logs
 export const dailyLogs = pgTable("daily_logs", {
-  id: serial("id").primaryKey(),
+  id: varchar("id").primaryKey(),
   userId: varchar("user_id").notNull(),
   date: timestamp("date").notNull(),
   logType: varchar("log_type").notNull(), // 'food', 'symptoms'
@@ -73,7 +73,7 @@ export const dailyLogs = pgTable("daily_logs", {
 
 // Community Posts
 export const communityPosts = pgTable("community_posts", {
-  id: serial("id").primaryKey(),
+  id: varchar("id").primaryKey(),
   authorId: varchar("author_id").notNull(),
   category: varchar("category").notNull(), // 'story', 'success_tactic', 'question', 'support'
   title: varchar("title").notNull(),
