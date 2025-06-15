@@ -118,6 +118,19 @@ export const symptomCorrelations = pgTable("symptom_correlations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Symptom Wheel Entries
+export const symptomWheelEntries = pgTable("symptom_wheel_entries", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  entryDate: timestamp("entry_date").notNull(),
+  symptomData: jsonb("symptom_data").notNull(), // Array of {symptomId, intensity, mood}
+  totalSymptoms: integer("total_symptoms").default(0),
+  averageIntensity: real("average_intensity").default(0),
+  notes: text("notes"),
+  moodScore: integer("mood_score"), // Overall mood 1-10
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Chat Rooms
 export const chatRooms = pgTable("chat_rooms", {
   id: varchar("id").primaryKey(),

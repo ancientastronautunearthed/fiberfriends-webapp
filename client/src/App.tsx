@@ -7,6 +7,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import SymptomTracker from "@/pages/SymptomTracker";
+import SymptomWheel from "@/pages/SymptomWheel";
 import SymptomPatterns from "@/pages/SymptomPatterns";
 import FoodLogger from "@/pages/FoodLogger";
 import CommunityForum from "@/pages/CommunityForum";
@@ -30,6 +31,7 @@ function Router() {
       <Layout>
         <Route path="/" component={Dashboard} />
         <Route path="/tracking" component={SymptomTracker} />
+        <Route path="/symptom-wheel" component={SymptomWheel} />
         <Route path="/patterns" component={SymptomPatterns} />
         <Route path="/food" component={FoodLogger} />
         <Route path="/community" component={CommunityForum} />
