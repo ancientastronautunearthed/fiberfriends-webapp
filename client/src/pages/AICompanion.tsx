@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, User, Send, Mic, MicOff, Volume2, VolumeX, Calendar, Heart, Activity, Apple } from "lucide-react";
-import { generateAICompanionResponse, getConversationHistory, getHealthInsights } from "@/lib/api";
+import { generateAICompanionResponse, getConversationHistoryForUser } from "@/lib/api";
 
 // TypeScript declarations for Web Speech API
 declare global {
