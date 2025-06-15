@@ -305,14 +305,26 @@ export default function Challenges() {
                               {userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0} points
                             </span>
                           </div>
-                          <Button
-                            onClick={() => setActiveTracker(userChallenge.id)}
-                            size="sm"
-                            className="flex items-center gap-2"
-                          >
-                            <Play className="w-4 h-4" />
-                            Start Tracker
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => dismissChallengeMutation.mutate(userChallenge.id)}
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled={dismissChallengeMutation.isPending}
+                            >
+                              <X className="w-4 h-4" />
+                              Dismiss
+                            </Button>
+                            <Button
+                              onClick={() => setActiveTracker(userChallenge.id)}
+                              size="sm"
+                              className="flex items-center gap-2"
+                            >
+                              <Play className="w-4 h-4" />
+                              Start Tracker
+                            </Button>
+                          </div>
                         </div>
                         
                         <div className="text-sm text-muted-foreground">

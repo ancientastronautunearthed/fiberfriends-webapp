@@ -4,6 +4,7 @@ import { BreathingExercise } from "./BreathingExercise";
 import { WaterIntakeTracker } from "./WaterIntakeTracker";
 import { JournalTracker } from "./JournalTracker";
 import { SymptomTracker } from "./SymptomTracker";
+import { JourneyTracker } from "./JourneyTracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 
@@ -90,6 +91,18 @@ export function ChallengeTracker({ challenge, userChallengeId }: ChallengeTracke
           challengeId={challenge.id}
           targetWords={req.daily_words || req.word_count || 100}
           targetDays={req.duration_days || 7}
+          onProgress={handleProgress}
+          onComplete={handleComplete}
+        />
+      );
+    }
+
+    // Journey/reflection tracking
+    if (req.reflection_steps || challenge.title.toLowerCase().includes("journey") || challenge.title.toLowerCase().includes("create your")) {
+      return (
+        <JourneyTracker
+          challengeId={challenge.id}
+          targetSteps={req.reflection_steps || 5}
           onProgress={handleProgress}
           onComplete={handleComplete}
         />
