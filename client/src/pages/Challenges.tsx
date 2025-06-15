@@ -18,85 +18,15 @@ export default function Challenges() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Demo challenges data with gamification features
-  const challenges = [
-    {
-      id: "1",
-      title: "Morning Mindfulness Challenge",
-      description: "Start your day with 5 minutes of meditation to reduce inflammation markers",
-      category: "mindfulness",
-      difficulty: "easy",
-      points: 50,
-      gameType: "breathing-exercise",
-      targetValue: 5,
-      estimatedTime: "5 minutes",
-      icon: "🧘",
-      benefits: ["Reduced stress hormones", "Better symptom management", "Improved focus"]
-    },
-    {
-      id: "2", 
-      title: "Memory Pattern Game",
-      description: "Exercise your cognitive function with fun memory challenges",
-      category: "health",
-      difficulty: "medium",
-      points: 75,
-      gameType: "memory-sequence",
-      targetValue: 4,
-      estimatedTime: "3 minutes",
-      icon: "🧠",
-      benefits: ["Enhanced cognitive function", "Better concentration", "Mental stimulation"]
-    },
-    {
-      id: "3",
-      title: "Anti-Inflammatory Meal Prep",
-      description: "Prepare 3 healing meals focused on reducing systemic inflammation",
-      category: "nutrition",
-      difficulty: "medium",
-      points: 100,
-      gameType: "tracking",
-      targetValue: 3,
-      estimatedTime: "45 minutes",
-      icon: "🥗",
-      benefits: ["Reduced inflammation", "Better energy levels", "Healing nutrition"]
-    },
-    {
-      id: "4",
-      title: "Reaction Time Boost",
-      description: "Quick reflexes challenge to support nervous system function",
-      category: "physical",
-      difficulty: "easy",
-      points: 60,
-      gameType: "reaction-time",
-      targetValue: 1,
-      estimatedTime: "2 minutes",
-      icon: "⚡",
-      benefits: ["Better reflexes", "Nervous system support", "Coordination improvement"]
-    }
-  ];
+  // Fetch available challenges
+  const { data: challenges, isLoading: challengesLoading } = useQuery({
+    queryKey: ["/api/challenges"]
+  });
 
-  const userChallenges = [
-    {
-      id: "uc1",
-      challengeId: "1",
-      progress: 3,
-      targetValue: 5,
-      status: "active",
-      startedAt: new Date().toISOString(),
-      streakCount: 2
-    },
-    {
-      id: "uc2", 
-      challengeId: "3",
-      progress: 1,
-      targetValue: 3,
-      status: "active",
-      startedAt: new Date().toISOString(),
-      streakCount: 1
-    }
-  ];
-
-  const challengesLoading = false;
-  const userChallengesLoading = false;
+  // Fetch user's challenges
+  const { data: userChallenges, isLoading: userChallengesLoading } = useQuery({
+    queryKey: ["/api/user-challenges"]
+  });
 
   // Generate new challenge mutation
   const generateChallengeMutation = useMutation({

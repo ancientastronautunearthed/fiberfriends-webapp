@@ -744,14 +744,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Gamification Routes
   
+  // Initialize default challenges
+  app.post('/api/challenges/seed', async (req, res) => {
+    try {
+      const existingChallenges = await storage.getChallenges();
+      if (existingChallenges.length === 0) {
+        const defaultChallenges = [
+          {
+            title: "Morning Mindfulness Challenge",
+            description: "Start your day with 5 minutes of meditation to reduce inflammation markers",
+            type: "daily",
+            category: "mindfulness",
+            difficulty: "easy",
+            pointReward: 50,
+            requirements: { duration: 5, type: "meditation" },
+            isActive: true,
+            validFrom: new Date(),
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          },
+          {
+            title: "Anti-Inflammatory Meal Prep",
+            description: "Prepare 3 healing meals focused on reducing systemic inflammation",
+            type: "weekly",
+            category: "nutrition",
+            difficulty: "medium",
+            pointReward: 100,
+            requirements: { meals: 3, type: "anti-inflammatory" },
+            isActive: true,
+            validFrom: new Date(),
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          },
+          {
+            title: "Symptom Pattern Tracking",
+            description: "Log and track symptom patterns for better health insights",
+            type: "ongoing",
+            category: "health",
+            difficulty: "easy",
+            pointReward: 75,
+            requirements: { logs: 7, period: "week" },
+            isActive: true,
+            validFrom: new Date(),
+            validUntil: null
+          }
+        ];
+
+        for (const challengeData of defaultChallenges) {
+          await storage.createChallenge(challengeData);
+        }
+        
+        res.json({ message: "Default challenges created", count: defaultChallenges.length });
+      } else {
+        res.json({ message: "Challenges already exist", count: existingChallenges.length });
+      }
+    } catch (error) {
+      console.error("Error seeding challenges:", error);
+      res.status(500).json({ message: "Failed to seed challenges" });
+    }
+  });
+
   // Challenge routes
   app.get('/api/challenges', async (req, res) => {
     try {
       const { type, active } = req.query;
-      const challenges = await storage.getChallenges(
+      let challenges = await storage.getChallenges(
         type as string, 
         active === 'true' ? true : active === 'false' ? false : undefined
       );
+      
+      // Auto-seed if no challenges exist
+      if (challenges.length === 0) {
+        const defaultChallenges = [
+          {
+            title: "Morning Mindfulness Challenge",
+            description: "Start your day with 5 minutes of meditation to reduce inflammation markers",
+            type: "daily",
+            category: "mindfulness",
+            difficulty: "easy",
+            pointReward: 50,
+            requirements: { duration: 5, type: "meditation" },
+            isActive: true,
+            validFrom: new Date(),
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          },
+          {
+            title: "Anti-Inflammatory Meal Prep",
+            description: "Prepare 3 healing meals focused on reducing systemic inflammation",
+            type: "weekly",
+            category: "nutrition",
+            difficulty: "medium",
+            pointReward: 100,
+            requirements: { meals: 3, type: "anti-inflammatory" },
+            isActive: true,
+            validFrom: new Date(),
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          }
+        ];
+
+        for (const challengeData of defaultChallenges) {
+          await storage.createChallenge(challengeData);
+        }
+        
+        challenges = await storage.getChallenges(
+          type as string, 
+          active === 'true' ? true : active === 'false' ? false : undefined
+        );
+      }
+      
       res.json(challenges);
     } catch (error) {
       console.error("Error fetching challenges:", error);
