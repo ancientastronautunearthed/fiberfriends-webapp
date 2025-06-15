@@ -874,18 +874,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let challenge;
       
       if (type === 'daily') {
-        challenge = await generateDailyChallenge();
-      } else if (type === 'personalized') {
-        const userProfile = await storage.getUser(userId);
-        const userHistory = await storage.getUserChallenges(userId);
-        challenge = await generatePersonalizedChallenge(userProfile, userHistory);
-      } else if (type === 'weekly') {
-        const communityData = await storage.getCommunityPosts();
-        challenge = await generateWeeklyChallenge(communityData);
-      } else if (type === 'milestone') {
-        const userAchievements = await storage.getUserAchievements(userId);
-        const userStats = { /* user stats */ };
-        challenge = await generateMilestoneChallenge(userAchievements, userStats);
+        // Create a simple daily challenge without AI
+        const dailyChallenges = [
+          {
+            title: "Morning Inflammation Check",
+            description: "Rate your inflammation levels and log any new symptoms",
+            category: "health",
+            difficulty: "easy",
+            points: 25,
+            requirements: { type: "symptom_log", count: 1 }
+          },
+          {
+            title: "Gentle Movement Session", 
+            description: "Complete 10 minutes of gentle stretching or walking",
+            category: "physical",
+            difficulty: "easy",
+            points: 30,
+            requirements: { type: "activity", duration: 10 }
+          },
+          {
+            title: "Mindful Breathing",
+            description: "Practice 5 minutes of deep breathing to reduce stress",
+            category: "mindfulness", 
+            difficulty: "easy",
+            points: 20,
+            requirements: { type: "breathing", duration: 5 }
+          }
+        ];
+        challenge = dailyChallenges[Math.floor(Math.random() * dailyChallenges.length)];
+      } else {
+        // For other types, create simple fallback challenges
+        challenge = {
+          title: "Weekly Health Focus",
+          description: "Focus on consistent health tracking and symptom management",
+          category: "health",
+          difficulty: "medium", 
+          points: 50,
+          requirements: { type: "weekly_tracking", count: 7 }
+        };
       }
       
       if (challenge) {
