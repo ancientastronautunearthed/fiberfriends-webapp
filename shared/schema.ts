@@ -494,6 +494,22 @@ export type SymptomCorrelation = typeof symptomCorrelations.$inferSelect;
 export type InsertSymptomWheelEntry = z.infer<typeof insertSymptomWheelEntrySchema>;
 export type SymptomWheelEntry = typeof symptomWheelEntries.$inferSelect;
 
+// Enhanced AI companion types
+export const insertConversationHistorySchema = createInsertSchema(conversationHistory).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertAiHealthInsightSchema = createInsertSchema(aiHealthInsights).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertConversationHistory = z.infer<typeof insertConversationHistorySchema>;
+export type ConversationHistory = typeof conversationHistory.$inferSelect;
+export type InsertAiHealthInsight = z.infer<typeof insertAiHealthInsightSchema>;
+export type AiHealthInsight = typeof aiHealthInsights.$inferSelect;
+
 export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
   id: true,
   createdAt: true,

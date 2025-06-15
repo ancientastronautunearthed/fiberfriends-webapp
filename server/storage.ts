@@ -1,6 +1,8 @@
 import { 
   users, 
   aiCompanions,
+  conversationHistory,
+  aiHealthInsights,
   dailyLogs,
   communityPosts,
   symptomPatterns,
@@ -19,6 +21,10 @@ import {
   type UpsertUser,
   type AiCompanion,
   type InsertAiCompanion,
+  type ConversationHistory,
+  type InsertConversationHistory,
+  type AiHealthInsight,
+  type InsertAiHealthInsight,
   type DailyLog,
   type InsertDailyLog,
   type CommunityPost,
@@ -61,6 +67,17 @@ export interface IStorage {
   // AI Companion operations
   getAiCompanion(userId: string): Promise<AiCompanion | undefined>;
   createAiCompanion(companion: InsertAiCompanion): Promise<AiCompanion>;
+  updateAiCompanion(id: string, updates: Partial<AiCompanion>): Promise<AiCompanion>;
+  
+  // Enhanced AI Companion - Conversation History
+  getConversationHistory(userId: string, companionId: string, limit?: number): Promise<ConversationHistory[]>;
+  saveConversationMessage(message: InsertConversationHistory): Promise<ConversationHistory>;
+  getConversationContext(userId: string, companionId: string): Promise<any>;
+  
+  // Enhanced AI Companion - Health Insights
+  getAiHealthInsights(userId: string, companionId?: string): Promise<AiHealthInsight[]>;
+  createAiHealthInsight(insight: InsertAiHealthInsight): Promise<AiHealthInsight>;
+  dismissHealthInsight(id: string): Promise<AiHealthInsight>;
   
   // Daily Log operations
   getDailyLogs(userId: string): Promise<DailyLog[]>;
@@ -177,6 +194,108 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db
       .insert(aiCompanions)
       .values(companionWithId)
+      .returning();
+    return result;
+  }
+
+  async updateAiCompanion(id: string, updates: Partial<AiCompanion>): Promise<AiCompanion> {
+    const [result] = await db
+      .update(aiCompanions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(aiCompanions.id, id))
+      .returning();
+    return result;
+  }
+
+  // Enhanced AI Companion - Conversation History
+  async getConversationHistory(userId: string, companionId: string, limit: number = 50): Promise<ConversationHistory[]> {
+    const history = await db
+      .select()
+      .from(conversationHistory)
+      .where(and(
+        eq(conversationHistory.userId, userId),
+        eq(conversationHistory.companionId, companionId)
+      ))
+      .orderBy(desc(conversationHistory.timestamp))
+      .limit(limit);
+    return history.reverse(); // Return chronological order
+  }
+
+  async saveConversationMessage(message: InsertConversationHistory): Promise<ConversationHistory> {
+    const messageWithId = {
+      ...message,
+      id: crypto.randomUUID(),
+    };
+    const [result] = await db
+      .insert(conversationHistory)
+      .values(messageWithId)
+      .returning();
+    
+    // Update companion's last interaction
+    await db
+      .update(aiCompanions)
+      .set({ 
+        lastInteraction: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(aiCompanions.id, message.companionId));
+    
+    return result;
+  }
+
+  async getConversationContext(userId: string, companionId: string): Promise<any> {
+    // Get recent conversation history for context
+    const recentMessages = await this.getConversationHistory(userId, companionId, 10);
+    
+    // Get companion's memory context
+    const [companion] = await db
+      .select()
+      .from(aiCompanions)
+      .where(eq(aiCompanions.id, companionId));
+    
+    return {
+      recentMessages,
+      memoryContext: companion?.memoryContext || {},
+      conversationStyle: companion?.conversationStyle || 'supportive',
+      preferences: companion?.preferences || {}
+    };
+  }
+
+  // Enhanced AI Companion - Health Insights
+  async getAiHealthInsights(userId: string, companionId?: string): Promise<AiHealthInsight[]> {
+    let query = db
+      .select()
+      .from(aiHealthInsights)
+      .where(eq(aiHealthInsights.userId, userId));
+    
+    if (companionId) {
+      query = query.where(eq(aiHealthInsights.companionId, companionId));
+    }
+    
+    const insights = await query
+      .orderBy(desc(aiHealthInsights.createdAt))
+      .limit(20);
+    
+    return insights;
+  }
+
+  async createAiHealthInsight(insight: InsertAiHealthInsight): Promise<AiHealthInsight> {
+    const insightWithId = {
+      ...insight,
+      id: crypto.randomUUID(),
+    };
+    const [result] = await db
+      .insert(aiHealthInsights)
+      .values(insightWithId)
+      .returning();
+    return result;
+  }
+
+  async dismissHealthInsight(id: string): Promise<AiHealthInsight> {
+    const [result] = await db
+      .update(aiHealthInsights)
+      .set({ dismissed: true })
+      .where(eq(aiHealthInsights.id, id))
       .returning();
     return result;
   }
