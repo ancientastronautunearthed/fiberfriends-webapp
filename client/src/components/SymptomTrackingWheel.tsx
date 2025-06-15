@@ -38,7 +38,11 @@ const getMoodFromIntensity = (intensity: number): 'good' | 'neutral' | 'poor' | 
   return 'severe';
 };
 
-export function SymptomTrackingWheel() {
+interface SymptomTrackingWheelProps {
+  onDataChange?: (data: { symptoms: SymptomData[]; overallMood: number }) => void;
+}
+
+export function SymptomTrackingWheel({ onDataChange }: SymptomTrackingWheelProps) {
   const [symptoms, setSymptoms] = useState<SymptomData[]>(
     SYMPTOMS.map(s => ({
       ...s,
@@ -50,24 +54,47 @@ export function SymptomTrackingWheel() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const updateSymptom = (id: string, intensity: number) => {
-    setSymptoms(prev => prev.map(symptom => 
+    const updatedSymptoms = symptoms.map(symptom => 
       symptom.id === id 
         ? { ...symptom, intensity, mood: getMoodFromIntensity(intensity) }
         : symptom
-    ));
+    );
+    setSymptoms(updatedSymptoms);
+    
+    // Notify parent of data changes
+    if (onDataChange) {
+      const activeSymptoms = updatedSymptoms.filter(s => s.intensity > 0);
+      const overallMood = activeSymptoms.length > 0 
+        ? Math.round(activeSymptoms.reduce((sum, s) => sum + s.intensity, 0) / activeSymptoms.length)
+        : 5;
+      
+      onDataChange({
+        symptoms: activeSymptoms.map(s => ({
+          symptomId: s.id,
+          intensity: s.intensity,
+          mood: s.mood
+        })),
+        overallMood
+      });
+    }
   };
 
   const resetSymptoms = () => {
-    setSymptoms(prev => prev.map(symptom => ({
+    const resetSymptomData = symptoms.map(symptom => ({
       ...symptom,
       intensity: 0,
       mood: 'good' as const
-    })));
+    }));
+    setSymptoms(resetSymptomData);
     setSelectedSymptom(null);
+    
+    // Notify parent of reset
+    if (onDataChange) {
+      onDataChange({ symptoms: [], overallMood: 5 });
+    }
   };
 
   const saveSymptoms = () => {
-    // TODO: Implement save functionality
     console.log('Saving symptoms:', symptoms);
   };
 

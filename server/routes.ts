@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
-import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema, insertChallengeSchema, insertUserChallengeSchema } from "@shared/schema";
+import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema, insertChallengeSchema, insertUserChallengeSchema, insertSymptomWheelEntrySchema } from "@shared/schema";
 import { 
   generateNutritionalAnalysis, 
   generateSymptomInsight, 
@@ -235,6 +235,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Symptom wheel routes
+  app.get('/api/symptom-wheel-entries', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 30;
+      const entries = await storage.getSymptomWheelEntries(userId, limit);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching symptom wheel entries:", error);
+      res.status(500).json({ message: "Failed to fetch symptom wheel entries" });
+    }
+  });
+
+  app.post('/api/symptom-wheel-entries', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertSymptomWheelEntrySchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const entry = await storage.createSymptomWheelEntry(validatedData);
+      res.json(entry);
+    } catch (error) {
+      console.error("Error creating symptom wheel entry:", error);
+      res.status(500).json({ message: "Failed to create symptom wheel entry" });
+    }
+  });
+
+  app.get('/api/symptom-wheel-analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const analytics = await storage.getSymptomWheelAnalytics(userId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching symptom wheel analytics:", error);
+      res.status(500).json({ message: "Failed to fetch symptom wheel analytics" });
     }
   });
 
