@@ -224,18 +224,19 @@ export default function AICompanion() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!message.trim()) return;
+  const handleSendMessage = async (messageText?: string) => {
+    const messageToSend = messageText || message;
+    if (!messageToSend.trim()) return;
 
     const userMessage = {
       id: messages.length + 1,
       type: "user" as const,
-      content: message,
+      content: messageToSend,
       timestamp: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentMessage = message;
+    const currentMessage = messageToSend;
     setMessage("");
 
     try {
@@ -322,11 +323,11 @@ export default function AICompanion() {
       nutrition_tips: "I'm looking for nutrition advice specifically for managing Morgellons symptoms. What anti-inflammatory foods should I focus on today?"
     };
 
-    const message = quickActionMessages[actionType as keyof typeof quickActionMessages];
-    if (message) {
-      setInput(message);
+    const messageText = quickActionMessages[actionType as keyof typeof quickActionMessages];
+    if (messageText) {
+      setMessage(messageText);
       // Auto-send the message
-      await handleSendMessage(message);
+      await handleSendMessage(messageText);
     }
   };
 
@@ -473,7 +474,7 @@ export default function AICompanion() {
               className="flex-1"
               disabled={isListening}
             />
-            <Button onClick={handleSendMessage} disabled={!message.trim() || isListening}>
+            <Button onClick={() => handleSendMessage()} disabled={!message.trim() || isListening}>
               <Send className="w-4 h-4" />
             </Button>
           </div>
