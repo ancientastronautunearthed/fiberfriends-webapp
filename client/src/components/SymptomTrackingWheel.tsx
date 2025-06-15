@@ -69,11 +69,7 @@ export function SymptomTrackingWheel({ onDataChange }: SymptomTrackingWheelProps
         : 5;
       
       onDataChange({
-        symptoms: activeSymptoms.map(s => ({
-          symptomId: s.id,
-          intensity: s.intensity,
-          mood: s.mood
-        })),
+        symptoms: activeSymptoms,
         overallMood
       });
     }

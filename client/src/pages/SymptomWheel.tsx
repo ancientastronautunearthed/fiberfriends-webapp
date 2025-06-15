@@ -67,7 +67,12 @@ export default function SymptomWheel() {
 
     saveEntryMutation.mutate({
       entryDate: new Date().toISOString(),
-      symptomData: wheelData.symptoms,
+      symptomData: wheelData.symptoms.map((s: any) => ({
+        symptomId: s.id,
+        name: s.name,
+        intensity: s.intensity,
+        mood: s.mood
+      })),
       totalSymptoms,
       averageIntensity: Math.round(averageIntensity * 10) / 10,
       notes: notes.trim() || null,
