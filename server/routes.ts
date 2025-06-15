@@ -113,6 +113,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Daily symptom log check
+  app.get('/api/daily-symptom-check', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const needsSymptomLog = user.lastDailySymptomLog !== today;
+      
+      res.json({
+        needsSymptomLog,
+        lastSubmission: user.lastDailySymptomLog,
+        today
+      });
+    } catch (error) {
+      console.error("Error checking daily symptom log:", error);
+      res.status(500).json({ message: "Failed to check daily symptom log" });
+    }
+  });
+
+  // Submit daily symptom log
+  app.post('/api/daily-symptom-log', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { symptoms, mood, energy, pain, sleep, notes } = req.body;
+      
+      // Create symptom log entry
+      const symptomLog = await storage.createSymptomWheelEntry({
+        userId,
+        date: new Date().toISOString().split('T')[0],
+        symptoms: symptoms || [],
+        mood: mood || 5,
+        energy: energy || 5,
+        pain: pain || 5,
+        sleep: sleep || 5,
+        notes: notes || '',
+        isDailyLog: true
+      });
+
+      // Update user's last daily symptom log date
+      await storage.updateUser(userId, {
+        lastDailySymptomLog: new Date().toISOString().split('T')[0]
+      });
+
+      // Award points for daily symptom log
+      await pointsSystem.awardPoints(userId, 'daily_symptom_log', {
+        date: new Date().toISOString().split('T')[0]
+      });
+
+      res.json({
+        success: true,
+        symptomLog,
+        message: "Daily symptom log submitted successfully"
+      });
+    } catch (error) {
+      console.error("Error submitting daily symptom log:", error);
+      res.status(500).json({ message: "Failed to submit daily symptom log" });
+    }
+  });
+
+  // Generate daily task list based on symptom log
+  app.post('/api/generate-daily-tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { symptomData } = req.body;
+      
+      // Get user profile for context
+      const user = await storage.getUser(userId);
+      
+      // Generate personalized daily tasks using AI
+      const dailyTasks = await generateDailyChallenge();
+      
+      // Get weather-aware activity recommendations
+      const activityRecommendations = await weatherService.getPersonalizedActivities(userId);
+      
+      res.json({
+        dailyTasks,
+        activityRecommendations: activityRecommendations.activities,
+        weatherMessage: activityRecommendations.weatherMessage,
+        dayOffMessage: activityRecommendations.dayOffMessage
+      });
+    } catch (error) {
+      console.error("Error generating daily tasks:", error);
+      res.status(500).json({ message: "Failed to generate daily tasks" });
+    }
+  });
+
   // User profile routes
   app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
     try {

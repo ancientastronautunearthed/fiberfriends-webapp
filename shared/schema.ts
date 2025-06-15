@@ -88,6 +88,7 @@ export const users = pgTable("users", {
   streakDays: integer("streak_days").default(0),
   longestStreak: integer("longest_streak").default(0),
   lastActiveDate: varchar("last_active_date"),
+  lastDailySymptomLog: varchar("last_daily_symptom_log"), // Track last daily log submission
   trophyCase: text("trophy_case").array(),
   unlockedBadges: text("unlocked_badges").array(),
   weeklyGoalProgress: jsonb("weekly_goal_progress"), // Track weekly activity goals
