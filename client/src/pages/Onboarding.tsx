@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, ArrowRight, User, MapPin, Heart, Utensils, Activity, Plus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, User, MapPin, Heart, Utensils, Activity, Plus, X, Users, Sparkles } from "lucide-react";
 
 // Comprehensive onboarding schema based on your initial document
 const onboardingSchema = z.object({
@@ -192,12 +192,15 @@ export default function Onboarding() {
       otherDiseases: [],
       foodDislikes: [],
       foodFavorites: [],
+      foodAllergies: [],
+      currentMedications: [],
       hasFibers: false,
       smokingHabit: false,
       alcoholHabit: false,
       hasChildren: false,
       hasSiblings: false,
-      exerciseFrequency: "rarely"
+      exerciseFrequency: "rarely",
+      importantBirthdays: "[]"
     },
   });
 
@@ -242,14 +245,7 @@ export default function Onboarding() {
         
         // Birthday & Important Dates for Luna's reminders and gift suggestions
         dateOfBirth: data.dateOfBirth,
-        partnerBirthday: data.partnerBirthday,
-        childrenBirthdays: data.childrenBirthdays,
-        familyBirthdays: data.familyBirthdays,
-        importantDates: data.importantDates,
-        
-        // Social Support Network
-        closeFriends: data.closeFriends,
-        familySupport: data.familySupport,
+        importantBirthdays: data.importantBirthdays,
         socialPreferences: data.socialPreferences,
         
         hobbies: data.hobbies,
