@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, ArrowRight, User, MapPin, Heart, Utensils, Activity } from "lucide-react";
+import { ArrowLeft, ArrowRight, User, MapPin, Heart, Utensils, Activity, Plus, X } from "lucide-react";
 
 // Comprehensive onboarding schema based on your initial document
 const onboardingSchema = z.object({
@@ -65,6 +65,104 @@ const onboardingSchema = z.object({
 });
 
 type OnboardingData = z.infer<typeof onboardingSchema>;
+
+// Birthday Add Button Component with Relationship Selection
+const BirthdayAddButton = ({ onAdd }: { onAdd: (relationship: string, name: string, dateOfBirth: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [relationship, setRelationship] = useState("");
+  const [name, setName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+
+  const relationships = [
+    "Son", "Daughter", "Brother", "Sister", "Cousin", "Friend", 
+    "Grandma", "Grandpa", "Mom", "Dad", "Aunt", "Uncle", 
+    "Partner", "Spouse", "Niece", "Nephew", "Best Friend"
+  ];
+
+  const handleAdd = () => {
+    if (relationship && name && dateOfBirth) {
+      onAdd(relationship, name, dateOfBirth);
+      setRelationship("");
+      setName("");
+      setDateOfBirth("");
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-2"
+      >
+        <Plus className="w-4 h-4" />
+        Add Birthday
+      </Button>
+
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-10">
+          <h4 className="font-medium text-gray-900 mb-3">Add Birthday</h4>
+          
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm font-medium">Relationship</Label>
+              <Select onValueChange={setRelationship} value={relationship}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  {relationships.map((rel) => (
+                    <SelectItem key={rel} value={rel}>{rel}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">Name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter name"
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">Date of Birth</Label>
+              <Input
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                onClick={handleAdd}
+                disabled={!relationship || !name || !dateOfBirth}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Add
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const steps = [
   { id: 1, title: "Basic Information", icon: User },
@@ -957,32 +1055,46 @@ export default function Onboarding() {
                     </div>
                   </div>
 
-                  {/* Social Support */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="closeFriends">Number of close friends (Optional)</Label>
-                      <Input 
-                        type="number" 
-                        placeholder="Number of close friends"
-                        onChange={(e) => form.setValue("closeFriends", parseInt(e.target.value) || 0)}
-                      />
+                  {/* Interactive Birthday Management */}
+                  <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-blue-900">Family & Friends Birthdays</h3>
+                        <p className="text-sm text-blue-800">Add important people in your life for birthday reminders</p>
+                      </div>
+                      <BirthdayAddButton onAdd={addBirthday} />
                     </div>
                     
-                    <div>
-                      <Label htmlFor="familySupport">Level of family support</Label>
-                      <Select onValueChange={(value) => form.setValue("familySupport", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="How supportive is your family?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="very-supportive">Very supportive</SelectItem>
-                          <SelectItem value="somewhat-supportive">Somewhat supportive</SelectItem>
-                          <SelectItem value="neutral">Neutral</SelectItem>
-                          <SelectItem value="not-very-supportive">Not very supportive</SelectItem>
-                          <SelectItem value="no-family-contact">No family contact</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {importantBirthdays.length > 0 && (
+                      <div className="space-y-2">
+                        {importantBirthdays.map((birthday) => (
+                          <div key={birthday.id} className="flex items-center justify-between bg-white p-3 rounded-md border border-blue-200">
+                            <div className="flex items-center space-x-3">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                                {birthday.relationship}
+                              </span>
+                              <span className="font-medium text-gray-900">{birthday.name}</span>
+                              <span className="text-gray-600">{birthday.dateOfBirth}</span>
+                            </div>
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => removeBirthday(birthday.id)}
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {importantBirthdays.length === 0 && (
+                      <div className="text-center py-8 border-2 border-dashed border-blue-200 rounded-lg">
+                        <p className="text-sm text-gray-600">Click the + button above to add important birthdays</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
