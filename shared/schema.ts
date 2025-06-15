@@ -92,6 +92,13 @@ export const users = pgTable("users", {
   trophyCase: text("trophy_case").array(),
   unlockedBadges: text("unlocked_badges").array(),
   weeklyGoalProgress: jsonb("weekly_goal_progress"), // Track weekly activity goals
+  
+  // Research Data Contribution
+  researchDataOptIn: boolean("research_data_opt_in").default(true), // Default opt-in
+  anonymizedDataContributed: boolean("anonymized_data_contributed").default(false),
+  researchContributorLevel: varchar("research_contributor_level").default("basic"), // basic, contributor, advocate
+  communityInsightsAccess: boolean("community_insights_access").default(false),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -700,3 +707,106 @@ export type InsertBadgeDefinition = z.infer<typeof insertBadgeDefinitionSchema>;
 export type BadgeDefinition = typeof badgeDefinitions.$inferSelect;
 export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 export type UserBadge = typeof userBadges.$inferSelect;
+
+// Research Data Tables
+export const anonymizedHealthData = pgTable("anonymized_health_data", {
+  id: varchar("id").primaryKey(),
+  dataHash: varchar("data_hash").notNull().unique(), // Prevent duplicate submissions
+  contributionDate: timestamp("contribution_date").defaultNow(),
+  
+  // Anonymized demographic data
+  ageRange: varchar("age_range"), // "18-25", "26-35", "36-45", "46-55", "56-65", "65+"
+  genderCategory: varchar("gender_category"), // "male", "female", "other", "prefer-not-to-say"
+  locationRegion: varchar("location_region"), // City/State only, no specific address
+  diagnosisStatus: varchar("diagnosis_status"), // "diagnosed", "suspected", "undiagnosed"
+  
+  // Health metrics (aggregated/averaged)
+  symptomData: jsonb("symptom_data"), // Symptoms, frequencies, intensities
+  dietaryPatterns: jsonb("dietary_patterns"), // Food categories, allergies, preferences
+  sleepPatterns: jsonb("sleep_patterns"), // Average sleep quality, duration patterns
+  stressLevels: jsonb("stress_levels"), // Stress patterns and triggers
+  comorbidities: text("comorbidities").array(), // Other health conditions
+  exercisePatterns: jsonb("exercise_patterns"), // Activity levels and types
+  fluidIntake: jsonb("fluid_intake"), // Hydration patterns
+  allergenExposure: jsonb("allergen_exposure"), // Environmental and food allergens
+  
+  // Metadata
+  dataQualityScore: integer("data_quality_score").default(0), // 0-100 based on completeness
+  contributorType: varchar("contributor_type").default("individual"), // individual, researcher, clinic
+});
+
+export const communityHealthInsights = pgTable("community_health_insights", {
+  id: varchar("id").primaryKey(),
+  insightType: varchar("insight_type").notNull(), // "trend", "correlation", "pattern", "alert"
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  
+  // Insight data
+  dataPoints: jsonb("data_points"), // Statistical findings
+  affectedPopulation: jsonb("affected_population"), // Demographics of affected users
+  confidenceLevel: integer("confidence_level"), // 0-100 statistical confidence
+  sampleSize: integer("sample_size"), // Number of data points used
+  
+  // Metadata
+  generatedAt: timestamp("generated_at").defaultNow(),
+  validUntil: timestamp("valid_until"), // When insight expires
+  priority: varchar("priority").default("medium"), // low, medium, high, critical
+  category: varchar("category").notNull(), // symptoms, diet, sleep, exercise, environment
+  
+  // Access control
+  accessLevel: varchar("access_level").default("contributor"), // public, contributor, researcher
+  isActive: boolean("is_active").default(true),
+});
+
+export const researchContributions = pgTable("research_contributions", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  contributionType: varchar("contribution_type").notNull(), // "data", "survey", "feedback", "validation"
+  
+  // Contribution tracking
+  dataSubmissionCount: integer("data_submission_count").default(0),
+  lastContributionDate: timestamp("last_contribution_date"),
+  totalDataPoints: integer("total_data_points").default(0),
+  qualityScore: integer("quality_score").default(0), // Average quality of contributions
+  
+  // Rewards and recognition
+  contributorBadges: text("contributor_badges").array(),
+  insightsUnlocked: integer("insights_unlocked").default(0),
+  communityImpactScore: integer("community_impact_score").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schema validation
+export const insertAnonymizedHealthDataSchema = createInsertSchema(anonymizedHealthData).omit({
+  id: true,
+  contributionDate: true,
+});
+
+export const insertCommunityHealthInsightSchema = createInsertSchema(communityHealthInsights).omit({
+  id: true,
+  generatedAt: true,
+});
+
+export const insertResearchContributionSchema = createInsertSchema(researchContributions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type InsertAnonymizedHealthData = z.infer<typeof insertAnonymizedHealthDataSchema>;
+export type AnonymizedHealthData = typeof anonymizedHealthData.$inferSelect;
+export type InsertCommunityHealthInsight = z.infer<typeof insertCommunityHealthInsightSchema>;
+export type CommunityHealthInsight = typeof communityHealthInsights.$inferSelect;
+export type InsertResearchContribution = z.infer<typeof insertResearchContributionSchema>;
+export type ResearchContribution = typeof researchContributions.$inferSelect;
+
+// Research data relations
+export const researchContributionsRelations = relations(researchContributions, ({ one }) => ({
+  user: one(users, {
+    fields: [researchContributions.userId],
+    references: [users.id],
+  }),
+}));

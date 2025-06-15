@@ -158,6 +158,14 @@ export interface IStorage {
   updateChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit>;
   canCreateChallenge(userId: string): Promise<boolean>;
 
+  // Research data operations
+  updateUserResearchOptIn(userId: string, optIn: boolean): Promise<User>;
+  submitAnonymizedHealthData(userId: string, healthData: any): Promise<void>;
+  getUserResearchContribution(userId: string): Promise<ResearchContribution | undefined>;
+  getCommunityHealthInsights(accessLevel: string): Promise<CommunityHealthInsight[]>;
+  updateResearchContribution(userId: string, contributionData: any): Promise<ResearchContribution>;
+  grantCommunityInsightsAccess(userId: string): Promise<User>;
+
   // Points System operations
   createPointActivity(activity: InsertPointActivity): Promise<PointActivity>;
   getPointActivitiesByType(userId: string, activityType: string): Promise<PointActivity[]>;
@@ -1083,6 +1091,161 @@ export class DatabaseStorage implements IStorage {
     const posts = await this.getCommunityPosts();
     const userPosts = posts.filter(p => p.authorId === userId);
     return userPosts.reduce((total, post) => total + (post.likes || 0), 0);
+  }
+
+  // Research data operations
+  async updateUserResearchOptIn(userId: string, optIn: boolean): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        researchDataOptIn: optIn,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+
+  async submitAnonymizedHealthData(userId: string, healthData: any): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user || !user.researchDataOptIn) {
+      return; // User hasn't opted in to research data contribution
+    }
+
+    // Create data hash to prevent duplicate submissions
+    const dataHash = crypto.createHash('sha256')
+      .update(JSON.stringify({ userId, date: new Date().toDateString(), ...healthData }))
+      .digest('hex');
+
+    // Check if this data already exists
+    const [existing] = await db
+      .select()
+      .from(anonymizedHealthData)
+      .where(eq(anonymizedHealthData.dataHash, dataHash));
+
+    if (existing) {
+      return; // Already submitted this data
+    }
+
+    // Anonymize user data
+    const ageRange = this.calculateAgeRange(user.age);
+    const locationRegion = user.location ? user.location.split(',')[0] : null; // City only
+
+    await db.insert(anonymizedHealthData).values({
+      id: crypto.randomUUID(),
+      dataHash,
+      ageRange,
+      genderCategory: user.gender,
+      locationRegion,
+      diagnosisStatus: user.diagnosisStatus,
+      symptomData: healthData.symptoms,
+      dietaryPatterns: healthData.diet,
+      sleepPatterns: healthData.sleep,
+      stressLevels: healthData.stress,
+      comorbidities: user.otherDiseases || [],
+      exercisePatterns: healthData.exercise,
+      fluidIntake: healthData.fluids,
+      allergenExposure: healthData.allergens,
+      dataQualityScore: this.calculateDataQuality(healthData),
+    });
+
+    // Update user's research contribution status
+    await this.updateResearchContribution(userId, {
+      contributionType: 'data',
+      dataSubmissionCount: 1,
+      lastContributionDate: new Date(),
+      totalDataPoints: Object.keys(healthData).length,
+    });
+
+    // Grant community insights access if they've contributed
+    await this.grantCommunityInsightsAccess(userId);
+  }
+
+  private calculateAgeRange(age: number | null): string {
+    if (!age) return "unknown";
+    if (age < 26) return "18-25";
+    if (age < 36) return "26-35";
+    if (age < 46) return "36-45";
+    if (age < 56) return "46-55";
+    if (age < 66) return "56-65";
+    return "65+";
+  }
+
+  private calculateDataQuality(healthData: any): number {
+    const fields = ['symptoms', 'diet', 'sleep', 'stress', 'exercise', 'fluids', 'allergens'];
+    const completedFields = fields.filter(field => 
+      healthData[field] && (Array.isArray(healthData[field]) ? healthData[field].length > 0 : true)
+    );
+    return Math.round((completedFields.length / fields.length) * 100);
+  }
+
+  async getUserResearchContribution(userId: string): Promise<ResearchContribution | undefined> {
+    const [contribution] = await db
+      .select()
+      .from(researchContributions)
+      .where(eq(researchContributions.userId, userId));
+    return contribution;
+  }
+
+  async getCommunityHealthInsights(accessLevel: string): Promise<CommunityHealthInsight[]> {
+    return await db
+      .select()
+      .from(communityHealthInsights)
+      .where(and(
+        eq(communityHealthInsights.isActive, true),
+        lte(communityHealthInsights.accessLevel, accessLevel)
+      ))
+      .orderBy(desc(communityHealthInsights.priority), desc(communityHealthInsights.generatedAt));
+  }
+
+  async updateResearchContribution(userId: string, contributionData: any): Promise<ResearchContribution> {
+    const existing = await this.getUserResearchContribution(userId);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(researchContributions)
+        .set({
+          dataSubmissionCount: existing.dataSubmissionCount + (contributionData.dataSubmissionCount || 0),
+          lastContributionDate: contributionData.lastContributionDate || existing.lastContributionDate,
+          totalDataPoints: existing.totalDataPoints + (contributionData.totalDataPoints || 0),
+          qualityScore: Math.round((existing.qualityScore + (contributionData.qualityScore || 0)) / 2),
+          communityImpactScore: existing.communityImpactScore + 10, // Award impact points
+          updatedAt: new Date(),
+        })
+        .where(eq(researchContributions.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(researchContributions)
+        .values({
+          id: crypto.randomUUID(),
+          userId,
+          contributionType: contributionData.contributionType || 'data',
+          dataSubmissionCount: contributionData.dataSubmissionCount || 0,
+          lastContributionDate: contributionData.lastContributionDate,
+          totalDataPoints: contributionData.totalDataPoints || 0,
+          qualityScore: contributionData.qualityScore || 0,
+          contributorBadges: [],
+          insightsUnlocked: 0,
+          communityImpactScore: 10,
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async grantCommunityInsightsAccess(userId: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        communityInsightsAccess: true,
+        anonymizedDataContributed: true,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
   }
 }
 
