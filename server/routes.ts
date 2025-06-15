@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/user-challenges/:id/progress', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/user-challenges/:id/progress', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { progress, status } = req.body;
@@ -497,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/user-challenges/:id/complete', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/user-challenges/:id/complete', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;

@@ -12,13 +12,13 @@ import { Trophy, Target, Calendar, Star, Gift, Zap, Heart, Users, Brain, Play } 
 
 export default function Challenges() {
   const [selectedTab, setSelectedTab] = useState("available");
+  const [activeTracker, setActiveTracker] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch available challenges
   const { data: challenges, isLoading: challengesLoading } = useQuery({
-    queryKey: ["/api/challenges"],
-    queryParams: { active: "true" }
+    queryKey: ["/api/challenges"]
   });
 
   // Fetch user's challenges
@@ -227,66 +227,89 @@ export default function Challenges() {
         </TabsContent>
 
         <TabsContent value="active" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {userChallenges?.filter((uc: any) => uc.status === 'active').map((userChallenge: any) => (
-              <Card key={userChallenge.id} className="border-l-4 border-l-blue-500">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(userChallenge.challenge?.category || 'health')}
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <CardTitle className="text-lg">{userChallenge.challenge?.title || 'Challenge'}</CardTitle>
-                  <CardDescription>{userChallenge.challenge?.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Progress</span>
-                        <span>75%</span>
-                      </div>
-                      <Progress value={75} className="h-2" />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
+          {activeTracker ? (
+            // Show interactive tracker interface
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Interactive Challenge Tracker</h2>
+                <Button onClick={() => setActiveTracker(null)} variant="outline">
+                  Back to List
+                </Button>
+              </div>
+              {(() => {
+                const userChallenge = userChallenges?.find((uc: any) => uc.id === activeTracker);
+                if (!userChallenge?.challenge) return null;
+                
+                return (
+                  <ChallengeTracker
+                    challenge={userChallenge.challenge}
+                    userChallengeId={userChallenge.id}
+                  />
+                );
+              })()}
+            </div>
+          ) : (
+            // Show list of active challenges
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {userChallenges?.filter((uc: any) => uc.status === 'active').map((userChallenge: any) => (
+                  <Card key={userChallenge.id} className="border-l-4 border-l-blue-500">
+                    <CardHeader>
                       <div className="flex items-center gap-2">
-                        <Gift className="h-4 w-4 text-yellow-500" />
-                        <span className="font-semibold">
-                          {userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0} points
-                        </span>
+                        {getCategoryIcon(userChallenge.challenge?.category || 'health')}
+                        <Badge variant="secondary">Active</Badge>
                       </div>
-                      <Button
-                        onClick={() => completeChallengeMutation.mutate({
-                          id: userChallenge.id,
-                          pointsEarned: userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0
-                        })}
-                        disabled={completeChallengeMutation.isPending}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Mark Complete
-                      </Button>
-                    </div>
-                    
-                    <div className="text-sm text-muted-foreground">
-                      Started: {new Date(userChallenge.startedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      <CardTitle className="text-lg">{userChallenge.challenge?.title || 'Challenge'}</CardTitle>
+                      <CardDescription>{userChallenge.challenge?.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span>Progress</span>
+                            <span>{userChallenge.progress?.completion_percentage || 0}%</span>
+                          </div>
+                          <Progress value={userChallenge.progress?.completion_percentage || 0} className="h-2" />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Gift className="h-4 w-4 text-yellow-500" />
+                            <span className="font-semibold">
+                              {userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0} points
+                            </span>
+                          </div>
+                          <Button
+                            onClick={() => setActiveTracker(userChallenge.id)}
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <Play className="w-4 h-4" />
+                            Start Tracker
+                          </Button>
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground">
+                          Started: {new Date(userChallenge.startedAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-          {(!userChallenges || userChallenges.filter((uc: any) => uc.status === 'active').length === 0) && (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Active Challenges</h3>
-                <p className="text-muted-foreground mb-4">
-                  Accept challenges from the available tab to start your wellness journey.
-                </p>
-              </CardContent>
-            </Card>
+              {(!userChallenges || userChallenges.filter((uc: any) => uc.status === 'active').length === 0) && (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Active Challenges</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Accept challenges from the available tab to start your wellness journey.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </TabsContent>
 
