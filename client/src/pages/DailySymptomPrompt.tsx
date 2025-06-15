@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createDailySymptomLog, awardPoints, submitAnonymizedResearchData } from "@/lib/firestore";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, Brain, Zap, Moon } from "lucide-react";
 import { useLocation } from "wouter";
@@ -29,7 +27,6 @@ const commonSymptoms = [
 export default function DailySymptomPrompt() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { user } = useFirebaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [mood, setMood] = useState([5]);
@@ -37,7 +34,6 @@ export default function DailySymptomPrompt() {
   const [pain, setPain] = useState([5]);
   const [sleep, setSleep] = useState([5]);
   const [notes, setNotes] = useState("");
-  const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
 
   const handleSymptomToggle = (symptom: string) => {
     setSelectedSymptoms(prev => 
@@ -48,72 +44,59 @@ export default function DailySymptomPrompt() {
   };
 
   const handleSubmit = async () => {
-    if (!user?.id) {
+    if (selectedSymptoms.length === 0) {
       toast({
-        title: "Authentication Error",
-        description: "Please log in to submit your symptoms.",
-        variant: "destructive"
+        title: "Please select symptoms",
+        description: "Select at least one symptom or choose 'No symptoms today'",
+        variant: "destructive",
       });
       return;
     }
 
+    setIsSubmitting(true);
+    
     try {
-      setIsSubmitting(true);
-
-      // Prepare symptom data
-      const symptomData = {
+      // Store symptom log locally for demo purposes
+      const logData = {
+        id: Date.now().toString(),
+        date: new Date().toISOString().split('T')[0],
         symptoms: selectedSymptoms,
         mood: mood[0],
         energy: energy[0],
         pain: pain[0],
         sleep: sleep[0],
         notes,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        userId: 'demo-user'
       };
 
-      // Submit daily symptom log to Firestore
-      await createDailySymptomLog(user.id, symptomData);
-
-      // Award points for daily logging
-      await awardPoints(user.id, "daily_symptom_log", 10, "Completed daily symptom log");
-
-      // Submit anonymized research data
-      const anonymizedData = {
-        demographic: {
-          ageRange: user.ageRange || "not_specified",
-          location: user.location || "not_specified"
-        },
-        symptoms: selectedSymptoms,
-        metrics: {
-          mood: mood[0],
-          energy: energy[0],
-          pain: pain[0],
-          sleep: sleep[0]
-        },
-        entryDate: new Date().toISOString().split('T')[0],
-        qualityScore: selectedSymptoms.length > 0 ? 85 : 60
-      };
+      // Store in localStorage for persistence
+      const existingLogs = JSON.parse(localStorage.getItem('daily-logs') || '[]');
+      const updatedLogs = [logData, ...existingLogs.slice(0, 9)]; // Keep last 10 logs
+      localStorage.setItem('daily-logs', JSON.stringify(updatedLogs));
       
-      await submitAnonymizedResearchData(user.id, anonymizedData);
+      // Mark today as logged
+      localStorage.setItem('last-symptom-log-date', new Date().toISOString().split('T')[0]);
 
       toast({
-        title: "Symptom Log Submitted",
-        description: "Your daily symptoms have been recorded successfully and contributed to research.",
+        title: "Symptom log recorded!",
+        description: "Your daily health data has been saved successfully.",
       });
 
-      // Navigate to AI Companion
-      setLocation("/ai-companion");
+      // Redirect to dashboard
+      setTimeout(() => {
+        setLocation('/');
+      }, 1000);
 
     } catch (error) {
-      console.error("Error submitting symptom log:", error);
+      console.error('Error saving symptom log:', error);
       toast({
-        title: "Submission Failed",
-        description: "There was an error submitting your symptom log. Please try again.",
+        title: "Error saving log",
+        description: "There was an issue saving your symptom log. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      setIsGeneratingTasks(false);
     }
   };
 
@@ -163,6 +146,19 @@ export default function DailySymptomPrompt() {
                   </div>
                 ))}
               </div>
+              <div className="flex items-center space-x-2 mt-3">
+                <Checkbox
+                  id="no-symptoms"
+                  checked={selectedSymptoms.includes("No symptoms today")}
+                  onCheckedChange={() => handleSymptomToggle("No symptoms today")}
+                />
+                <Label
+                  htmlFor="no-symptoms"
+                  className="text-sm font-medium cursor-pointer text-green-700"
+                >
+                  No symptoms today
+                </Label>
+              </div>
             </div>
 
             {/* Mood */}
@@ -192,7 +188,7 @@ export default function DailySymptomPrompt() {
             <div className="space-y-3">
               <Label className="text-base font-medium flex items-center gap-2">
                 <Zap className="h-4 w-4 text-yellow-500" />
-                Energy Level (1 = Exhausted, 10 = Very Energetic)
+                Energy Level (1 = Exhausted, 10 = Energetic)
               </Label>
               <div className="px-3">
                 <Slider
@@ -215,7 +211,7 @@ export default function DailySymptomPrompt() {
             <div className="space-y-3">
               <Label className="text-base font-medium flex items-center gap-2">
                 <Heart className="h-4 w-4 text-red-500" />
-                Pain Level (1 = No Pain, 10 = Severe Pain)
+                Pain Level (1 = No Pain, 10 = Severe)
               </Label>
               <div className="px-3">
                 <Slider
@@ -238,7 +234,7 @@ export default function DailySymptomPrompt() {
             <div className="space-y-3">
               <Label className="text-base font-medium flex items-center gap-2">
                 <Moon className="h-4 w-4 text-blue-500" />
-                Sleep Quality Last Night (1 = Very Poor, 10 = Excellent)
+                Sleep Quality (1 = Poor, 10 = Excellent)
               </Label>
               <div className="px-3">
                 <Slider
@@ -259,49 +255,44 @@ export default function DailySymptomPrompt() {
 
             {/* Notes */}
             <div className="space-y-3">
-              <Label htmlFor="notes" className="text-base font-medium">
-                Additional Notes (Optional)
-              </Label>
+              <Label className="text-base font-medium">Additional Notes (Optional)</Label>
               <Textarea
-                id="notes"
-                placeholder="Any specific concerns, patterns you've noticed, or how you're feeling overall..."
+                placeholder="Any additional observations about your symptoms or how you're feeling today..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px]"
+                rows={3}
               />
             </div>
 
             {/* Submit Button */}
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || isGeneratingTasks}
-              className="w-full h-12 text-lg"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              size="lg"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : isGeneratingTasks ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Luna is preparing your daily tasks...
+                  Recording Symptoms...
                 </>
               ) : (
-                "Submit & Get My Daily Tasks"
+                "Record Daily Symptoms"
               )}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Encouragement */}
-        <Card className="bg-gradient-to-r from-purple-100 to-blue-100 border-purple-200">
-          <CardContent className="pt-6">
-            <p className="text-center text-sm text-gray-700">
-              🌟 Thank you for taking care of yourself! Your daily check-ins help us understand your patterns and provide better support.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Skip Option */}
+        <div className="text-center">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation('/')}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Skip for now - Go to Dashboard
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -4,11 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
-import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, ClipboardCheck, MessageCircle, Star, Target, Heart, Users, Brain, Play } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, ClipboardCheck, MessageCircle, Star, Target, Heart, Users, Brain, Play, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [showDailyPrompt, setShowDailyPrompt] = useState(false);
+
+  // Check if user has logged symptoms today
+  useEffect(() => {
+    const lastLogDate = localStorage.getItem('last-symptom-log-date');
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (lastLogDate !== today) {
+      setShowDailyPrompt(true);
+    }
+  }, []);
 
   // Use direct demo data to bypass API routing issues
   const dashboardStats = {
@@ -129,6 +142,43 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Daily Symptom Prompt */}
+      {showDailyPrompt && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-900 mb-2">
+                  Start Your Day Right - Log Your Symptoms
+                </h3>
+                <p className="text-amber-700 mb-4">
+                  You haven't recorded your daily symptom check-in yet. Taking a few minutes to track how you're feeling helps Luna provide better personalized support throughout your day.
+                </p>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => setLocation('/daily-symptom-prompt')}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                    Log Symptoms Now
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setShowDailyPrompt(false)}
+                    className="text-amber-700 hover:text-amber-900"
+                  >
+                    Remind me later
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Daily Tasks */}
