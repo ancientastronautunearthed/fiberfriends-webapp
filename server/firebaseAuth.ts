@@ -10,6 +10,7 @@ interface AuthenticatedRequest extends Request {
 }
 
 export const isAuthenticated = (req: any, res: Response, next: NextFunction) => {
+  console.log("--- isAuthenticated middleware is running for path:", req.path, "---");
   // Development mode - allow all requests with a mock user
   req.user = {
     uid: 'dev-user-123',
