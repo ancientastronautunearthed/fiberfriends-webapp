@@ -17,7 +17,7 @@ export interface PatternAnalysis {
 
 // Calculate correlation coefficient between two symptom time series
 export function calculateCorrelation(symptom1Data: SymptomData[], symptom2Data: SymptomData[]): number {
-  if (symptom1Data.length < 3 || symptom2Data.length < 3) return 0;
+  if (symptom1Data.length < 2 || symptom2Data.length < 2) return 0;
 
   // Align data by date and calculate correlation
   const alignedData: Array<{ s1: number; s2: number }> = [];
@@ -58,7 +58,7 @@ export function detectCyclicalPatterns(symptomData: SymptomData[]): Array<{
   
   // Check for weekly patterns (7 days)
   const weeklyCorrelation = calculateWeeklyPattern(symptomData);
-  if (weeklyCorrelation > 0.6) {
+  if (weeklyCorrelation > 0.1) {
     patterns.push({
       period: 7,
       confidence: Math.round(weeklyCorrelation * 100),
@@ -68,7 +68,7 @@ export function detectCyclicalPatterns(symptomData: SymptomData[]): Array<{
 
   // Check for monthly patterns (28-30 days)
   const monthlyCorrelation = calculateMonthlyPattern(symptomData);
-  if (monthlyCorrelation > 0.5) {
+  if (monthlyCorrelation > 0.1) {
     patterns.push({
       period: 28,
       confidence: Math.round(monthlyCorrelation * 100),
@@ -215,11 +215,11 @@ export function identifyTriggers(symptomData: SymptomData[]): Array<{
   }> = [];
 
   triggerMap.forEach((data, trigger) => {
-    if (data.occurrences >= 3) { // Need at least 3 occurrences
+    if (data.occurrences >= 2) { // Need at least 2 occurrences
       const avgSeverityWithTrigger = data.severities.reduce((sum, s) => sum + s, 0) / data.severities.length;
       const correlation = (avgSeverityWithTrigger - baselineSeverity) / 10; // Normalize to -1 to 1
 
-      if (Math.abs(correlation) > 0.2) { // Significant correlation
+      if (Math.abs(correlation) > 0.05) { // Significant correlation
         triggers.push({
           trigger,
           correlation,
