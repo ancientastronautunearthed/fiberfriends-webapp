@@ -284,6 +284,28 @@ export const getUserAchievements = async (userId: string) => {
 
 // Points System
 export const awardPoints = async (userId: string, activityType: string, points: number, description?: string) => {
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const activityId = `point_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const pointActivity = {
+      id: activityId,
+      userId,
+      activityType,
+      points,
+      description: description || `Earned ${points} points for ${activityType}`,
+      createdAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem(`pointActivity_${activityId}`, JSON.stringify(pointActivity));
+    
+    // Update demo user points
+    const testUser = JSON.parse(localStorage.getItem('test-user') || '{}');
+    testUser.points = (testUser.points || 0) + points;
+    testUser.totalPoints = (testUser.totalPoints || 0) + points;
+    localStorage.setItem('test-user', JSON.stringify(testUser));
+    return;
+  }
+
   // Add point activity record
   await addDoc(collection(db, "pointActivities"), {
     userId,
@@ -318,6 +340,27 @@ export const getPointActivities = async (userId: string, limitCount = 20) => {
 
 // Research Data (Anonymized)
 export const submitAnonymizedResearchData = async (userId: string, researchData: any) => {
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const researchId = `research_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const researchEntry = {
+      id: researchId,
+      userId,
+      ...researchData,
+      contributedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem(`researchData_${researchId}`, JSON.stringify(researchEntry));
+    
+    // Update demo user research status
+    const testUser = JSON.parse(localStorage.getItem('test-user') || '{}');
+    testUser.anonymizedDataContributed = true;
+    testUser.communityInsightsAccess = true;
+    testUser.lastResearchContribution = new Date().toISOString();
+    localStorage.setItem('test-user', JSON.stringify(testUser));
+    return;
+  }
+
   await addDoc(collection(db, "anonymizedResearchData"), {
     userId,
     ...researchData,
