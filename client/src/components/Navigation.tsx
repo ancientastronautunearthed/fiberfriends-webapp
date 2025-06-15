@@ -1,15 +1,31 @@
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import { Bell, Star, User, Home, ClipboardCheck, Users, Bot, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Navigation() {
-  const { user } = useAuth();
+  const { user } = useFirebaseAuth();
   const [location] = useLocation();
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Sign out failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const navItems = [

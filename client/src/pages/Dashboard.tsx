@@ -1,46 +1,30 @@
-import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { isUnauthorizedError } from "@/lib/authUtils";
+import { useQuery } from "@tanstack/react-query";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { getDashboardStats, getDailyLogs } from "@/lib/firestore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, ClipboardCheck, MessageCircle, Star } from "lucide-react";
 
 export default function Dashboard() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
+  const { user, isLoading } = useFirebaseAuth();
 
   const { data: dashboardStats } = useQuery({
-    queryKey: ["/api/dashboard-stats"],
-    enabled: isAuthenticated,
+    queryKey: ["dashboard-stats", user?.id],
+    queryFn: () => getDashboardStats(user!.id),
+    enabled: !!user,
   });
 
   const { data: recentLogs } = useQuery({
-    queryKey: ["/api/daily-logs"],
-    enabled: isAuthenticated,
+    queryKey: ["daily-logs", user?.id],
+    queryFn: () => getDailyLogs(user!.id),
+    enabled: !!user,
   });
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
