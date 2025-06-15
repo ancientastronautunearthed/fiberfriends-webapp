@@ -469,9 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const { status } = req.query;
-      console.log("Fetching user challenges for:", { userId, status });
       const userChallenges = await storage.getUserChallenges(userId, status as string);
-      console.log("Found user challenges:", userChallenges.length, userChallenges.map(uc => ({ id: uc.id, userId: uc.userId })));
       res.json(userChallenges);
     } catch (error) {
       console.error("Error fetching user challenges:", error);
@@ -543,22 +541,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const userId = req.user.claims.sub;
       
-      console.log("Attempting to dismiss challenge:", { id, userId });
-      
       // Get all user challenges and find the one to dismiss
       const userChallenges = await storage.getUserChallenges(userId);
-      console.log("Found user challenges:", userChallenges.map(uc => ({ id: uc.id, status: uc.status })));
-      
       const userChallenge = userChallenges.find(uc => uc.id === id);
-      console.log("Found matching challenge:", userChallenge);
       
       if (!userChallenge) {
-        console.log("Challenge not found. Available IDs:", userChallenges.map(uc => uc.id));
-        return res.status(404).json({ 
-          message: "Challenge not found",
-          availableIds: userChallenges.map(uc => uc.id),
-          requestedId: id
-        });
+        return res.status(404).json({ message: "Challenge not found" });
       }
       
       // Remove the challenge from user's active list
