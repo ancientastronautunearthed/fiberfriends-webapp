@@ -226,6 +226,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced AI Companion - Conversation History
+  app.get('/api/ai-companion/:companionId/conversation', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { companionId } = req.params;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      
+      const history = await storage.getConversationHistory(userId, companionId, limit);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching conversation history:", error);
+      res.status(500).json({ message: "Failed to fetch conversation history" });
+    }
+  });
+
+  app.post('/api/ai-companion/:companionId/message', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { companionId } = req.params;
+      const { message, context } = req.body;
+      
+      // Save user message
+      const userMessageData = insertConversationHistorySchema.parse({
+        userId,
+        companionId,
+        messageType: 'user',
+        content: message,
+        context: context || {},
+        sentiment: null,
+        metadata: { timestamp: new Date().toISOString() }
+      });
+      
+      const userMessage = await storage.saveConversationMessage(userMessageData);
+      
+      // Get conversation context for AI response
+      const conversationContext = await storage.getConversationContext(userId, companionId);
+      
+      // Generate AI response with context
+      const aiResponse = await generateAICompanionResponse(message, {
+        userId,
+        conversationHistory: conversationContext.recentMessages,
+        memoryContext: conversationContext.memoryContext,
+        conversationStyle: conversationContext.conversationStyle,
+        preferences: conversationContext.preferences,
+        userContext: context || {}
+      });
+      
+      // Save AI response
+      const aiMessageData = insertConversationHistorySchema.parse({
+        userId,
+        companionId,
+        messageType: 'ai',
+        content: aiResponse.response || aiResponse,
+        context: { 
+          responseType: aiResponse.responseType || 'conversational',
+          confidence: aiResponse.confidence || 0.8
+        },
+        sentiment: aiResponse.sentiment || 'neutral',
+        metadata: { 
+          responseTime: aiResponse.responseTime || 1000,
+          tokensUsed: aiResponse.tokensUsed || 150
+        }
+      });
+      
+      const aiMessage = await storage.saveConversationMessage(aiMessageData);
+      
+      res.json({
+        userMessage,
+        aiMessage,
+        response: aiResponse.response || aiResponse
+      });
+    } catch (error) {
+      console.error("Error processing AI companion message:", error);
+      res.status(500).json({ message: "Failed to process message" });
+    }
+  });
+
+  // Enhanced AI Companion - Health Insights
+  app.get('/api/ai-companion/health-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companionId = req.query.companionId as string;
+      
+      const insights = await storage.getAiHealthInsights(userId, companionId);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error fetching health insights:", error);
+      res.status(500).json({ message: "Failed to fetch health insights" });
+    }
+  });
+
+  app.post('/api/ai-companion/health-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertAiHealthInsightSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const insight = await storage.createAiHealthInsight(validatedData);
+      res.json(insight);
+    } catch (error) {
+      console.error("Error creating health insight:", error);
+      res.status(500).json({ message: "Failed to create health insight" });
+    }
+  });
+
+  app.patch('/api/ai-companion/health-insights/:id/dismiss', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const insight = await storage.dismissHealthInsight(id);
+      res.json(insight);
+    } catch (error) {
+      console.error("Error dismissing health insight:", error);
+      res.status(500).json({ message: "Failed to dismiss health insight" });
+    }
+  });
+
+  // AI Companion Personality Update
+  app.patch('/api/ai-companion/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const companion = await storage.updateAiCompanion(id, updates);
+      res.json(companion);
+    } catch (error) {
+      console.error("Error updating AI companion:", error);
+      res.status(500).json({ message: "Failed to update AI companion" });
+    }
+  });
+
   // Dashboard stats
   app.get('/api/dashboard-stats', isAuthenticated, async (req: any, res) => {
     try {

@@ -263,16 +263,23 @@ export class DatabaseStorage implements IStorage {
 
   // Enhanced AI Companion - Health Insights
   async getAiHealthInsights(userId: string, companionId?: string): Promise<AiHealthInsight[]> {
-    let query = db
-      .select()
-      .from(aiHealthInsights)
-      .where(eq(aiHealthInsights.userId, userId));
-    
     if (companionId) {
-      query = query.where(eq(aiHealthInsights.companionId, companionId));
+      const insights = await db
+        .select()
+        .from(aiHealthInsights)
+        .where(and(
+          eq(aiHealthInsights.userId, userId),
+          eq(aiHealthInsights.companionId, companionId)
+        ))
+        .orderBy(desc(aiHealthInsights.createdAt))
+        .limit(20);
+      return insights;
     }
     
-    const insights = await query
+    const insights = await db
+      .select()
+      .from(aiHealthInsights)
+      .where(eq(aiHealthInsights.userId, userId))
       .orderBy(desc(aiHealthInsights.createdAt))
       .limit(20);
     
