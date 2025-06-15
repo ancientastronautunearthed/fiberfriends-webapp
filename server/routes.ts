@@ -3,13 +3,17 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
-import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema } from "@shared/schema";
+import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema, insertChallengeSchema, insertUserChallengeSchema } from "@shared/schema";
 import { 
   generateNutritionalAnalysis, 
   generateSymptomInsight, 
   generateCommunityPostAnalysis,
   generateAICompanionResponse,
-  generateDailyChallenge
+  generateDailyChallenge,
+  generatePersonalizedChallenge,
+  generateWeeklyChallenge,
+  generateMilestoneChallenge,
+  generateAchievementSuggestions
 } from "./genkit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -300,6 +304,246 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching chat messages:", error);
       res.status(500).json({ message: "Failed to fetch chat messages" });
+    }
+  });
+
+  // Gamification Routes
+  
+  // Challenge routes
+  app.get('/api/challenges', async (req, res) => {
+    try {
+      const { type, active } = req.query;
+      const challenges = await storage.getChallenges(
+        type as string, 
+        active === 'true' ? true : active === 'false' ? false : undefined
+      );
+      res.json(challenges);
+    } catch (error) {
+      console.error("Error fetching challenges:", error);
+      res.status(500).json({ message: "Failed to fetch challenges" });
+    }
+  });
+
+  app.post('/api/challenges/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { type = 'daily' } = req.body;
+      
+      let challenge;
+      
+      if (type === 'daily') {
+        challenge = await generateDailyChallenge();
+      } else if (type === 'personalized') {
+        const userProfile = await storage.getUser(userId);
+        const userHistory = await storage.getUserChallenges(userId);
+        challenge = await generatePersonalizedChallenge(userProfile, userHistory);
+      } else if (type === 'weekly') {
+        const communityData = await storage.getCommunityPosts();
+        challenge = await generateWeeklyChallenge(communityData);
+      } else if (type === 'milestone') {
+        const userAchievements = await storage.getUserAchievements(userId);
+        const userStats = { /* user stats */ };
+        challenge = await generateMilestoneChallenge(userAchievements, userStats);
+      }
+      
+      if (challenge) {
+        const challengeData = {
+          ...challenge,
+          type,
+          pointReward: challenge.points,
+          requirements: challenge.requirements || {},
+          isActive: true,
+          validFrom: new Date(),
+          validUntil: type === 'daily' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : 
+                      type === 'weekly' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null
+        };
+        
+        const createdChallenge = await storage.createChallenge(challengeData);
+        res.json(createdChallenge);
+      } else {
+        res.status(400).json({ message: "Invalid challenge type" });
+      }
+    } catch (error) {
+      console.error("Error generating challenge:", error);
+      res.status(500).json({ message: "Failed to generate challenge" });
+    }
+  });
+
+  // User challenge routes
+  app.get('/api/user-challenges', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { status } = req.query;
+      const userChallenges = await storage.getUserChallenges(userId, status as string);
+      res.json(userChallenges);
+    } catch (error) {
+      console.error("Error fetching user challenges:", error);
+      res.status(500).json({ message: "Failed to fetch user challenges" });
+    }
+  });
+
+  app.post('/api/user-challenges/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { challengeId } = req.body;
+      
+      const userChallenge = {
+        userId,
+        challengeId,
+        status: 'active',
+        progress: {},
+        pointsEarned: 0
+      };
+      
+      const acceptedChallenge = await storage.assignChallengeToUser(userChallenge);
+      res.json(acceptedChallenge);
+    } catch (error) {
+      console.error("Error accepting challenge:", error);
+      res.status(500).json({ message: "Failed to accept challenge" });
+    }
+  });
+
+  app.put('/api/user-challenges/:id/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { progress, status } = req.body;
+      
+      const updatedChallenge = await storage.updateUserChallengeProgress(id, progress, status);
+      res.json(updatedChallenge);
+    } catch (error) {
+      console.error("Error updating challenge progress:", error);
+      res.status(500).json({ message: "Failed to update challenge progress" });
+    }
+  });
+
+  app.put('/api/user-challenges/:id/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { pointsEarned } = req.body;
+      
+      const completedChallenge = await storage.completeUserChallenge(id, pointsEarned);
+      
+      // Update user total points
+      const user = await storage.getUser(userId);
+      if (user) {
+        await storage.updateUserPoints(userId, (user.points || 0) + pointsEarned);
+      }
+      
+      // Update leaderboards
+      await storage.updateUserLeaderboard(userId, 'all_time', 'points', (user?.points || 0) + pointsEarned);
+      
+      res.json(completedChallenge);
+    } catch (error) {
+      console.error("Error completing challenge:", error);
+      res.status(500).json({ message: "Failed to complete challenge" });
+    }
+  });
+
+  // Achievement routes
+  app.get('/api/achievements', async (req, res) => {
+    try {
+      const { category } = req.query;
+      const achievements = await storage.getAchievements(category as string);
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ message: "Failed to fetch achievements" });
+    }
+  });
+
+  app.get('/api/user-achievements', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userAchievements = await storage.getUserAchievements(userId);
+      res.json(userAchievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ message: "Failed to fetch user achievements" });
+    }
+  });
+
+  app.post('/api/user-achievements/unlock', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { achievementId } = req.body;
+      
+      const unlockedAchievement = await storage.unlockAchievement(userId, achievementId);
+      
+      // Update user points
+      const user = await storage.getUser(userId);
+      if (user) {
+        await storage.updateUserPoints(userId, (user.points || 0) + unlockedAchievement.pointsEarned);
+      }
+      
+      res.json(unlockedAchievement);
+    } catch (error) {
+      console.error("Error unlocking achievement:", error);
+      res.status(500).json({ message: "Failed to unlock achievement" });
+    }
+  });
+
+  // Leaderboard routes
+  app.get('/api/leaderboard', async (req, res) => {
+    try {
+      const { period = 'all_time', category = 'points', limit = 10 } = req.query;
+      const leaderboard = await storage.getLeaderboard(
+        period as string, 
+        category as string, 
+        parseInt(limit as string)
+      );
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
+  app.get('/api/user-rank', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { period = 'all_time', category = 'points' } = req.query;
+      const rank = await storage.getUserRank(userId, period as string, category as string);
+      res.json({ rank });
+    } catch (error) {
+      console.error("Error fetching user rank:", error);
+      res.status(500).json({ message: "Failed to fetch user rank" });
+    }
+  });
+
+  // Gamification dashboard
+  app.get('/api/gamification/dashboard', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const [
+        user,
+        activeChallenges,
+        recentAchievements,
+        userRank,
+        availableChallenges
+      ] = await Promise.all([
+        storage.getUser(userId),
+        storage.getUserChallenges(userId, 'active'),
+        storage.getUserAchievements(userId),
+        storage.getUserRank(userId, 'all_time', 'points'),
+        storage.getChallenges(undefined, true)
+      ]);
+
+      res.json({
+        user: {
+          points: user?.points || 0,
+          rank: userRank,
+          totalChallenges: activeChallenges.length,
+          totalAchievements: recentAchievements.length
+        },
+        activeChallenges: activeChallenges.slice(0, 5),
+        recentAchievements: recentAchievements.slice(0, 3),
+        availableChallenges: availableChallenges.slice(0, 5)
+      });
+    } catch (error) {
+      console.error("Error fetching gamification dashboard:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
     }
   });
 

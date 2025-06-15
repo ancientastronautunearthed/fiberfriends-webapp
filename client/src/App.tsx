@@ -14,6 +14,8 @@ import SimplifiedChat from "@/pages/SimplifiedChat";
 import AICompanion from "@/pages/AICompanion";
 import UserProfile from "@/pages/UserProfile";
 import TestChat from "@/pages/TestChat";
+import Challenges from "@/pages/Challenges";
+import Achievements from "@/pages/Achievements";
 import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
@@ -33,6 +35,8 @@ function Router() {
         <Route path="/chat" component={SimplifiedChat} />
         <Route path="/test-chat" component={TestChat} />
         <Route path="/companion" component={AICompanion} />
+        <Route path="/challenges" component={Challenges} />
+        <Route path="/achievements" component={Achievements} />
         <Route path="/profile" component={UserProfile} />
       </Layout>
       <Route component={NotFound} />

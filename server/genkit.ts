@@ -235,3 +235,212 @@ export async function generateDailyChallenge() {
     };
   }
 }
+
+export async function generatePersonalizedChallenge(userProfile: any, userHistory: any) {
+  const prompt = `
+    Create a personalized challenge for a Morgellons Disease patient based on their profile and history:
+
+    User Profile: ${JSON.stringify(userProfile, null, 2)}
+    Recent Activity: ${JSON.stringify(userHistory, null, 2)}
+    
+    Generate a challenge that:
+    - Builds on their previous progress and interests
+    - Addresses their specific symptoms or concerns
+    - Matches their engagement level and preferences
+    - Is appropriately challenging but achievable
+    - Includes a personalized motivational message
+    
+    Format as JSON:
+    {
+      "title": "challenge_title",
+      "description": "detailed_description",
+      "category": "health|nutrition|social|mindfulness|physical",
+      "difficulty": "easy|medium|hard",
+      "points": points_value,
+      "requirements": {completion_criteria},
+      "personalizedMessage": "motivational_message"
+    }
+  `;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 400 },
+      }),
+    });
+
+    const data = await response.json();
+    const responseText = data.candidates[0].content.parts[0].text;
+    return JSON.parse(responseText.replace(/```json\n?|\n?```/g, ''));
+  } catch (error) {
+    return {
+      title: "Continue Your Journey",
+      description: "Build on your recent progress with a gentle health activity",
+      category: "health",
+      difficulty: "easy",
+      points: 15,
+      requirements: { type: "general_activity" },
+      personalizedMessage: "You're doing great! Keep up the positive momentum."
+    };
+  }
+}
+
+export async function generateWeeklyChallenge(communityData: any) {
+  const prompt = `
+    Create a weekly community challenge for Morgellons Disease patients:
+
+    Community Data: ${JSON.stringify(communityData, null, 2)}
+    
+    Generate a 7-day challenge that:
+    - Encourages community participation and support
+    - Focuses on consistent healthy habits
+    - Can be completed over a week with daily check-ins
+    - Builds on community trends and interests
+    - Worth 75-150 points for completion
+    
+    Format as JSON:
+    {
+      "title": "challenge_title",
+      "description": "detailed_description",
+      "category": "social|health|nutrition|mindfulness",
+      "difficulty": "medium|hard",
+      "points": points_value,
+      "requirements": {completion_criteria},
+      "duration": "7 days"
+    }
+  `;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.6, maxOutputTokens: 350 },
+      }),
+    });
+
+    const data = await response.json();
+    const responseText = data.candidates[0].content.parts[0].text;
+    return JSON.parse(responseText.replace(/```json\n?|\n?```/g, ''));
+  } catch (error) {
+    return {
+      title: "7-Day Wellness Journey",
+      description: "Complete daily wellness activities and share your progress with the community",
+      category: "social",
+      difficulty: "medium",
+      points: 100,
+      requirements: { dailyCheckIns: 7, type: "weekly_wellness" },
+      duration: "7 days"
+    };
+  }
+}
+
+export async function generateMilestoneChallenge(userAchievements: any, userStats: any) {
+  const prompt = `
+    Create a milestone challenge based on user progress:
+
+    Achievements: ${JSON.stringify(userAchievements, null, 2)}
+    Stats: ${JSON.stringify(userStats, null, 2)}
+    
+    Generate a significant milestone challenge that:
+    - Recognizes their progress and growth
+    - Sets an ambitious but achievable long-term goal
+    - Celebrates their journey with Morgellons Disease management
+    - Worth 200-500 points for major accomplishment
+    - May take weeks or months to complete
+    
+    Format as JSON:
+    {
+      "title": "milestone_title",
+      "description": "detailed_description",
+      "category": "health|social|achievement",
+      "difficulty": "hard",
+      "points": points_value,
+      "requirements": {completion_criteria},
+      "milestone": "milestone_description"
+    }
+  `;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.5, maxOutputTokens: 400 },
+      }),
+    });
+
+    const data = await response.json();
+    const responseText = data.candidates[0].content.parts[0].text;
+    return JSON.parse(responseText.replace(/```json\n?|\n?```/g, ''));
+  } catch (error) {
+    return {
+      title: "Health Champion Milestone",
+      description: "Achieve consistent health tracking and community engagement over 30 days",
+      category: "health",
+      difficulty: "hard",
+      points: 300,
+      requirements: { consecutiveDays: 30, type: "milestone_achievement" },
+      milestone: "30-Day Consistency Champion"
+    };
+  }
+}
+
+export async function generateAchievementSuggestions(userActivity: any) {
+  const prompt = `
+    Suggest new achievements based on user activity patterns:
+
+    User Activity: ${JSON.stringify(userActivity, null, 2)}
+    
+    Generate 3-5 achievement suggestions that:
+    - Recognize specific accomplishments and milestones
+    - Encourage continued engagement
+    - Cover different categories (health, social, consistency, etc.)
+    - Have appropriate point values and tiers
+    
+    Format as JSON array:
+    [
+      {
+        "title": "achievement_title",
+        "description": "achievement_description",
+        "icon": "icon_name",
+        "category": "category",
+        "tier": "bronze|silver|gold|platinum",
+        "pointValue": points,
+        "requirements": {unlock_criteria}
+      }
+    ]
+  `;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.6, maxOutputTokens: 500 },
+      }),
+    });
+
+    const data = await response.json();
+    const responseText = data.candidates[0].content.parts[0].text;
+    return JSON.parse(responseText.replace(/```json\n?|\n?```/g, ''));
+  } catch (error) {
+    return [
+      {
+        title: "First Steps",
+        description: "Complete your first health challenge",
+        icon: "trophy",
+        category: "health",
+        tier: "bronze",
+        pointValue: 50,
+        requirements: { challengesCompleted: 1 }
+      }
+    ];
+  }
+}
