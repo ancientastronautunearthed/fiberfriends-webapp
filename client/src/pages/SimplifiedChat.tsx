@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,29 +29,66 @@ export default function SimplifiedChat() {
   const [newMessage, setNewMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const { isConnected, sendMessage } = useWebSocket(
-    `${protocol}//${window.location.host}/ws`,
-    {
-      onMessage: (message: any) => {
-        if (message.type === 'new_message' && message.data) {
-          const newMsg: ChatMessage = {
-            id: message.data.id,
-            content: message.data.content,
-            authorName: message.data.authorName || 'Anonymous',
-            timestamp: new Date(message.data.createdAt).toLocaleTimeString()
-          };
-          setMessages(prev => [...prev, newMsg]);
+  const [isConnected, setIsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    try {
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connected successfully');
+        setIsConnected(true);
+      };
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'new_message' && message.data) {
+            const newMsg: ChatMessage = {
+              id: message.data.id,
+              content: message.data.content,
+              authorName: message.data.authorName || 'Anonymous',
+              timestamp: new Date(message.data.createdAt).toLocaleTimeString()
+            };
+            setMessages(prev => [...prev, newMsg]);
+          }
+        } catch (error) {
+          console.error('Error parsing message:', error);
         }
-      },
-      onConnect: () => {
-        console.log('Connected to chat server');
-      },
-      onDisconnect: () => {
-        console.log('Disconnected from chat server');
-      }
+      };
+      
+      wsRef.current.onclose = () => {
+        console.log('WebSocket connection closed');
+        setIsConnected(false);
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
     }
-  );
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
+  const sendMessage = (message: any) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message));
+      return true;
+    }
+    return false;
+  };
 
   const chatRooms: ChatRoom[] = [
     {

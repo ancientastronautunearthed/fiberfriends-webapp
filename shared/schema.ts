@@ -154,6 +154,74 @@ export const chatRoomMembers = pgTable("chat_room_members", {
   lastRead: timestamp("last_read").defaultNow(),
 });
 
+// Gamification Tables
+export const challenges = pgTable("challenges", {
+  id: varchar("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  type: varchar("type").notNull(), // 'daily', 'weekly', 'milestone', 'special'
+  category: varchar("category").notNull(), // 'health', 'nutrition', 'social', 'mindfulness'
+  difficulty: varchar("difficulty").notNull(), // 'easy', 'medium', 'hard'
+  pointReward: integer("point_reward").notNull(),
+  requirements: jsonb("requirements").notNull(), // Completion criteria
+  isActive: boolean("is_active").default(true),
+  validFrom: timestamp("valid_from"),
+  validUntil: timestamp("valid_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const achievements = pgTable("achievements", {
+  id: varchar("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon").notNull(),
+  category: varchar("category").notNull(),
+  tier: varchar("tier").notNull(), // 'bronze', 'silver', 'gold', 'platinum'
+  pointValue: integer("point_value").notNull(),
+  requirements: jsonb("requirements").notNull(),
+  isSecret: boolean("is_secret").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userChallenges = pgTable("user_challenges", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  challengeId: varchar("challenge_id").notNull().references(() => challenges.id),
+  status: varchar("status").notNull(), // 'active', 'completed', 'failed', 'skipped'
+  progress: jsonb("progress").default({}),
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  pointsEarned: integer("points_earned").default(0),
+}, (table) => [
+  index("idx_user_challenges_user").on(table.userId),
+  index("idx_user_challenges_status").on(table.status),
+]);
+
+export const userAchievements = pgTable("user_achievements", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  achievementId: varchar("achievement_id").notNull().references(() => achievements.id),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+  pointsEarned: integer("points_earned").notNull(),
+}, (table) => [
+  index("idx_user_achievements_user").on(table.userId),
+]);
+
+export const leaderboards = pgTable("leaderboards", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  period: varchar("period").notNull(), // 'daily', 'weekly', 'monthly', 'all_time'
+  category: varchar("category").notNull(), // 'points', 'challenges', 'streak'
+  score: integer("score").notNull(),
+  rank: integer("rank"),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_leaderboards_period_category").on(table.period, table.category),
+  index("idx_leaderboards_rank").on(table.rank),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   aiCompanions: many(aiCompanions),
@@ -164,6 +232,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   chatMessages: many(chatMessages),
   chatRoomMembers: many(chatRoomMembers),
   createdChatRooms: many(chatRooms),
+  userChallenges: many(userChallenges),
+  userAchievements: many(userAchievements),
+  leaderboards: many(leaderboards),
 }));
 
 export const aiCompanionsRelations = relations(aiCompanions, ({ one }) => ({
@@ -232,6 +303,43 @@ export const chatRoomMembersRelations = relations(chatRoomMembers, ({ one }) => 
   }),
   user: one(users, {
     fields: [chatRoomMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const challengesRelations = relations(challenges, ({ many }) => ({
+  userChallenges: many(userChallenges),
+}));
+
+export const achievementsRelations = relations(achievements, ({ many }) => ({
+  userAchievements: many(userAchievements),
+}));
+
+export const userChallengesRelations = relations(userChallenges, ({ one }) => ({
+  user: one(users, {
+    fields: [userChallenges.userId],
+    references: [users.id],
+  }),
+  challenge: one(challenges, {
+    fields: [userChallenges.challengeId],
+    references: [challenges.id],
+  }),
+}));
+
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id],
+  }),
+  achievement: one(achievements, {
+    fields: [userAchievements.achievementId],
+    references: [achievements.id],
+  }),
+}));
+
+export const leaderboardsRelations = relations(leaderboards, ({ one }) => ({
+  user: one(users, {
+    fields: [leaderboards.userId],
     references: [users.id],
   }),
 }));
