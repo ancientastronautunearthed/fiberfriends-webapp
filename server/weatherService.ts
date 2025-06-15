@@ -8,6 +8,11 @@ interface WeatherData {
   description: string;
   location: string;
   timestamp: Date;
+  barometricPressure?: number;
+  uvIndex?: number;
+  airQuality?: number;
+  visibility?: number;
+  feelsLike?: number;
 }
 
 interface HealthyActivity {
@@ -47,10 +52,14 @@ export class WeatherService {
         temperature: Math.round(data.main.temp),
         condition: data.weather[0].main.toLowerCase(),
         humidity: data.main.humidity,
-        windSpeed: data.wind.speed,
+        windSpeed: data.wind?.speed || 0,
         description: data.weather[0].description,
         location: data.name,
-        timestamp: new Date()
+        timestamp: new Date(),
+        barometricPressure: data.main.pressure ? data.main.pressure * 0.02953 : undefined, // Convert hPa to inHg
+        uvIndex: data.uvi || undefined,
+        feelsLike: Math.round(data.main.feels_like),
+        visibility: data.visibility ? data.visibility / 1609.34 : undefined // Convert meters to miles
       };
     } catch (error) {
       console.error('Error fetching weather:', error);

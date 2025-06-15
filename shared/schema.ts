@@ -103,6 +103,102 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Environmental Triggers table - tracks external factors
+export const environmentalTriggers = pgTable("environmental_triggers", {
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").notNull(),
+  
+  // Weather data
+  temperature: real("temperature"), // in Fahrenheit
+  humidity: real("humidity"), // percentage
+  barometricPressure: real("barometric_pressure"), // in inHg
+  weatherCondition: varchar("weather_condition"), // sunny, cloudy, rainy, etc.
+  windSpeed: real("wind_speed"), // mph
+  uvIndex: real("uv_index"),
+  airQuality: integer("air_quality"), // AQI value
+  
+  // Location data
+  locationName: varchar("location_name"), // city, state
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  timezone: varchar("timezone"),
+  
+  // Environmental factors
+  stressLevel: integer("stress_level"), // 1-10 scale
+  sleepQuality: integer("sleep_quality"), // 1-10 scale
+  sleepHours: real("sleep_hours"),
+  indoorOutdoorTime: jsonb("indoor_outdoor_time"), // {indoor: hours, outdoor: hours}
+  exposureFactors: text("exposure_factors").array(), // chemicals, allergens, etc.
+  
+  // Correlation tracking
+  symptomSeverity: integer("symptom_severity"), // 1-10 scale
+  primarySymptoms: text("primary_symptoms").array(),
+  moodRating: integer("mood_rating"), // 1-10 scale
+  energyLevel: integer("energy_level"), // 1-10 scale
+  
+  // Meta data
+  recordedAt: timestamp("recorded_at").defaultNow(),
+  dataSource: varchar("data_source"), // manual, weather_api, wearable, etc.
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Environmental Correlations - AI-generated insights
+export const environmentalCorrelations = pgTable("environmental_correlations", {
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").notNull(),
+  
+  // Correlation data
+  triggerType: varchar("trigger_type"), // weather, location, stress, sleep, etc.
+  triggerValue: varchar("trigger_value"), // specific weather condition, stress level, etc.
+  correlationStrength: real("correlation_strength"), // 0-1 scale
+  confidenceLevel: real("confidence_level"), // 0-1 scale
+  
+  // Pattern analysis
+  patternDescription: text("pattern_description"),
+  recommendations: text("recommendations").array(),
+  timeframe: varchar("timeframe"), // daily, weekly, seasonal, etc.
+  
+  // Statistical data
+  occurrenceCount: integer("occurrence_count"),
+  averageSymptomIncrease: real("average_symptom_increase"), // percentage
+  dataPointsAnalyzed: integer("data_points_analyzed"),
+  
+  // Meta data
+  generatedAt: timestamp("generated_at").defaultNow(),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Location History - for pattern analysis
+export const locationHistory = pgTable("location_history", {
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").notNull(),
+  
+  locationName: varchar("location_name").notNull(),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  address: text("address"),
+  
+  // Time tracking
+  entryTime: timestamp("entry_time").notNull(),
+  exitTime: timestamp("exit_time"),
+  duration: integer("duration"), // minutes
+  
+  // Context
+  locationType: varchar("location_type"), // home, work, medical, outdoor, etc.
+  symptomChanges: jsonb("symptom_changes"), // before/after symptoms
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // AI Companions
 export const aiCompanions = pgTable("ai_companions", {
   id: varchar("id").primaryKey(),
@@ -630,6 +726,34 @@ export const insertChallengeCreationLimitSchema = createInsertSchema(challengeCr
 
 export type InsertChallengeCreationLimit = z.infer<typeof insertChallengeCreationLimitSchema>;
 export type ChallengeCreationLimit = typeof challengeCreationLimits.$inferSelect;
+
+// Environmental Trigger schema types
+export const insertEnvironmentalTriggerSchema = createInsertSchema(environmentalTriggers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEnvironmentalCorrelationSchema = createInsertSchema(environmentalCorrelations).omit({
+  id: true,
+  generatedAt: true,
+  lastUpdated: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLocationHistorySchema = createInsertSchema(locationHistory).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEnvironmentalTrigger = z.infer<typeof insertEnvironmentalTriggerSchema>;
+export type EnvironmentalTrigger = typeof environmentalTriggers.$inferSelect;
+export type InsertEnvironmentalCorrelation = z.infer<typeof insertEnvironmentalCorrelationSchema>;
+export type EnvironmentalCorrelation = typeof environmentalCorrelations.$inferSelect;
+export type InsertLocationHistory = z.infer<typeof insertLocationHistorySchema>;
+export type LocationHistory = typeof locationHistory.$inferSelect;
 
 // Point Activities Tracking
 export const pointActivities = pgTable("point_activities", {
