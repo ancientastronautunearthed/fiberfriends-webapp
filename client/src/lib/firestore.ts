@@ -96,6 +96,19 @@ export const checkDailySymptomLog = async (userId: string) => {
 
 // AI Companions
 export const createAiCompanion = async (userId: string, companionData: any) => {
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const companion = {
+      id: userId,
+      userId,
+      ...companionData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`aiCompanion_${userId}`, JSON.stringify(companion));
+    return;
+  }
+
   await setDoc(doc(db, "aiCompanions", userId), {
     userId,
     ...companionData,
@@ -105,6 +118,28 @@ export const createAiCompanion = async (userId: string, companionData: any) => {
 };
 
 export const getAiCompanion = async (userId: string) => {
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const companionData = localStorage.getItem(`aiCompanion_${userId}`);
+    if (companionData) {
+      return JSON.parse(companionData);
+    }
+    // Return default companion for demo mode
+    return {
+      id: userId,
+      name: "Luna",
+      personality: {
+        tone: "warm",
+        style: "supportive",
+        personality: "nurturing"
+      },
+      greeting: "Hello! I'm Luna, your AI health companion specialized in Morgellons disease support. How are you feeling today?",
+      conversationStyle: "supportive",
+      focusAreas: ["symptom management", "emotional support", "Morgellons expertise"],
+      createdAt: new Date().toISOString()
+    };
+  }
+
   const companionDoc = await getDoc(doc(db, "aiCompanions", userId));
   return companionDoc.exists() ? { id: companionDoc.id, ...companionDoc.data() } : null;
 };
@@ -118,6 +153,21 @@ export const updateAiCompanion = async (userId: string, updates: any) => {
 
 // Conversation History
 export const saveConversationMessage = async (userId: string, companionId: string, message: any) => {
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const messageData = {
+      id: messageId,
+      userId,
+      companionId,
+      ...message,
+      createdAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem(`conversationMessage_${messageId}`, JSON.stringify(messageData));
+    return;
+  }
+
   await addDoc(collection(db, "conversationHistory"), {
     userId,
     companionId,
@@ -127,6 +177,23 @@ export const saveConversationMessage = async (userId: string, companionId: strin
 };
 
 export const getConversationHistory = async (userId: string, companionId: string, limitCount = 50) => {
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const messages = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('conversationMessage_')) {
+        const messageData = JSON.parse(localStorage.getItem(key) || '{}');
+        if (messageData.userId === userId && messageData.companionId === companionId) {
+          messages.push(messageData);
+        }
+      }
+    }
+    return messages
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .slice(-limitCount);
+  }
+
   const q = query(
     collection(db, "conversationHistory"),
     where("userId", "==", userId),
