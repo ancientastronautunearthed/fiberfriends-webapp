@@ -65,7 +65,7 @@ export function BreathingExercise({ challengeId, targetMinutes, onProgress, onCo
     }
 
     return () => clearInterval(interval);
-  }, [isActive, currentPhase, targetSeconds, onProgress, onComplete]);
+  }, [isActive, currentPhase, targetSeconds]);
 
   const toggleExercise = () => {
     setIsActive(!isActive);

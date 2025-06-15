@@ -66,7 +66,7 @@ export function SymptomTracker({ challengeId, targetDays, timeOfDay, onProgress,
     if (completedDays >= targetDays) {
       onComplete();
     }
-  }, [completedDays, targetDays, progress, onProgress, onComplete]);
+  }, [completedDays, targetDays, progress]);
 
   const handleSaveEntry = () => {
     const entryToSave = { ...currentEntry, completed: true };

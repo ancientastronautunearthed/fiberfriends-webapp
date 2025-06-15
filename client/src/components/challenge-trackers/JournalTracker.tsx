@@ -50,7 +50,7 @@ export function JournalTracker({ challengeId, targetWords, targetDays, onProgres
     if (completedDays >= targetDays) {
       onComplete();
     }
-  }, [completedDays, targetDays, progress, onProgress, onComplete]);
+  }, [completedDays, targetDays, progress]);
 
   const handleSaveEntry = () => {
     if (currentWordCount < targetWords) {

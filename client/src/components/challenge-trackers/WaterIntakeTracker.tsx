@@ -23,7 +23,7 @@ export function WaterIntakeTracker({ challengeId, targetGlasses, onProgress, onC
     if (totalConsumed === targetGlasses) {
       onComplete();
     }
-  }, [totalConsumed, targetGlasses, progress, onProgress, onComplete]);
+  }, [totalConsumed, targetGlasses, progress]);
 
   const handleGlassClick = (index: number) => {
     if (glassesConsumed[index]) return; // Already filled
