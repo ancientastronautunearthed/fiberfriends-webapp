@@ -398,6 +398,11 @@ export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit
   createdAt: true,
 });
 
+export const insertSymptomWheelEntrySchema = createInsertSchema(symptomWheelEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertSymptomPatternSchema = createInsertSchema(symptomPatterns).omit({
   id: true,
   createdAt: true,
@@ -421,6 +426,9 @@ export type InsertSymptomPattern = z.infer<typeof insertSymptomPatternSchema>;
 export type SymptomPattern = typeof symptomPatterns.$inferSelect;
 export type InsertSymptomCorrelation = z.infer<typeof insertSymptomCorrelationSchema>;
 export type SymptomCorrelation = typeof symptomCorrelations.$inferSelect;
+
+export type InsertSymptomWheelEntry = z.infer<typeof insertSymptomWheelEntrySchema>;
+export type SymptomWheelEntry = typeof symptomWheelEntries.$inferSelect;
 
 export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
   id: true,

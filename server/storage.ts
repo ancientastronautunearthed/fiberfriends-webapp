@@ -5,6 +5,7 @@ import {
   communityPosts,
   symptomPatterns,
   symptomCorrelations,
+  symptomWheelEntries,
   chatRooms,
   chatMessages,
   chatRoomMembers,
@@ -26,6 +27,8 @@ import {
   type InsertSymptomPattern,
   type SymptomCorrelation,
   type InsertSymptomCorrelation,
+  type SymptomWheelEntry,
+  type InsertSymptomWheelEntry,
   type ChatRoom,
   type InsertChatRoom,
   type ChatMessage,
@@ -78,6 +81,11 @@ export interface IStorage {
   // Symptom correlation operations
   getSymptomCorrelations(userId: string): Promise<SymptomCorrelation[]>;
   createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation>;
+  
+  // Symptom wheel operations
+  getSymptomWheelEntries(userId: string, limit?: number): Promise<SymptomWheelEntry[]>;
+  createSymptomWheelEntry(entry: InsertSymptomWheelEntry): Promise<SymptomWheelEntry>;
+  getSymptomWheelAnalytics(userId: string): Promise<any>;
   
   // Chat operations
   getChatRooms(): Promise<ChatRoom[]>;
@@ -290,6 +298,115 @@ export class DatabaseStorage implements IStorage {
       .values(correlationWithId)
       .returning();
     return newCorrelation;
+  }
+
+  // Symptom wheel operations
+  async getSymptomWheelEntries(userId: string, limit: number = 30): Promise<SymptomWheelEntry[]> {
+    const entries = await db
+      .select()
+      .from(symptomWheelEntries)
+      .where(eq(symptomWheelEntries.userId, userId))
+      .orderBy(desc(symptomWheelEntries.entryDate))
+      .limit(limit);
+    return entries;
+  }
+
+  async createSymptomWheelEntry(entry: InsertSymptomWheelEntry): Promise<SymptomWheelEntry> {
+    const entryWithId = {
+      ...entry,
+      id: crypto.randomUUID(),
+    };
+    const [newEntry] = await db
+      .insert(symptomWheelEntries)
+      .values(entryWithId)
+      .returning();
+    return newEntry;
+  }
+
+  async getSymptomWheelAnalytics(userId: string): Promise<any> {
+    const entries = await this.getSymptomWheelEntries(userId, 90); // Last 90 entries
+    
+    if (entries.length === 0) {
+      return {
+        totalEntries: 0,
+        averageIntensity: 0,
+        averageMoodScore: 0,
+        mostCommonSymptoms: [],
+        intensityTrend: 'stable',
+        weeklyStats: []
+      };
+    }
+
+    const totalEntries = entries.length;
+    const avgIntensity = entries.reduce((sum, entry) => sum + (entry.averageIntensity || 0), 0) / totalEntries;
+    const avgMoodScore = entries.reduce((sum, entry) => sum + (entry.moodScore || 5), 0) / totalEntries;
+
+    // Calculate most common symptoms
+    const symptomCounts: Record<string, number> = {};
+    entries.forEach(entry => {
+      if (entry.symptomData && Array.isArray(entry.symptomData)) {
+        entry.symptomData.forEach((symptom: any) => {
+          if (symptom.symptomId) {
+            symptomCounts[symptom.symptomId] = (symptomCounts[symptom.symptomId] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    const mostCommonSymptoms = Object.entries(symptomCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([symptom, count]) => ({ symptom, count }));
+
+    // Calculate trend (simple comparison of recent vs older entries)
+    const recentEntries = entries.slice(0, Math.ceil(entries.length / 3));
+    const olderEntries = entries.slice(Math.ceil(entries.length * 2 / 3));
+    
+    const recentAvg = recentEntries.reduce((sum, entry) => sum + (entry.averageIntensity || 0), 0) / recentEntries.length;
+    const olderAvg = olderEntries.reduce((sum, entry) => sum + (entry.averageIntensity || 0), 0) / olderEntries.length;
+    
+    let intensityTrend = 'stable';
+    if (recentAvg > olderAvg + 0.5) intensityTrend = 'increasing';
+    else if (recentAvg < olderAvg - 0.5) intensityTrend = 'decreasing';
+
+    return {
+      totalEntries,
+      averageIntensity: Math.round(avgIntensity * 10) / 10,
+      averageMoodScore: Math.round(avgMoodScore * 10) / 10,
+      mostCommonSymptoms,
+      intensityTrend,
+      weeklyStats: this.calculateWeeklyStats(entries)
+    };
+  }
+
+  private calculateWeeklyStats(entries: SymptomWheelEntry[]): any[] {
+    const weeklyData: Record<string, { totalIntensity: number; count: number; moodTotal: number }> = {};
+    
+    entries.forEach(entry => {
+      const week = this.getWeekKey(new Date(entry.entryDate));
+      if (!weeklyData[week]) {
+        weeklyData[week] = { totalIntensity: 0, count: 0, moodTotal: 0 };
+      }
+      weeklyData[week].totalIntensity += entry.averageIntensity || 0;
+      weeklyData[week].moodTotal += entry.moodScore || 5;
+      weeklyData[week].count += 1;
+    });
+
+    return Object.entries(weeklyData)
+      .map(([week, data]) => ({
+        week,
+        averageIntensity: Math.round((data.totalIntensity / data.count) * 10) / 10,
+        averageMoodScore: Math.round((data.moodTotal / data.count) * 10) / 10,
+        entryCount: data.count
+      }))
+      .sort((a, b) => a.week.localeCompare(b.week))
+      .slice(-8); // Last 8 weeks
+  }
+
+  private getWeekKey(date: Date): string {
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - date.getDay());
+    return startOfWeek.toISOString().split('T')[0];
   }
 
   // Chat operations
