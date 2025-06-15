@@ -1115,6 +1115,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Research Data and Community Insights Routes
+  
+  // Update research data opt-in preference
+  app.post('/api/research/opt-in', isAuthenticated, async (req: any, res) => {
+    try {
+      const { optIn } = req.body;
+      const userId = req.user.claims.sub;
+
+      const updatedUser = await storage.updateUserResearchOptIn(userId, optIn);
+      res.json({ 
+        success: true, 
+        researchDataOptIn: updatedUser.researchDataOptIn,
+        message: optIn ? 'Successfully opted in to research data contribution' : 'Successfully opted out of research data contribution'
+      });
+    } catch (error) {
+      console.error('Error updating research opt-in:', error);
+      res.status(500).json({ message: 'Failed to update research preferences' });
+    }
+  });
+
+  // Submit anonymized health data for research
+  app.post('/api/research/submit-data', isAuthenticated, async (req: any, res) => {
+    try {
+      const { healthData } = req.body;
+      const userId = req.user.claims.sub;
+
+      await storage.submitAnonymizedHealthData(userId, healthData);
+      res.json({ 
+        success: true, 
+        message: 'Health data submitted for research successfully'
+      });
+    } catch (error) {
+      console.error('Error submitting research data:', error);
+      res.status(500).json({ message: 'Failed to submit research data' });
+    }
+  });
+
+  // Get user's research contribution status
+  app.get('/api/research/contribution-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      const contribution = await storage.getUserResearchContribution(userId);
+      const user = await storage.getUser(userId);
+      
+      res.json({
+        hasContributed: !!contribution,
+        contributionCount: contribution?.dataSubmissionCount || 0,
+        totalDataPoints: contribution?.totalDataPoints || 0,
+        qualityScore: contribution?.qualityScore || 0,
+        communityImpactScore: contribution?.communityImpactScore || 0,
+        hasInsightsAccess: user?.communityInsightsAccess || false,
+        researchOptIn: user?.researchDataOptIn || false
+      });
+    } catch (error) {
+      console.error('Error fetching contribution status:', error);
+      res.status(500).json({ message: 'Failed to fetch contribution status' });
+    }
+  });
+
+  // Get community health insights (for contributors only)
+  app.get('/api/community-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user?.communityInsightsAccess) {
+        return res.status(403).json({ 
+          message: 'Community insights access requires research data contribution',
+          requiresContribution: true
+        });
+      }
+
+      const insights = await storage.getCommunityHealthInsights('contributor');
+      res.json(insights);
+    } catch (error) {
+      console.error('Error fetching community insights:', error);
+      res.status(500).json({ message: 'Failed to fetch community insights' });
+    }
+  });
+
+  // Grant community insights access (called when user contributes data)
+  app.post('/api/research/grant-insights-access', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const updatedUser = await storage.grantCommunityInsightsAccess(userId);
+      res.json({ 
+        success: true, 
+        communityInsightsAccess: updatedUser.communityInsightsAccess,
+        message: 'Community insights access granted'
+      });
+    } catch (error) {
+      console.error('Error granting insights access:', error);
+      res.status(500).json({ message: 'Failed to grant insights access' });
+    }
+  });
+
   // Get available badges to work toward
   app.get('/api/badges/available', isAuthenticated, async (req: any, res) => {
     try {

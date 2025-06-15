@@ -24,6 +24,7 @@ import Achievements from "@/pages/Achievements";
 import Recommendations from "@/pages/Recommendations";
 import HealthyActivities from "@/pages/HealthyActivities";
 import TestLuna from "@/pages/TestLuna";
+import CommunityInsights from "@/pages/CommunityInsights";
 import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
