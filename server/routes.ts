@@ -541,14 +541,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const userId = req.user.claims.sub;
       
-      // Verify the challenge belongs to the user
-      const userChallenge = await storage.getUserChallenge(userId, id);
+      // Get all user challenges and find the one to dismiss
+      const userChallenges = await storage.getUserChallenges(userId);
+      const userChallenge = userChallenges.find(uc => uc.id === id);
+      
       if (!userChallenge) {
         return res.status(404).json({ message: "Challenge not found" });
       }
       
       // Remove the challenge from user's active list
-      await storage.updateUserChallengeProgress(userChallenge.id, {}, 'dismissed');
+      await storage.updateUserChallengeProgress(id, {}, 'dismissed');
       
       res.json({ message: "Challenge dismissed successfully" });
     } catch (error) {
