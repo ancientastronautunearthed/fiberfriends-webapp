@@ -8,6 +8,11 @@ import {
   chatRooms,
   chatMessages,
   chatRoomMembers,
+  challenges,
+  achievements,
+  userChallenges,
+  userAchievements,
+  leaderboards,
   type User, 
   type UpsertUser,
   type AiCompanion,
@@ -25,7 +30,17 @@ import {
   type ChatMessage,
   type InsertChatMessage,
   type ChatRoomMember,
-  type InsertChatRoomMember
+  type InsertChatRoomMember,
+  type Challenge,
+  type InsertChallenge,
+  type Achievement,
+  type InsertAchievement,
+  type UserChallenge,
+  type InsertUserChallenge,
+  type UserAchievement,
+  type InsertUserAchievement,
+  type Leaderboard,
+  type InsertLeaderboard
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -71,6 +86,31 @@ export interface IStorage {
   isRoomMember(roomId: string, userId: string): Promise<boolean>;
   joinRoom(roomId: string, userId: string): Promise<ChatRoomMember>;
   updateRoomActivity(roomId: string): Promise<void>;
+
+  // Gamification operations
+  getChallenges(type?: string, isActive?: boolean): Promise<Challenge[]>;
+  getChallenge(id: string): Promise<Challenge | undefined>;
+  createChallenge(challenge: InsertChallenge): Promise<Challenge>;
+  updateChallenge(id: string, updates: Partial<Challenge>): Promise<Challenge>;
+  
+  getUserChallenges(userId: string, status?: string): Promise<UserChallenge[]>;
+  getUserChallenge(userId: string, challengeId: string): Promise<UserChallenge | undefined>;
+  assignChallengeToUser(userChallenge: InsertUserChallenge): Promise<UserChallenge>;
+  updateUserChallengeProgress(id: string, progress: any, status?: string): Promise<UserChallenge>;
+  completeUserChallenge(id: string, pointsEarned: number): Promise<UserChallenge>;
+  
+  getAchievements(category?: string): Promise<Achievement[]>;
+  getAchievement(id: string): Promise<Achievement | undefined>;
+  createAchievement(achievement: InsertAchievement): Promise<Achievement>;
+  
+  getUserAchievements(userId: string): Promise<UserAchievement[]>;
+  unlockAchievement(userId: string, achievementId: string): Promise<UserAchievement>;
+  
+  getLeaderboard(period: string, category: string, limit?: number): Promise<Leaderboard[]>;
+  updateUserLeaderboard(userId: string, period: string, category: string, score: number): Promise<void>;
+  getUserRank(userId: string, period: string, category: string): Promise<number>;
+  
+  updateUserPoints(userId: string, points: number): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -330,6 +370,236 @@ export class DatabaseStorage implements IStorage {
       .update(chatRooms)
       .set({ lastActivity: new Date() })
       .where(eq(chatRooms.id, roomId));
+  }
+
+  // Gamification operations
+  async getChallenges(type?: string, isActive?: boolean): Promise<Challenge[]> {
+    let query = db.select().from(challenges);
+    
+    if (type) {
+      query = query.where(eq(challenges.type, type));
+    }
+    if (isActive !== undefined) {
+      query = query.where(eq(challenges.isActive, isActive));
+    }
+    
+    return await query.orderBy(desc(challenges.createdAt));
+  }
+
+  async getChallenge(id: string): Promise<Challenge | undefined> {
+    const [challenge] = await db
+      .select()
+      .from(challenges)
+      .where(eq(challenges.id, id));
+    return challenge;
+  }
+
+  async createChallenge(challenge: InsertChallenge): Promise<Challenge> {
+    const challengeWithId = {
+      ...challenge,
+      id: crypto.randomUUID(),
+    };
+    const [newChallenge] = await db
+      .insert(challenges)
+      .values(challengeWithId)
+      .returning();
+    return newChallenge;
+  }
+
+  async updateChallenge(id: string, updates: Partial<Challenge>): Promise<Challenge> {
+    const [updatedChallenge] = await db
+      .update(challenges)
+      .set(updates)
+      .where(eq(challenges.id, id))
+      .returning();
+    return updatedChallenge;
+  }
+
+  async getUserChallenges(userId: string, status?: string): Promise<UserChallenge[]> {
+    let query = db.select().from(userChallenges).where(eq(userChallenges.userId, userId));
+    
+    if (status) {
+      query = query.where(eq(userChallenges.status, status));
+    }
+    
+    return await query.orderBy(desc(userChallenges.startedAt));
+  }
+
+  async getUserChallenge(userId: string, challengeId: string): Promise<UserChallenge | undefined> {
+    const [userChallenge] = await db
+      .select()
+      .from(userChallenges)
+      .where(and(
+        eq(userChallenges.userId, userId),
+        eq(userChallenges.challengeId, challengeId)
+      ));
+    return userChallenge;
+  }
+
+  async assignChallengeToUser(userChallenge: InsertUserChallenge): Promise<UserChallenge> {
+    const userChallengeWithId = {
+      ...userChallenge,
+      id: crypto.randomUUID(),
+    };
+    const [newUserChallenge] = await db
+      .insert(userChallenges)
+      .values(userChallengeWithId)
+      .returning();
+    return newUserChallenge;
+  }
+
+  async updateUserChallengeProgress(id: string, progress: any, status?: string): Promise<UserChallenge> {
+    const updates: any = { progress };
+    if (status) {
+      updates.status = status;
+    }
+    
+    const [updatedUserChallenge] = await db
+      .update(userChallenges)
+      .set(updates)
+      .where(eq(userChallenges.id, id))
+      .returning();
+    return updatedUserChallenge;
+  }
+
+  async completeUserChallenge(id: string, pointsEarned: number): Promise<UserChallenge> {
+    const [completedChallenge] = await db
+      .update(userChallenges)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        pointsEarned,
+      })
+      .where(eq(userChallenges.id, id))
+      .returning();
+    return completedChallenge;
+  }
+
+  async getAchievements(category?: string): Promise<Achievement[]> {
+    let query = db.select().from(achievements);
+    
+    if (category) {
+      query = query.where(eq(achievements.category, category));
+    }
+    
+    return await query.orderBy(achievements.tier, achievements.title);
+  }
+
+  async getAchievement(id: string): Promise<Achievement | undefined> {
+    const [achievement] = await db
+      .select()
+      .from(achievements)
+      .where(eq(achievements.id, id));
+    return achievement;
+  }
+
+  async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
+    const achievementWithId = {
+      ...achievement,
+      id: crypto.randomUUID(),
+    };
+    const [newAchievement] = await db
+      .insert(achievements)
+      .values(achievementWithId)
+      .returning();
+    return newAchievement;
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return await db
+      .select()
+      .from(userAchievements)
+      .where(eq(userAchievements.userId, userId))
+      .orderBy(desc(userAchievements.unlockedAt));
+  }
+
+  async unlockAchievement(userId: string, achievementId: string): Promise<UserAchievement> {
+    const achievement = await this.getAchievement(achievementId);
+    if (!achievement) {
+      throw new Error('Achievement not found');
+    }
+
+    const userAchievementWithId = {
+      id: crypto.randomUUID(),
+      userId,
+      achievementId,
+      pointsEarned: achievement.pointValue,
+    };
+
+    const [newUserAchievement] = await db
+      .insert(userAchievements)
+      .values(userAchievementWithId)
+      .returning();
+    return newUserAchievement;
+  }
+
+  async getLeaderboard(period: string, category: string, limit = 10): Promise<Leaderboard[]> {
+    return await db
+      .select()
+      .from(leaderboards)
+      .where(and(
+        eq(leaderboards.period, period),
+        eq(leaderboards.category, category)
+      ))
+      .orderBy(leaderboards.rank)
+      .limit(limit);
+  }
+
+  async updateUserLeaderboard(userId: string, period: string, category: string, score: number): Promise<void> {
+    const existing = await db
+      .select()
+      .from(leaderboards)
+      .where(and(
+        eq(leaderboards.userId, userId),
+        eq(leaderboards.period, period),
+        eq(leaderboards.category, category)
+      ));
+
+    if (existing.length > 0) {
+      await db
+        .update(leaderboards)
+        .set({ score, updatedAt: new Date() })
+        .where(eq(leaderboards.id, existing[0].id));
+    } else {
+      const now = new Date();
+      const leaderboardEntry = {
+        id: crypto.randomUUID(),
+        userId,
+        period,
+        category,
+        score,
+        rank: 0, // Will be calculated separately
+        periodStart: now,
+        periodEnd: now,
+      };
+      
+      await db.insert(leaderboards).values(leaderboardEntry);
+    }
+  }
+
+  async getUserRank(userId: string, period: string, category: string): Promise<number> {
+    const [result] = await db
+      .select({ rank: leaderboards.rank })
+      .from(leaderboards)
+      .where(and(
+        eq(leaderboards.userId, userId),
+        eq(leaderboards.period, period),
+        eq(leaderboards.category, category)
+      ));
+    
+    return result?.rank || 0;
+  }
+
+  async updateUserPoints(userId: string, points: number): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        points: points,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
   }
 }
 
