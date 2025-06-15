@@ -41,6 +41,19 @@ export const updateUser = async (userId: string, updates: any) => {
 // Daily Symptom Logs
 export const createDailySymptomLog = async (userId: string, symptomData: any) => {
   const today = new Date().toISOString().split('T')[0];
+  
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const logData = {
+      userId,
+      entryDate: today,
+      symptomData,
+      createdAt: new Date().toISOString()
+    };
+    localStorage.setItem(`dailySymptomLog_${userId}_${today}`, JSON.stringify(logData));
+    return;
+  }
+  
   await setDoc(doc(db, "dailySymptomLogs", `${userId}_${today}`), {
     userId,
     entryDate: today,
@@ -61,6 +74,18 @@ export const getDailySymptomLogs = async (userId: string) => {
 
 export const checkDailySymptomLog = async (userId: string) => {
   const today = new Date().toISOString().split('T')[0];
+  
+  // Demo mode fallback
+  if (localStorage.getItem('test-mode') === 'true') {
+    const logKey = `dailySymptomLog_${userId}_${today}`;
+    const existingLog = localStorage.getItem(logKey);
+    return {
+      needsSymptomLog: !existingLog,
+      lastSubmission: existingLog ? today : null,
+      today
+    };
+  }
+  
   const logDoc = await getDoc(doc(db, "dailySymptomLogs", `${userId}_${today}`));
   return {
     needsSymptomLog: !logDoc.exists(),

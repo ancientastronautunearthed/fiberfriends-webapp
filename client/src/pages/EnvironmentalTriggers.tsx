@@ -103,8 +103,32 @@ const WEATHER_ICONS = {
 
 export default function EnvironmentalTriggers() {
   const { user } = useFirebaseAuth();
-  // Firestore helpers
+  // Firestore helpers with demo mode support
   const addDocument = async (path: string, data: any) => {
+    // Demo mode fallback
+    if (localStorage.getItem('test-mode') === 'true') {
+      const id = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const docData = {
+        id,
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Store in localStorage
+      const storageKey = `${path}_${id}`;
+      localStorage.setItem(storageKey, JSON.stringify(docData));
+      
+      // Also maintain a list of all documents for this collection
+      const listKey = `${path}_list`;
+      const existingList = localStorage.getItem(listKey);
+      const docList = existingList ? JSON.parse(existingList) : [];
+      docList.push(id);
+      localStorage.setItem(listKey, JSON.stringify(docList));
+      
+      return id;
+    }
+    
     const docRef = await addDoc(collection(db, path), {
       ...data,
       createdAt: Timestamp.now(),
@@ -114,6 +138,34 @@ export default function EnvironmentalTriggers() {
   };
 
   const getUserDocuments = async (path: string) => {
+    // Demo mode fallback
+    if (localStorage.getItem('test-mode') === 'true') {
+      const listKey = `${path}_list`;
+      const docListStr = localStorage.getItem(listKey);
+      if (!docListStr) return [];
+      
+      const docList = JSON.parse(docListStr);
+      const documents = [];
+      
+      for (const docId of docList) {
+        const storageKey = `${path}_${docId}`;
+        const docStr = localStorage.getItem(storageKey);
+        if (docStr) {
+          const docData = JSON.parse(docStr);
+          // Filter by userId and convert dates
+          if (docData.userId === user?.id) {
+            documents.push({
+              ...docData,
+              recordedAt: new Date(docData.recordedAt || docData.createdAt)
+            });
+          }
+        }
+      }
+      
+      // Sort by recordedAt descending
+      return documents.sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
+    }
+    
     const q = query(
       collection(db, path),
       where("userId", "==", user?.uid),
@@ -225,7 +277,7 @@ export default function EnvironmentalTriggers() {
     if (!user || !currentWeather) return;
 
     const entry = {
-      userId: user.uid,
+      userId: user.uid || user.id,
       temperature: currentWeather.temperature,
       humidity: currentWeather.humidity,
       barometricPressure: currentWeather.barometricPressure,
