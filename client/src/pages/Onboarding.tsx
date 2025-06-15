@@ -38,8 +38,32 @@ const onboardingSchema = z.object({
   foodDislikes: z.array(z.string()).optional(),
   foodFavorites: z.array(z.string()).optional(),
   smokingHabit: z.boolean(),
+  smokingDuration: z.string().optional(), // How long they've smoked
+  smokingFrequency: z.string().optional(), // How often they smoke
   alcoholHabit: z.boolean(),
+  alcoholDuration: z.string().optional(), // How long they've been drinking
+  alcoholFrequency: z.string().optional(), // How often they drink
   exerciseFrequency: z.enum(["daily", "weekly", "monthly", "rarely", "never"]),
+  
+  // Personal & Family Information
+  relationshipStatus: z.string().optional(),
+  hasChildren: z.boolean().optional(),
+  childrenCount: z.number().optional(),
+  childrenAges: z.string().optional(),
+  hasSiblings: z.boolean().optional(),
+  siblingsCount: z.number().optional(),
+  
+  // Birthday & Important Dates for Reminders
+  dateOfBirth: z.string().optional(),
+  partnerBirthday: z.string().optional(),
+  childrenBirthdays: z.string().optional(), // JSON string of dates
+  familyBirthdays: z.string().optional(), // JSON string of family member birthdays
+  importantDates: z.string().optional(), // JSON string of other important dates
+  
+  // Social Support Network
+  closeFriends: z.number().optional(), // Number of close friends
+  familySupport: z.string().optional(), // Level of family support
+  socialPreferences: z.string().optional(), // How they prefer to socialize
   
   // Optional Profile
   hobbies: z.string().optional(),
@@ -52,7 +76,8 @@ const steps = [
   { id: 2, title: "Location & Health", icon: MapPin },
   { id: 3, title: "Medical History", icon: Heart },
   { id: 4, title: "Food & Lifestyle", icon: Utensils },
-  { id: 5, title: "Personal Interests", icon: Activity },
+  { id: 5, title: "Personal & Family", icon: Activity },
+  { id: 6, title: "Hobbies & Interests", icon: Activity },
 ];
 
 export default function Onboarding() {
@@ -74,6 +99,9 @@ export default function Onboarding() {
       hasFibers: false,
       smokingHabit: false,
       alcoholHabit: false,
+      hasChildren: false,
+      hasSiblings: false,
+      exerciseFrequency: "rarely"
     },
   });
 
@@ -582,8 +610,231 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* Step 5: Personal Interests */}
+              {/* Step 5: Personal & Family Information */}
               {currentStep === 5 && (
+                <div className="space-y-6">
+                  {/* Enhanced Smoking Questions */}
+                  {form.watch("smokingHabit") && (
+                    <div className="space-y-4 bg-orange-50 p-4 rounded-lg">
+                      <h3 className="font-semibold text-orange-900">Smoking Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="smokingDuration">How long have you been smoking?</Label>
+                          <Select onValueChange={(value) => form.setValue("smokingDuration", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select duration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="less-than-1-year">Less than 1 year</SelectItem>
+                              <SelectItem value="1-5-years">1-5 years</SelectItem>
+                              <SelectItem value="5-10-years">5-10 years</SelectItem>
+                              <SelectItem value="10-20-years">10-20 years</SelectItem>
+                              <SelectItem value="20-plus-years">20+ years</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="smokingFrequency">How often do you smoke?</Label>
+                          <Select onValueChange={(value) => form.setValue("smokingFrequency", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="multiple-daily">Multiple times daily</SelectItem>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Several times a week</SelectItem>
+                              <SelectItem value="occasionally">Occasionally</SelectItem>
+                              <SelectItem value="rarely">Rarely</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Enhanced Alcohol Questions */}
+                  {form.watch("alcoholHabit") && (
+                    <div className="space-y-4 bg-amber-50 p-4 rounded-lg">
+                      <h3 className="font-semibold text-amber-900">Alcohol Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="alcoholDuration">How long have you been drinking alcohol?</Label>
+                          <Select onValueChange={(value) => form.setValue("alcoholDuration", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select duration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="less-than-1-year">Less than 1 year</SelectItem>
+                              <SelectItem value="1-5-years">1-5 years</SelectItem>
+                              <SelectItem value="5-10-years">5-10 years</SelectItem>
+                              <SelectItem value="10-20-years">10-20 years</SelectItem>
+                              <SelectItem value="20-plus-years">20+ years</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="alcoholFrequency">How often do you drink alcohol?</Label>
+                          <Select onValueChange={(value) => form.setValue("alcoholFrequency", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Several times a week</SelectItem>
+                              <SelectItem value="weekends">Weekends only</SelectItem>
+                              <SelectItem value="monthly">A few times a month</SelectItem>
+                              <SelectItem value="occasionally">Occasionally</SelectItem>
+                              <SelectItem value="rarely">Rarely</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Relationship Status */}
+                  <div>
+                    <Label htmlFor="relationshipStatus">Relationship Status (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Helps Luna understand your support network</p>
+                    <Select onValueChange={(value) => form.setValue("relationshipStatus", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your relationship status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="single">Single</SelectItem>
+                        <SelectItem value="in-relationship">In a relationship</SelectItem>
+                        <SelectItem value="married">Married</SelectItem>
+                        <SelectItem value="divorced">Divorced</SelectItem>
+                        <SelectItem value="widowed">Widowed</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Children Information */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="hasChildren" 
+                        checked={form.watch("hasChildren")}
+                        onCheckedChange={(checked) => form.setValue("hasChildren", checked as boolean)}
+                      />
+                      <Label htmlFor="hasChildren">I have children</Label>
+                    </div>
+                    
+                    {form.watch("hasChildren") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
+                        <div>
+                          <Label htmlFor="childrenCount">How many children?</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="Number of children"
+                            onChange={(e) => form.setValue("childrenCount", parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="childrenAges">Children's ages (Optional)</Label>
+                          <Input 
+                            placeholder="e.g., 5, 12, 18"
+                            {...form.register("childrenAges")}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Siblings Information */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="hasSiblings" 
+                        checked={form.watch("hasSiblings")}
+                        onCheckedChange={(checked) => form.setValue("hasSiblings", checked as boolean)}
+                      />
+                      <Label htmlFor="hasSiblings">I have siblings</Label>
+                    </div>
+                    
+                    {form.watch("hasSiblings") && (
+                      <div className="ml-6">
+                        <Label htmlFor="siblingsCount">How many siblings?</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="Number of siblings"
+                          onChange={(e) => form.setValue("siblingsCount", parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Birthday & Important Dates */}
+                  <div className="space-y-4 bg-pink-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-pink-900">Birthday Reminders & Gift Ideas (Optional)</h3>
+                    <p className="text-sm text-pink-800 mb-4">Luna can help remind you of important dates and suggest gift ideas</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="dateOfBirth">Your Date of Birth</Label>
+                        <Input 
+                          type="date" 
+                          {...form.register("dateOfBirth")}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="partnerBirthday">Partner's Birthday</Label>
+                        <Input 
+                          type="date" 
+                          {...form.register("partnerBirthday")}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="childrenBirthdays">Children's Birthdays</Label>
+                        <Input 
+                          placeholder="e.g., 2015-03-15, 2018-07-22"
+                          {...form.register("childrenBirthdays")}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="familyBirthdays">Family Members' Birthdays</Label>
+                        <Input 
+                          placeholder="e.g., Mom: 1965-05-10, Dad: 1962-11-03"
+                          {...form.register("familyBirthdays")}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Social Support */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="closeFriends">Number of close friends (Optional)</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="Number of close friends"
+                        onChange={(e) => form.setValue("closeFriends", parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="familySupport">Level of family support</Label>
+                      <Select onValueChange={(value) => form.setValue("familySupport", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="How supportive is your family?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="very-supportive">Very supportive</SelectItem>
+                          <SelectItem value="somewhat-supportive">Somewhat supportive</SelectItem>
+                          <SelectItem value="neutral">Neutral</SelectItem>
+                          <SelectItem value="not-very-supportive">Not very supportive</SelectItem>
+                          <SelectItem value="no-family-contact">No family contact</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Hobbies & Interests */}
+              {currentStep === 6 && (
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="hobbies">Hobbies & Interests (Optional)</Label>
@@ -595,11 +846,32 @@ export default function Onboarding() {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="socialPreferences">Social Preferences (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">How do you prefer to socialize and connect with others?</p>
+                    <Textarea 
+                      placeholder="e.g., small groups, one-on-one conversations, online communities, outdoor activities..."
+                      {...form.register("socialPreferences")}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="importantDates">Other Important Dates (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Anniversaries, holidays, or special occasions you'd like reminders for</p>
+                    <Textarea 
+                      placeholder="e.g., Wedding anniversary: 2020-06-15, Mother's Day, Christmas shopping reminders..."
+                      {...form.register("importantDates")}
+                      rows={3}
+                    />
+                  </div>
+
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-900 mb-2">You're almost done!</h3>
+                    <h3 className="font-semibold text-blue-900 mb-2">You're all set!</h3>
                     <p className="text-blue-800 text-sm">
-                      Luna will use this information to provide personalized health insights, 
-                      nutrition recommendations, and supportive conversations tailored to your journey with Morgellons.
+                      Luna will use this comprehensive information to provide personalized health insights, 
+                      nutrition recommendations, birthday reminders, gift suggestions, and supportive conversations 
+                      tailored specifically to your journey with Morgellons.
                     </p>
                   </div>
                 </div>

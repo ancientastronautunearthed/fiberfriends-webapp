@@ -45,7 +45,35 @@ export const users = pgTable("users", {
   hasFibers: boolean("has_fibers").default(false),
   otherDiseases: text("other_diseases").array(),
   foodPreferences: jsonb("food_preferences"), // {dislikes: [], favorites: []}
-  habits: jsonb("habits"), // {smoking: boolean, alcohol: boolean, exercise: string, etc}
+  
+  // Enhanced lifestyle habits with detailed smoking/alcohol info
+  habits: jsonb("habits"), // {smoking: boolean, alcohol: boolean, exercise: string}
+  smokingDuration: varchar("smoking_duration"), // How long they've smoked
+  smokingFrequency: varchar("smoking_frequency"), // How often they smoke
+  alcoholDuration: varchar("alcohol_duration"), // How long they've been drinking
+  alcoholFrequency: varchar("alcohol_frequency"), // How often they drink
+  
+  // Personal & Family Information
+  relationshipStatus: varchar("relationship_status"),
+  hasChildren: boolean("has_children").default(false),
+  childrenCount: integer("children_count"),
+  childrenAges: varchar("children_ages"),
+  hasSiblings: boolean("has_siblings").default(false),
+  siblingsCount: integer("siblings_count"),
+  
+  // Birthday & Important Dates for Reminders and Gift Ideas
+  dateOfBirth: varchar("date_of_birth"),
+  partnerBirthday: varchar("partner_birthday"),
+  childrenBirthdays: varchar("children_birthdays"), // JSON string of dates
+  familyBirthdays: varchar("family_birthdays"), // JSON string of family member birthdays
+  importantDates: varchar("important_dates"), // JSON string of other important dates
+  
+  // Social Support Network
+  closeFriends: integer("close_friends"), // Number of close friends
+  familySupport: varchar("family_support"), // Level of family support
+  socialPreferences: text("social_preferences"), // How they prefer to socialize
+  
+  // Hobbies and interests
   hobbies: text("hobbies"),
   
   // Onboarding completion tracking
