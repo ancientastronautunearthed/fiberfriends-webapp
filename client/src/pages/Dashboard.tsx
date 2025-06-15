@@ -128,12 +128,12 @@ export default function Dashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-slate-800">Active Challenges</h3>
-            <Badge variant="secondary">{dashboardStats.totalActiveChallenges}/3</Badge>
+            <Badge variant="secondary">{totalActiveChallenges}/3</Badge>
           </div>
           
-          {dashboardStats.activeChallenges && dashboardStats.activeChallenges.length > 0 ? (
+          {activeChallenges && activeChallenges.length > 0 ? (
             <div className="space-y-3">
-              {dashboardStats.activeChallenges.map((userChallenge: any) => {
+              {activeChallenges.map((userChallenge: any) => {
                 const getCategoryIcon = (category: string) => {
                   switch (category) {
                     case "health": return <Heart className="h-4 w-4" />;
