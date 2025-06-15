@@ -237,8 +237,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Daily logs routes
   app.get('/api/daily-logs', async (req: any, res) => {
     try {
-      // Demo mode fallback for unauthenticated requests
-      if (!req.isAuthenticated || !req.isAuthenticated()) {
+      // Check if user is authenticated
+      const isAuth = req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub;
+      
+      if (!isAuth) {
+        // Return demo data for unauthenticated users
         const demoLogs = [
           {
             id: 1,
@@ -516,8 +519,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
   app.get('/api/dashboard-stats', async (req: any, res) => {
     try {
-      // Demo mode fallback for unauthenticated requests
-      if (!req.isAuthenticated || !req.isAuthenticated()) {
+      // Check if user is authenticated
+      const isAuth = req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub;
+      
+      if (!isAuth) {
+        // Return demo data for unauthenticated users
         const demoStats = {
           totalLogs: 14,
           streak: 7,
