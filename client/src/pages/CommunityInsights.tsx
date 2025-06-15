@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { getResearchContributionStatus, getCommunityHealthInsights } from "@/lib/firestore";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -75,14 +77,42 @@ const getInsightTypeIcon = (type: string) => {
 };
 
 export default function CommunityInsights() {
-  const { data: contributionStatus, isLoading: statusLoading } = useQuery<ResearchContributionStatus>({
-    queryKey: ['/api/research/contribution-status'],
-  });
+  const { user } = useFirebaseAuth();
+  const [contributionStatus, setContributionStatus] = useState<ResearchContributionStatus | null>(null);
+  const [insights, setInsights] = useState<CommunityInsight[]>([]);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: insights, isLoading: insightsLoading, error } = useQuery<CommunityInsight[]>({
-    queryKey: ['/api/community-insights'],
-    enabled: contributionStatus?.hasInsightsAccess || false,
-  });
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user?.id) {
+        setStatusLoading(false);
+        return;
+      }
+
+      try {
+        // Get contribution status
+        const status = await getResearchContributionStatus(user.id);
+        setContributionStatus(status);
+
+        // Load insights if user has access
+        if (status.hasInsightsAccess) {
+          setInsightsLoading(true);
+          const communityInsights = await getCommunityHealthInsights();
+          setInsights(communityInsights);
+        }
+      } catch (err) {
+        console.error("Error loading community insights:", err);
+        setError("Failed to load community insights");
+      } finally {
+        setStatusLoading(false);
+        setInsightsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   if (statusLoading) {
     return (
