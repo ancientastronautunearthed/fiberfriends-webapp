@@ -1,0 +1,73 @@
+Fiber Friends Application
+You are an expert full-stack developer. Your task is to create a complete web application called "Fiber Friends" using the T3 Stack (Next.js, TypeScript, Tailwind CSS, Prisma, and NextAuth.js) and Firebase for backend services. The application is a health tracker and community platform for individuals with Morgellons Disease.
+
+Here is the detailed project breakdown:
+
+1. Technology Stack & Project Setup
+
+Framework: Next.js with TypeScript
+Styling: Tailwind CSS
+Authentication: NextAuth.js (configured for Email/Password and Google providers)
+Database/Backend: Firebase (Firestore for the database, Firebase Authentication, Firebase Storage for image uploads)
+AI Integration: Google Gemini API (for conversational AI, data analysis, and image generation)
+Initial Setup: Initialize a new Next.js project. Set up Firebase and integrate the client-side and admin SDKs. Create the .env.local file with the provided keys.
+2. Firebase Firestore Database Schema
+
+Please structure the Firestore database with the following collections:
+
+users: Stores user profile data.
+Fields: uid, email, firstName, height, weight, age, gender, location (city, state), diagnosisStatus ('diagnosed', 'suspected'), misdiagnoses (array of strings), diagnosisTimeline, hasFibers (boolean), otherDiseases (array of strings), foodPreferences (dislikes, favorites), habits (smoking, etc.), optionalProfile (hobbies, etc.), points (number), trophyCase (array of image URLs).
+aiCompanions: Stores each user's AI companion details.
+Fields: userId, companionName, companionImageURL, personaKeywords (array of strings).
+dailyLogs: A single collection to store all daily user entries.
+Fields: userId, date (timestamp), logType ('food', 'symptoms'), data (object containing specific log details).
+communityPosts: Stores all posts from the community center.
+Fields: authorId, category ('story', 'success_tactic'), content (string), timestamp, aiAnalysis (string).
+doctors: A separate collection for verified medical professionals.
+Fields: uid, fullName, bio, website, licensedStates (array of strings), useAiPosting (boolean).
+3. Core Application Features to Build
+
+### A. User Authentication & Profile Management
+
+Implement user registration and login using Firebase Authentication.
+Create a multi-step onboarding process to collect all the user information for the users collection after initial sign-up.
+Build a user profile page where users can view and edit their information.
+### B. AI Health Companion
+
+Create the companion creation flow: User inputs keywords, and a Next.js API route calls the Gemini API to generate a name and an image. Store this in the aiCompanions collection.
+Implement a chat interface using the Gemini API. The chat prompt should be primed with the user's optional profile data to facilitate personalized, therapeutic conversations.
+### C. Daily Tracking & Dashboard
+
+Dashboard: Create a main dashboard that lists daily required tasks (e.g., "Log Breakfast," "Morning Symptom Log").
+Food Log:
+Build a form for users to log meals, supplements, and prescriptions.
+Use a Next.js API route to call the Gemini API when a meal is entered. The API should return nutritional data (calories, protein, etc.) and a brief critique of the meal choice.
+Store this data in a dailyLogs document with logType: 'food'.
+Symptom Journal:
+Create a "Morning Log" form with checkboxes for standard symptoms, a text area for custom symptoms, and inputs for mood, sleep, and sun exposure.
+Create an "End of Day Log" form for users to update if symptoms are better/worse and re-rate their overall feeling.
+Store this data in dailyLogs documents with logType: 'symptoms'.
+After submission, call the Gemini API to provide simple, non-medical insights and recommendations based on the log.
+### D. Community & Social Features
+
+Community Center:
+Build a forum where users can create posts in different categories.
+When a post is created, trigger a Cloud Function or API route to have the Gemini API generate and add an aiAnalysis to the post document.
+Symptom Matcher:
+Create a feature that, after 10 dailyLogs of type 'symptoms', allows a user to see a list of anonymized users with similar symptom patterns.
+Implement a built-in, private chat system (can use Firestore) for matched users to connect.
+Fiber Singles (Dating Feature):
+Create an opt-in section. Users generate a "romantic monster" persona using the Gemini image generation API.
+Implement a private chat for matched singles.
+Develop one mini-game for users to play against each other, like a "Diet Duel" quiz.
+### E. Gamification & Rewards
+
+Implement a points system where users earn points for completing daily tasks.
+Create a "Daily Challenge" feature where the Gemini API generates a new quiz each day.
+Build the "Trophy Case" on the user profile to display AI-generated images won from challenges.
+### F. Doctor Portal
+
+Create a separate, secure registration and login for doctors.
+Build a dashboard for doctors that provides access to aggregated, fully anonymized data visualizations from the dailyLogs collection.
+Ensure doctors can only view individual user data if a user explicitly initiates a chat with them.
+Please start by setting up the project structure, configuring Firebase, and implementing the user authentication flow. Ask for clarification if any part of the requirements is unclear.
