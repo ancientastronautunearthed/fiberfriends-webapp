@@ -211,17 +211,25 @@ export async function generateDailyChallenge() {
       "category": "${randomCategory}",
       "difficulty": "easy|medium|hard",
       "requirements": {
-        "technique": "breathing|water-intake|journaling|symptom-tracking|general",
+        "technique": "breathing|water-intake|journaling|symptom-tracking|reflection|general",
         "daily_minutes": 5-15,
         "daily_glasses": 6-10,
         "daily_words": 50-200,
         "duration_days": 1-7,
         "consecutive_days": 3-7,
-        "time_of_day": "morning|evening|anytime"
+        "time_of_day": "morning|evening|anytime",
+        "reflection_steps": 3-5
       }
     }
     
-    Choose ONE appropriate requirement type based on the challenge category.
+    Choose ONE appropriate requirement type based on the challenge category:
+    - For mindfulness/wellness: use "technique": "reflection" with "reflection_steps": 3-5
+    - For hydration: use "technique": "water-intake" with "daily_glasses": 6-10  
+    - For breathing/relaxation: use "technique": "breathing" with "daily_minutes": 5-15
+    - For journaling: use "technique": "journaling" with "daily_words": 50-200
+    - For symptom tracking: use "technique": "symptom-tracking" with "consecutive_days": 3-7
+    
+    PRIORITIZE creating interactive tracker challenges (reflection, water-intake, breathing, journaling, symptom-tracking) over general challenges.
     
     Make it achievable and encouraging.
   `;
@@ -280,9 +288,20 @@ export async function generatePersonalizedChallenge(userProfile: any, userHistor
       "category": "health|nutrition|social|mindfulness|physical",
       "difficulty": "easy|medium|hard",
       "points": points_value,
-      "requirements": {completion_criteria},
+      "requirements": {
+        "technique": "breathing|water-intake|journaling|symptom-tracking|reflection|general",
+        "daily_minutes": 5-15,
+        "daily_glasses": 6-10,
+        "daily_words": 50-200,
+        "duration_days": 1-7,
+        "consecutive_days": 3-7,
+        "time_of_day": "morning|evening|anytime",
+        "reflection_steps": 3-5
+      },
       "personalizedMessage": "motivational_message"
     }
+    
+    PRIORITIZE creating interactive tracker challenges (reflection, water-intake, breathing, journaling, symptom-tracking) over general challenges.
   `;
 
   try {
@@ -305,7 +324,7 @@ export async function generatePersonalizedChallenge(userProfile: any, userHistor
       category: "health",
       difficulty: "easy",
       points: 15,
-      requirements: { type: "general_activity" },
+      requirements: { technique: "reflection", reflection_steps: 3 },
       personalizedMessage: "You're doing great! Keep up the positive momentum."
     };
   }
@@ -331,9 +350,20 @@ export async function generateWeeklyChallenge(communityData: any) {
       "category": "social|health|nutrition|mindfulness",
       "difficulty": "medium|hard",
       "points": points_value,
-      "requirements": {completion_criteria},
+      "requirements": {
+        "technique": "breathing|water-intake|journaling|symptom-tracking|reflection|general",
+        "daily_minutes": 5-15,
+        "daily_glasses": 6-10,
+        "daily_words": 50-200,
+        "duration_days": 7,
+        "consecutive_days": 7,
+        "time_of_day": "morning|evening|anytime",
+        "reflection_steps": 3-5
+      },
       "duration": "7 days"
     }
+    
+    PRIORITIZE creating interactive tracker challenges (reflection, water-intake, breathing, journaling, symptom-tracking) over general challenges.
   `;
 
   try {
@@ -356,7 +386,7 @@ export async function generateWeeklyChallenge(communityData: any) {
       category: "social",
       difficulty: "medium",
       points: 100,
-      requirements: { dailyCheckIns: 7, type: "weekly_wellness" },
+      requirements: { technique: "reflection", reflection_steps: 5, duration_days: 7 },
       duration: "7 days"
     };
   }
@@ -383,9 +413,20 @@ export async function generateMilestoneChallenge(userAchievements: any, userStat
       "category": "health|social|achievement",
       "difficulty": "hard",
       "points": points_value,
-      "requirements": {completion_criteria},
+      "requirements": {
+        "technique": "breathing|water-intake|journaling|symptom-tracking|reflection|general",
+        "daily_minutes": 10-20,
+        "daily_glasses": 8-12,
+        "daily_words": 100-300,
+        "duration_days": 14-30,
+        "consecutive_days": 14-30,
+        "time_of_day": "morning|evening|anytime",
+        "reflection_steps": 5
+      },
       "milestone": "milestone_description"
     }
+    
+    PRIORITIZE creating interactive tracker challenges (reflection, water-intake, breathing, journaling, symptom-tracking) over general challenges.
   `;
 
   try {
