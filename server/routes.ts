@@ -155,6 +155,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Symptom pattern routes
+  app.get('/api/symptom-patterns', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const patterns = await storage.getSymptomPatterns(userId);
+      res.json(patterns);
+    } catch (error) {
+      console.error("Error fetching symptom patterns:", error);
+      res.status(500).json({ message: "Failed to fetch symptom patterns" });
+    }
+  });
+
+  app.post('/api/symptom-patterns', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const patternData = { ...req.body, userId };
+      const pattern = await storage.createSymptomPattern(patternData);
+      res.json(pattern);
+    } catch (error) {
+      console.error("Error creating symptom pattern:", error);
+      res.status(500).json({ message: "Failed to create symptom pattern" });
+    }
+  });
+
+  // Symptom correlation routes
+  app.get('/api/symptom-correlations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const correlations = await storage.getSymptomCorrelations(userId);
+      res.json(correlations);
+    } catch (error) {
+      console.error("Error fetching symptom correlations:", error);
+      res.status(500).json({ message: "Failed to fetch symptom correlations" });
+    }
+  });
+
+  app.post('/api/symptom-correlations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const correlationData = { ...req.body, userId };
+      const correlation = await storage.createSymptomCorrelation(correlationData);
+      res.json(correlation);
+    } catch (error) {
+      console.error("Error creating symptom correlation:", error);
+      res.status(500).json({ message: "Failed to create symptom correlation" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

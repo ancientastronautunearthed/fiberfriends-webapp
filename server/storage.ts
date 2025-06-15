@@ -3,6 +3,8 @@ import {
   aiCompanions,
   dailyLogs,
   communityPosts,
+  symptomPatterns,
+  symptomCorrelations,
   type User, 
   type UpsertUser,
   type AiCompanion,
@@ -10,7 +12,11 @@ import {
   type DailyLog,
   type InsertDailyLog,
   type CommunityPost,
-  type InsertCommunityPost
+  type InsertCommunityPost,
+  type SymptomPattern,
+  type InsertSymptomPattern,
+  type SymptomCorrelation,
+  type InsertSymptomCorrelation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -37,6 +43,14 @@ export interface IStorage {
   
   // Dashboard stats
   getDashboardStats(userId: string): Promise<any>;
+  
+  // Symptom pattern operations
+  getSymptomPatterns(userId: string): Promise<SymptomPattern[]>;
+  createSymptomPattern(pattern: InsertSymptomPattern): Promise<SymptomPattern>;
+  
+  // Symptom correlation operations
+  getSymptomCorrelations(userId: string): Promise<SymptomCorrelation[]>;
+  createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -164,6 +178,34 @@ export class DatabaseStorage implements IStorage {
       streak,
       recentLogs: recentLogs.slice(0, 5),
     };
+  }
+
+  // Symptom pattern operations
+  async getSymptomPatterns(userId: string): Promise<SymptomPattern[]> {
+    const patterns = await db.select().from(symptomPatterns).where(eq(symptomPatterns.userId, userId));
+    return patterns;
+  }
+
+  async createSymptomPattern(pattern: InsertSymptomPattern): Promise<SymptomPattern> {
+    const [newPattern] = await db
+      .insert(symptomPatterns)
+      .values(pattern)
+      .returning();
+    return newPattern;
+  }
+
+  // Symptom correlation operations
+  async getSymptomCorrelations(userId: string): Promise<SymptomCorrelation[]> {
+    const correlations = await db.select().from(symptomCorrelations).where(eq(symptomCorrelations.userId, userId));
+    return correlations;
+  }
+
+  async createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation> {
+    const [newCorrelation] = await db
+      .insert(symptomCorrelations)
+      .values(correlation)
+      .returning();
+    return newCorrelation;
   }
 }
 
