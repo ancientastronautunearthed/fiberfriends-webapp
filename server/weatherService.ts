@@ -59,163 +59,146 @@ export class WeatherService {
   }
 
   async isWorkDay(userId: string): Promise<boolean> {
-    try {
-      const user = await storage.getUser(userId);
-      if (!user?.isEmployed) return false;
-
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-      
-      // Basic work day detection (Monday-Friday for most people)
-      // This could be enhanced with user-specific work schedules
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-      
-      // Check if user has weekend work based on work hours
-      const workHours = user.workHours || '';
-      const hasWeekendWork = workHours.toLowerCase().includes('weekend');
-      
-      if (hasWeekendWork) {
-        return true; // Always a work day if they work weekends
-      }
-      
-      return isWeekday;
-    } catch (error) {
-      console.error('Error checking work day:', error);
-      return false;
-    }
+    // For now, consider weekends as days off
+    // In the future, this could be user-configurable
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    return dayOfWeek !== 0 && dayOfWeek !== 6; // Monday-Friday are work days
   }
 
   getHealthyActivities(weather: WeatherData, isWorkDay: boolean): HealthyActivity[] {
     const allActivities: HealthyActivity[] = [
-      // Outdoor Activities
+      // Sunny weather activities
       {
-        id: 'morning_walk',
-        name: 'Morning Nature Walk',
-        description: 'Gentle 20-30 minute walk in fresh air to reduce stress and improve circulation',
-        duration: '20-30 minutes',
-        category: 'outdoor',
-        weatherConditions: ['sunny', 'clear', 'clouds', 'partly cloudy'],
-        healthBenefits: ['Reduces stress', 'Improves circulation', 'Vitamin D exposure', 'Mental clarity'],
-        morgellonsSpecific: true
-      },
-      {
-        id: 'garden_therapy',
-        name: 'Garden Therapy',
-        description: 'Light gardening or plant care to connect with nature and reduce anxiety',
-        duration: '30-45 minutes',
-        category: 'outdoor',
-        weatherConditions: ['sunny', 'clear', 'clouds', 'partly cloudy'],
-        healthBenefits: ['Stress reduction', 'Mindfulness', 'Light exercise', 'Purpose and accomplishment'],
+        id: "gentle-outdoor-walk",
+        name: "Gentle Outdoor Walk",
+        description: "Take a peaceful walk in shaded areas, wearing protective clothing to shield sensitive skin from direct sunlight.",
+        duration: "20-30 minutes",
+        category: "outdoor",
+        weatherConditions: ["clear", "sunny"],
+        healthBenefits: ["Vitamin D exposure", "Fresh air", "Gentle exercise", "Mood enhancement"],
         morgellonsSpecific: true,
-        equipmentNeeded: ['Gardening gloves', 'Small tools']
+        equipmentNeeded: ["Hat", "Long sleeves", "Sunscreen"]
       },
       {
-        id: 'covered_exercise',
-        name: 'Covered Porch Exercise',
-        description: 'Gentle stretching or yoga under shelter while getting fresh air',
-        duration: '15-20 minutes',
-        category: 'outdoor',
-        weatherConditions: ['rain', 'drizzle', 'light rain'],
-        healthBenefits: ['Flexibility', 'Fresh air', 'Stress relief'],
-        morgellonsSpecific: true
+        id: "morning-stretching-outdoor",
+        name: "Morning Stretching in Nature",
+        description: "Light stretching exercises in a garden or park, taking advantage of the pleasant weather while being mindful of skin sensitivity.",
+        duration: "15-20 minutes",
+        category: "outdoor",
+        weatherConditions: ["clear", "sunny", "clouds"],
+        healthBenefits: ["Flexibility", "Connection with nature", "Stress relief"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Yoga mat", "Comfortable clothing"]
       },
 
-      // Indoor Activities
+      // Cloudy/mild weather activities
       {
-        id: 'meditation',
-        name: 'Guided Meditation',
-        description: 'Mindfulness meditation focused on body awareness and stress reduction',
-        duration: '10-20 minutes',
-        category: 'indoor',
-        weatherConditions: ['rain', 'snow', 'thunderstorm', 'extreme cold', 'extreme heat'],
-        healthBenefits: ['Stress reduction', 'Pain management', 'Emotional regulation', 'Sleep improvement'],
-        morgellonsSpecific: true
-      },
-      {
-        id: 'gentle_yoga',
-        name: 'Gentle Yoga',
-        description: 'Restorative yoga poses designed for sensitive skin conditions',
-        duration: '20-30 minutes',
-        category: 'indoor',
-        weatherConditions: ['rain', 'snow', 'thunderstorm', 'extreme cold', 'extreme heat'],
-        healthBenefits: ['Flexibility', 'Circulation', 'Stress relief', 'Pain management'],
+        id: "extended-outdoor-walk",
+        name: "Extended Nature Walk",
+        description: "Longer walks are more comfortable in cloudy weather, with less UV exposure and cooler temperatures.",
+        duration: "30-45 minutes",
+        category: "outdoor",
+        weatherConditions: ["clouds", "partly cloudy"],
+        healthBenefits: ["Cardiovascular health", "Stress reduction", "Fresh air"],
         morgellonsSpecific: true,
-        equipmentNeeded: ['Yoga mat', 'Comfortable clothing']
-      },
-      {
-        id: 'breathing_exercises',
-        name: 'Deep Breathing Exercises',
-        description: 'Structured breathing techniques to manage anxiety and promote healing',
-        duration: '5-15 minutes',
-        category: 'both',
-        weatherConditions: ['sunny', 'cloudy', 'rain', 'snow'],
-        healthBenefits: ['Stress reduction', 'Oxygenation', 'Anxiety management', 'Sleep improvement'],
-        morgellonsSpecific: true
-      },
-      {
-        id: 'epsom_bath',
-        name: 'Therapeutic Epsom Salt Bath',
-        description: 'Warm bath with Epsom salts to soothe skin and reduce inflammation',
-        duration: '15-20 minutes',
-        category: 'indoor',
-        weatherConditions: ['cold', 'rain', 'snow', 'windy'],
-        healthBenefits: ['Skin soothing', 'Muscle relaxation', 'Stress relief', 'Improved circulation'],
-        morgellonsSpecific: true,
-        equipmentNeeded: ['Epsom salts', 'Comfortable bath temperature']
+        equipmentNeeded: ["Comfortable shoes", "Light jacket"]
       },
 
-      // Day-off Specific Activities
+      // Rainy weather activities
       {
-        id: 'nature_photography',
-        name: 'Nature Photography Walk',
-        description: 'Combine gentle exercise with creative expression and mindfulness',
-        duration: '45-60 minutes',
-        category: 'outdoor',
-        weatherConditions: ['sunny', 'clear', 'partly cloudy'],
-        healthBenefits: ['Creative expression', 'Mindfulness', 'Light exercise', 'Vitamin D'],
+        id: "indoor-meditation",
+        name: "Mindful Rain Meditation",
+        description: "Use the calming sound of rain for deep meditation and breathing exercises.",
+        duration: "15-30 minutes",
+        category: "indoor",
+        weatherConditions: ["rain", "drizzle"],
+        healthBenefits: ["Stress reduction", "Mental clarity", "Emotional balance"],
         morgellonsSpecific: true,
-        equipmentNeeded: ['Camera or phone']
+        equipmentNeeded: []
       },
       {
-        id: 'cooking_therapy',
-        name: 'Healing Recipe Preparation',
-        description: 'Prepare anti-inflammatory meals using fresh, whole ingredients',
-        duration: '30-60 minutes',
-        category: 'indoor',
-        weatherConditions: ['rain', 'snow', 'extreme weather'],
-        healthBenefits: ['Nutrition focus', 'Mindfulness', 'Accomplishment', 'Dietary management'],
-        morgellonsSpecific: true
+        id: "gentle-indoor-yoga",
+        name: "Gentle Indoor Yoga",
+        description: "Perfect weather for indoor movement practices that promote flexibility and relaxation.",
+        duration: "20-40 minutes",
+        category: "indoor",
+        weatherConditions: ["rain", "drizzle", "thunderstorm"],
+        healthBenefits: ["Flexibility", "Stress relief", "Body awareness"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Yoga mat"]
+      },
+
+      // Cold weather activities
+      {
+        id: "warm-indoor-stretching",
+        name: "Warming Indoor Stretches",
+        description: "Gentle movements to keep the body warm and flexible during cold weather.",
+        duration: "15-25 minutes",
+        category: "indoor",
+        weatherConditions: ["snow", "cold"],
+        healthBenefits: ["Circulation", "Warmth", "Flexibility"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Comfortable clothing"]
+      },
+
+      // Hot weather activities
+      {
+        id: "early-morning-activity",
+        name: "Early Morning Movement",
+        description: "Take advantage of cooler morning temperatures for gentle outdoor activities.",
+        duration: "15-20 minutes",
+        category: "outdoor",
+        weatherConditions: ["hot", "warm"],
+        healthBenefits: ["Fresh air", "Gentle exercise", "Cooler temperatures"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Hat", "Water bottle", "Light clothing"]
+      },
+
+      // Universal indoor activities
+      {
+        id: "breathing-exercises",
+        name: "Deep Breathing Practice",
+        description: "Focused breathing exercises to reduce stress and promote overall well-being.",
+        duration: "10-15 minutes",
+        category: "indoor",
+        weatherConditions: ["any"],
+        healthBenefits: ["Stress reduction", "Better sleep", "Anxiety relief"],
+        morgellonsSpecific: true,
+        equipmentNeeded: []
+      },
+      {
+        id: "gentle-stretching",
+        name: "Gentle Full-Body Stretching",
+        description: "Light stretching routine designed for sensitive skin and overall flexibility.",
+        duration: "15-20 minutes",
+        category: "indoor",
+        weatherConditions: ["any"],
+        healthBenefits: ["Flexibility", "Circulation", "Muscle tension relief"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Yoga mat (optional)"]
       }
     ];
 
     // Filter activities based on weather conditions
-    const suitableActivities = allActivities.filter(activity => {
-      const weatherMatch = activity.weatherConditions.some(condition => 
-        weather.condition.includes(condition) || weather.description.includes(condition)
-      );
-      
-      // For extreme temperatures, suggest indoor activities
-      if (weather.temperature < 32 || weather.temperature > 85) {
-        return activity.category === 'indoor' || activity.category === 'both';
-      }
-      
-      return weatherMatch || activity.category === 'both';
-    });
+    const suitableActivities = allActivities.filter(activity => 
+      activity.weatherConditions.includes(weather.condition) || 
+      activity.weatherConditions.includes("any")
+    );
 
-    // If it's a day off, prioritize longer, more restorative activities
-    if (!isWorkDay) {
-      return suitableActivities.sort((a, b) => {
-        const aDuration = parseInt(a.duration);
-        const bDuration = parseInt(b.duration);
-        return bDuration - aDuration; // Longer activities first on days off
-      });
-    }
+    // For work days, prioritize shorter activities
+    const timeFiltered = isWorkDay 
+      ? suitableActivities.filter(activity => {
+          const durationMatch = activity.duration.match(/(\d+)-?(\d+)?/);
+          if (durationMatch) {
+            const maxDuration = parseInt(durationMatch[2] || durationMatch[1]);
+            return maxDuration <= 30; // 30 minutes or less for work days
+          }
+          return true;
+        })
+      : suitableActivities;
 
-    // On work days, prioritize shorter activities
-    return suitableActivities.filter(activity => {
-      const duration = parseInt(activity.duration);
-      return duration <= 30; // Shorter activities for work days
-    });
+    return timeFiltered.slice(0, 4); // Return top 4 recommendations
   }
 
   async getPersonalizedActivities(userId: string): Promise<{
@@ -243,7 +226,7 @@ export class WeatherService {
 
       const activities = weather ? this.getHealthyActivities(weather, isWorkDay) : this.getGeneralHealthyActivities(isWorkDay);
 
-      let weatherMessage = 'Weather information unavailable';
+      let weatherMessage = 'Weather information unavailable - showing general recommendations';
       if (weather) {
         weatherMessage = `It's ${weather.temperature}°F and ${weather.description} in ${weather.location}`;
       }
@@ -260,12 +243,11 @@ export class WeatherService {
       return {
         weather: null,
         isWorkDay: true,
-        activities: [],
-        weatherMessage: 'Unable to get weather information'
+        activities: this.getGeneralHealthyActivities(true),
+        weatherMessage: 'Unable to get weather information - showing general recommendations'
       };
     }
   }
-}
 
   // General activities when weather data is unavailable
   getGeneralHealthyActivities(isWorkDay: boolean): HealthyActivity[] {
