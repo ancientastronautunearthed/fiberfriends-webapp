@@ -10,18 +10,43 @@ import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, Clipboard
 export default function Dashboard() {
   const { toast } = useToast();
 
-  const { data: dashboardStats } = useQuery({
+  const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ["/api/dashboard-stats"],
+    retry: false,
   });
 
-  const { data: recentLogs } = useQuery({
+  const { data: recentLogs, isLoading: logsLoading, error: logsError } = useQuery({
     queryKey: ["/api/daily-logs"],
+    retry: false,
   });
 
-  if (!dashboardStats) {
+  // Debug logging
+  console.log('Dashboard query states:', {
+    dashboardStats,
+    statsLoading,
+    statsError,
+    recentLogs,
+    logsLoading,
+    logsError
+  });
+
+  if (statsLoading || logsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (statsError || logsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Dashboard Loading Error</h2>
+          <p className="text-gray-600">
+            {statsError?.message || logsError?.message || 'Failed to load dashboard data'}
+          </p>
+        </div>
       </div>
     );
   }
