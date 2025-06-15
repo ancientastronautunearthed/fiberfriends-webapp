@@ -1,0 +1,120 @@
+[debug] [2025-06-15T21:25:35.089Z] ----------------------------------------------------------------------
+[debug] [2025-06-15T21:25:35.091Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\cmill\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-06-15T21:25:35.092Z] CLI Version:   14.7.0
+[debug] [2025-06-15T21:25:35.092Z] Platform:      win32
+[debug] [2025-06-15T21:25:35.092Z] Node Version:  v20.19.0
+[debug] [2025-06-15T21:25:35.092Z] Time:          Sun Jun 15 2025 14:25:35 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-06-15T21:25:35.092Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-06-15T21:25:35.371Z] Object "/hosting/frameworksBackend" in "firebase.json" has unknown property: {"additionalProperty":"id"}
+[debug] [2025-06-15T21:25:35.372Z] Field "/hosting" in "firebase.json" is possibly invalid: must be array
+[debug] [2025-06-15T21:25:35.372Z] Field "/hosting" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-06-15T21:25:35.376Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-06-15T21:25:35.377Z] > authorizing via signed-in user (ancientastronautsunearthed@gmail.com)
+[debug] [2025-06-15T21:25:35.377Z] [iam] checking project fiber-friends for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-06-15T21:25:35.379Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:35.379Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:35.380Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions [none]
+[debug] [2025-06-15T21:25:35.380Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-15T21:25:35.380Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-06-15T21:25:35.762Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions 200
+[debug] [2025-06-15T21:25:35.762Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-06-15T21:25:35.763Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:35.763Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:35.763Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends [none]
+[debug] [2025-06-15T21:25:36.214Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends 200
+[debug] [2025-06-15T21:25:36.214Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends {"projectId":"fiber-friends","projectNumber":"202818399028","displayName":"Fiber Friends","name":"projects/fiber-friends","resources":{"hostingSite":"fiber-friends-9b614"},"state":"ACTIVE","etag":"1_4e0cc8dc-bd85-49b8-a19e-26e53872ced2"}
+[debug] [2025-06-15T21:25:40.463Z] defaultcredentials: writing to file C:\Users\cmill\AppData\Roaming\firebase\ancientastronautsunearthed_gmail_com_application_default_credentials.json
+[debug] [2025-06-15T21:25:40.465Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:40.466Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:40.466Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites pageToken=&pageSize=10
+[debug] [2025-06-15T21:25:41.305Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites 200
+[debug] [2025-06-15T21:25:41.305Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites {"sites":[{"name":"projects/fiber-friends/sites/fiber-friends-9b614","defaultUrl":"https://fiber-friends-9b614.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-06-15T21:25:41.308Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:41.308Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:41.309Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites 
+[debug] [2025-06-15T21:25:41.847Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites 200
+[debug] [2025-06-15T21:25:41.847Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites {"sites":[{"name":"projects/fiber-friends/sites/fiber-friends-9b614","defaultUrl":"https://fiber-friends-9b614.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-06-15T21:25:41.849Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:41.849Z] Checked if tokens are valid: true, expires at: 1750023848630
+[debug] [2025-06-15T21:25:41.849Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends/webApps/-/config [none]
+[debug] [2025-06-15T21:25:42.337Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends/webApps/-/config 200
+[debug] [2025-06-15T21:25:42.337Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends/webApps/-/config {"projectId":"fiber-friends","storageBucket":"fiber-friends.firebasestorage.app","apiKey":"AIzaSyC3AhSg8eAklY-Df6PcDkWqO3OMmTjzhEg","authDomain":"fiber-friends-9b614.firebaseapp.com","messagingSenderId":"202818399028"}
+[info] 
+   Thank you for trying our experimental support for Vite on Firebase Hosting.
+   While this integration is maintained by Googlers it is not a supported Firebase product.
+   Issues filed on GitHub will be addressed on a best-effort basis by maintainers and other community members.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/frameworks-overview
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2025-06-15T21:26:04.435Z] Could not resolve entry module "index.html".
+    at getRollupError (file:///C:/Users/cmill/Projects/FiberFriends/FiberFriends/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+    at error (file:///C:/Users/cmill/Projects/FiberFriends/FiberFriends/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+    at ModuleLoader.loadEntryModule (file:///C:/Users/cmill/Projects/FiberFriends/FiberFriends/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+    at async Promise.all (index 0)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2025-06-15T21:31:14.570Z] ----------------------------------------------------------------------
+[debug] [2025-06-15T21:31:14.574Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\cmill\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-06-15T21:31:14.575Z] CLI Version:   14.7.0
+[debug] [2025-06-15T21:31:14.575Z] Platform:      win32
+[debug] [2025-06-15T21:31:14.575Z] Node Version:  v20.19.0
+[debug] [2025-06-15T21:31:14.575Z] Time:          Sun Jun 15 2025 14:31:14 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-06-15T21:31:14.576Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-06-15T21:31:14.864Z] Object "/hosting/frameworksBackend" in "firebase.json" has unknown property: {"additionalProperty":"id"}
+[debug] [2025-06-15T21:31:14.864Z] Field "/hosting" in "firebase.json" is possibly invalid: must be array
+[debug] [2025-06-15T21:31:14.864Z] Field "/hosting" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-06-15T21:31:14.869Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-06-15T21:31:14.869Z] > authorizing via signed-in user (ancientastronautsunearthed@gmail.com)
+[debug] [2025-06-15T21:31:14.869Z] [iam] checking project fiber-friends for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-06-15T21:31:14.871Z] Checked if tokens are valid: false, expires at: 1750023848630
+[debug] [2025-06-15T21:31:14.871Z] Checked if tokens are valid: false, expires at: 1750023848630
+[debug] [2025-06-15T21:31:14.871Z] > refreshing access token with scopes: []
+[debug] [2025-06-15T21:31:14.873Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-06-15T21:31:14.873Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-06-15T21:31:15.143Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-06-15T21:31:15.143Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-06-15T21:31:15.160Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions [none]
+[debug] [2025-06-15T21:31:15.160Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-15T21:31:15.160Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-06-15T21:31:15.510Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions 200
+[debug] [2025-06-15T21:31:15.510Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-06-15T21:31:15.511Z] Checked if tokens are valid: true, expires at: 1750026674143
+[debug] [2025-06-15T21:31:15.511Z] Checked if tokens are valid: true, expires at: 1750026674143
+[debug] [2025-06-15T21:31:15.512Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends [none]
+[debug] [2025-06-15T21:31:15.936Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends 200
+[debug] [2025-06-15T21:31:15.936Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends {"projectId":"fiber-friends","projectNumber":"202818399028","displayName":"Fiber Friends","name":"projects/fiber-friends","resources":{"hostingSite":"fiber-friends-9b614"},"state":"ACTIVE","etag":"1_4e0cc8dc-bd85-49b8-a19e-26e53872ced2"}
+[debug] [2025-06-15T21:31:19.853Z] defaultcredentials: writing to file C:\Users\cmill\AppData\Roaming\firebase\ancientastronautsunearthed_gmail_com_application_default_credentials.json
+[debug] [2025-06-15T21:31:19.855Z] Checked if tokens are valid: true, expires at: 1750026674143
+[debug] [2025-06-15T21:31:19.855Z] Checked if tokens are valid: true, expires at: 1750026674143
+[debug] [2025-06-15T21:31:19.856Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites pageToken=&pageSize=10
+[debug] [2025-06-15T21:31:20.757Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites 200
+[debug] [2025-06-15T21:31:20.757Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/fiber-friends/sites {"sites":[{"name":"projects/fiber-friends/sites/fiber-friends-9b614","defaultUrl":"https://fiber-friends-9b614.web.app","appId":"1:202818399028:web:87d26200830078f8cfd361","type":"DEFAULT_SITE"}]}
+[debug] [2025-06-15T21:31:20.758Z] Checked if tokens are valid: true, expires at: 1750026674143
+[debug] [2025-06-15T21:31:20.758Z] Checked if tokens are valid: true, expires at: 1750026674143
+[debug] [2025-06-15T21:31:20.758Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:202818399028:web:87d26200830078f8cfd361/config [none]
+[debug] [2025-06-15T21:31:21.209Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:202818399028:web:87d26200830078f8cfd361/config 200
+[debug] [2025-06-15T21:31:21.209Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:202818399028:web:87d26200830078f8cfd361/config {"projectId":"fiber-friends","appId":"1:202818399028:web:87d26200830078f8cfd361","storageBucket":"fiber-friends.firebasestorage.app","apiKey":"AIzaSyC3AhSg8eAklY-Df6PcDkWqO3OMmTjzhEg","authDomain":"fiber-friends-9b614.firebaseapp.com","messagingSenderId":"202818399028","measurementId":"G-6E6V9BVQ0E"}
+[info] 
+   Thank you for trying our experimental support for Vite on Firebase Hosting.
+   While this integration is maintained by Googlers it is not a supported Firebase product.
+   Issues filed on GitHub will be addressed on a best-effort basis by maintainers and other community members.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/frameworks-overview
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2025-06-15T21:31:40.009Z] Could not resolve entry module "index.html".
+    at getRollupError (file:///C:/Users/cmill/Projects/FiberFriends/FiberFriends/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+    at error (file:///C:/Users/cmill/Projects/FiberFriends/FiberFriends/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+    at ModuleLoader.loadEntryModule (file:///C:/Users/cmill/Projects/FiberFriends/FiberFriends/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+    at async Promise.all (index 0)
+[error] 
+[error] Error: An unexpected error has occurred.
