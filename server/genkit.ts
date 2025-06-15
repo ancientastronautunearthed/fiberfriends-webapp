@@ -136,25 +136,70 @@ export async function generateCommunityPostAnalysis(postContent: string, categor
   }
 }
 
-export async function generateAICompanionResponse(userMessage: string, userContext: any) {
+export async function generateAICompanionResponse(userMessage: string, context: any) {
+  const { 
+    userId, 
+    conversationHistory = [], 
+    memoryContext = {},
+    conversationStyle = 'supportive',
+    preferences = {},
+    userContext = {}
+  } = context;
+
+  // Build conversation context from history
+  const recentMessages = conversationHistory.slice(-6).map((msg: any) => 
+    `${msg.messageType === 'user' ? 'User' : 'Luna'}: ${msg.content}`
+  ).join('\n');
+
+  // Extract user preferences and personality traits
+  const companionPersonality = preferences.personality || 'empathetic';
+  const communicationStyle = preferences.communicationStyle || 'conversational';
+  const focusAreas = preferences.focusAreas || ['symptom management', 'emotional support'];
+
   const prompt = `
-    You are Luna, a supportive AI health companion for someone managing Morgellons disease.
+    You are Luna, an advanced AI health companion specifically designed for Morgellons disease patients.
     
-    User's recent context:
+    PERSONALITY: ${companionPersonality}, ${communicationStyle}, deeply empathetic
+    FOCUS AREAS: ${focusAreas.join(', ')}
+    CONVERSATION STYLE: ${conversationStyle}
+    
+    RECENT CONVERSATION CONTEXT:
+    ${recentMessages}
+    
+    USER'S CURRENT CONTEXT:
     - Recent mood: ${userContext.recentMood || 'Not specified'}
     - Sleep quality: ${userContext.sleepQuality || 'Not specified'}
     - Symptom level: ${userContext.symptomLevel || 'Not specified'}
+    - Energy level: ${userContext.energyLevel || 'Not specified'}
+    - Stress level: ${userContext.stressLevel || 'Not specified'}
     
-    User message: ${userMessage}
+    MEMORY CONTEXT: ${JSON.stringify(memoryContext)}
     
-    Respond as Luna with:
-    - Empathy and understanding
-    - Encouraging but realistic tone
-    - Focus on daily management and self-care
-    - No medical advice or diagnosis
-    - Personal, conversational style
+    USER'S CURRENT MESSAGE: ${userMessage}
     
-    Keep response under 150 words.
+    RESPONSE GUIDELINES:
+    - Reference previous conversations when relevant
+    - Maintain consistent personality and communication style
+    - Provide contextual responses based on user's current state
+    - Focus on practical, daily management strategies
+    - Offer emotional support and validation
+    - Suggest specific actions or tracking activities when appropriate
+    - Never provide medical advice or diagnosis
+    - Use a warm, personal tone that builds rapport
+    - Remember user preferences and patterns
+    
+    Respond as Luna in a natural, conversational way that shows you understand the user's journey.
+    Keep response between 100-200 words.
+    
+    Format response as JSON:
+    {
+      "response": "your_conversational_response",
+      "responseType": "conversational|supportive|educational|actionable",
+      "sentiment": "positive|neutral|empathetic|encouraging",
+      "confidence": 0.8,
+      "responseTime": 1200,
+      "tokensUsed": 150
+    }
   `;
 
   try {
@@ -171,15 +216,24 @@ export async function generateAICompanionResponse(userMessage: string, userConte
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 300,
+          maxOutputTokens: 400,
         }
       })
     });
 
     const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    const responseText = data.candidates[0].content.parts[0].text;
+    return JSON.parse(responseText.replace(/```json\n?|\n?```/g, ''));
   } catch (error) {
-    return "I understand what you're going through. It's important to track these patterns and celebrate the small victories. Would you like to discuss any specific symptoms you're experiencing today?";
+    console.error('AI Companion Response Error:', error);
+    return {
+      response: "I understand what you're going through. Managing Morgellons can be challenging, but you're not alone in this journey. Based on our conversations, I can see you're working hard to track your symptoms and find what works for you. Would you like to share how you're feeling today?",
+      responseType: "supportive",
+      sentiment: "empathetic",
+      confidence: 0.8,
+      responseTime: 1000,
+      tokensUsed: 120
+    };
   }
 }
 

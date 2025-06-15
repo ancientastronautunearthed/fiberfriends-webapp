@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, User, Send, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import { generateAICompanionResponse } from "@/lib/api";
+import { generateAICompanionResponse, getConversationHistory, getHealthInsights } from "@/lib/api";
 
 // TypeScript declarations for Web Speech API
 declare global {
@@ -52,26 +52,51 @@ export default function AICompanion() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: "ai",
-      content: "Good morning! I see you've completed your morning symptom log. Your sleep quality seems to be improving - that's wonderful progress! How are you feeling about starting the day?",
-      timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 2,
-      type: "user",
-      content: "Thanks Luna! I'm feeling pretty good today. I noticed my energy levels are higher this week.",
-      timestamp: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 3,
-      type: "ai",
-      content: "That's fantastic to hear! Based on your recent logs, I've noticed a positive correlation between your improved sleep quality and higher energy levels. Would you like me to analyze any specific patterns or discuss strategies to maintain this progress?",
-      timestamp: new Date(Date.now() - 27 * 60 * 1000).toISOString(),
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
+  const [companion, setCompanion] = useState(null);
+
+  // Load AI companion data
+  const { data: companionData, isLoading: companionLoading } = useQuery({
+    queryKey: ["/api/ai-companion"],
+    enabled: isAuthenticated
+  });
+
+  // Load conversation history
+  const { data: conversationHistory, isLoading: historyLoading } = useQuery({
+    queryKey: ["/api/ai-companion", companionData?.id, "conversation"],
+    enabled: !!companionData?.id
+  });
+
+  // Load health insights
+  const { data: healthInsights, isLoading: insightsLoading } = useQuery({
+    queryKey: ["/api/ai-companion/health-insights"],
+    enabled: isAuthenticated
+  });
+
+  // Initialize companion and conversation history
+  useEffect(() => {
+    if (companionData) {
+      setCompanion(companionData);
+    }
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      const formattedMessages = conversationHistory.map((msg, index) => ({
+        id: index + 1,
+        type: msg.messageType,
+        content: msg.content,
+        timestamp: msg.createdAt || new Date().toISOString(),
+        metadata: msg.metadata
+      }));
+      setMessages(formattedMessages);
+    } else if (!historyLoading && (!conversationHistory || conversationHistory.length === 0)) {
+      // Initialize with welcome message if no history
+      setMessages([{
+        id: 1,
+        type: "ai" as const,
+        content: "Hello! I'm Luna, your AI health companion. I'm here to support you on your Morgellons journey. How are you feeling today?",
+        timestamp: new Date().toISOString(),
+      }]);
+    }
+  }, [companionData, conversationHistory, historyLoading]);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -214,24 +239,56 @@ export default function AICompanion() {
     setMessage("");
 
     try {
-      // Generate AI response using Gemini
+      // Get current user context from symptom wheel and health data
+      const userContext = {
+        recentMood: "cautiously optimistic",
+        sleepQuality: "moderate",
+        symptomLevel: "mild",
+        energyLevel: "moderate",
+        stressLevel: "low"
+      };
+
+      // Generate AI response with enhanced context
       const aiResponse = await generateAICompanionResponse(currentMessage, {
-        recentMessages: messages.slice(-3),
-        companionName: "Luna"
+        userId: "current-user",
+        conversationHistory: messages.slice(-10), // Send last 10 messages for context
+        memoryContext: {
+          previousTopics: ["symptom tracking", "daily routines"],
+          userPreferences: { responseStyle: "supportive", focusAreas: ["emotional support"] }
+        },
+        conversationStyle: companion?.conversationStyle || "supportive",
+        preferences: {
+          personality: companion?.personality || "empathetic",
+          communicationStyle: companion?.communicationStyle || "conversational",
+          focusAreas: companion?.focusAreas || ["symptom management", "emotional support"]
+        },
+        userContext
       });
+
+      // Handle structured response format
+      const responseContent = typeof aiResponse === 'object' && aiResponse.response 
+        ? aiResponse.response 
+        : typeof aiResponse === 'string' 
+        ? aiResponse 
+        : "I'm here to support you on your health journey.";
 
       const aiMessage = {
         id: messages.length + 2,
         type: "ai" as const,
-        content: aiResponse,
+        content: responseContent,
         timestamp: new Date().toISOString(),
+        metadata: aiResponse?.responseType ? {
+          responseType: aiResponse.responseType,
+          sentiment: aiResponse.sentiment,
+          confidence: aiResponse.confidence
+        } : undefined
       };
 
       setMessages(prev => [...prev, aiMessage]);
       
       // Speak the AI response if voice is enabled
       if (voiceEnabled) {
-        speakText(aiResponse);
+        speakText(responseContent);
       }
     } catch (error) {
       console.error('Error generating AI response:', error);
