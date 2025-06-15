@@ -71,12 +71,30 @@ export function useFirebaseAuth() {
   const signIn = async () => {
     try {
       console.log("Starting Google sign-in...");
+      
+      // Clear any existing popup blockers
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user) {
+        console.log("Sign-in successful:", result.user.email);
         await handleUserLogin(result.user);
       }
-    } catch (error) {
-      console.error("Error signing in:", error);
+    } catch (error: any) {
+      console.error("Sign-in error:", error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log("User closed the popup");
+        return;
+      }
+      
+      if (error.code === 'auth/popup-blocked') {
+        console.log("Popup was blocked by browser");
+        throw new Error("Please allow popups for this site and try again");
+      }
+      
       throw error;
     }
   };
