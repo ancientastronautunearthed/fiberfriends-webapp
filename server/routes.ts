@@ -55,52 +55,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create some sample challenges
         const sampleChallenges = [
           {
-            id: crypto.randomUUID(),
             title: "Morning Symptom Check",
             description: "Track your symptoms for 3 consecutive mornings",
             category: "health",
             type: "daily",
             difficulty: "easy",
-            points: 10,
+            pointReward: 10,
             requirements: { consecutive_days: 3, time_of_day: "morning" },
-            timeLimit: 72,
             isActive: true
           },
           {
-            id: crypto.randomUUID(),
             title: "Hydration Hero",
             description: "Drink 8 glasses of water daily for a week",
             category: "health",
             type: "weekly",
             difficulty: "medium",
-            points: 25,
+            pointReward: 25,
             requirements: { daily_glasses: 8, duration_days: 7 },
-            timeLimit: 168,
             isActive: true
           },
           {
-            id: crypto.randomUUID(),
             title: "Mindful Moments",
             description: "Practice 5 minutes of mindfulness daily",
             category: "mindfulness",
             type: "personalized",
             difficulty: "easy",
-            points: 15,
+            pointReward: 15,
             requirements: { daily_minutes: 5, technique: "breathing" },
-            timeLimit: 24,
             isActive: true
           }
         ];
 
+        // Create sample challenges
+        const createdChallenges = [];
         for (const challenge of sampleChallenges) {
-          await storage.createChallenge(challenge);
+          const created = await storage.createChallenge(challenge);
+          createdChallenges.push(created);
         }
 
-        // Create sample user challenges
+        // Create sample user challenge
         await storage.assignChallengeToUser({
-          id: crypto.randomUUID(),
           userId: 'dev-user-123',
-          challengeId: sampleChallenges[0].id,
+          challengeId: createdChallenges[0].id,
           status: 'completed',
           progress: { days_completed: 3, total_days: 3 },
           pointsEarned: 10
@@ -430,7 +426,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (challenge) {
         const challengeData = {
-          ...challenge,
+          title: challenge.title,
+          description: challenge.description,
+          category: challenge.category,
+          difficulty: challenge.difficulty,
           type,
           pointReward: challenge.points,
           requirements: challenge.requirements || {},

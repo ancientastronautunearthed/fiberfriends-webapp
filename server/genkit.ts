@@ -198,7 +198,8 @@ export async function generateDailyChallenge() {
       "title": "challenge_title",
       "description": "challenge_description",
       "points": points_reward_number,
-      "category": "nutrition|wellness|movement|mindfulness"
+      "category": "nutrition|wellness|movement|mindfulness",
+      "difficulty": "easy|medium|hard"
     }
     
     Make it achievable and encouraging.
@@ -231,7 +232,8 @@ export async function generateDailyChallenge() {
       title: "Mindful Breathing",
       description: "Take 5 minutes for deep breathing exercises to reduce stress and promote relaxation.",
       points: 25,
-      category: "mindfulness"
+      category: "mindfulness",
+      difficulty: "easy"
     };
   }
 }
