@@ -84,11 +84,11 @@ export default function AICompanion() {
       }));
       setMessages(formattedMessages);
     } else if (!historyLoading && (!conversationHistory || conversationHistory.length === 0)) {
-      // Initialize with proactive welcome message offering daily overview
+      // Initialize with specialized Morgellons expertise welcome message
       setMessages([{
         id: 1,
         type: "ai" as const,
-        content: "Good morning! I'm Luna, your AI health companion with specialized knowledge in Morgellons disease management. I'm here to support you on your health journey.\n\nWould you like me to provide your daily task overview, or is there something specific you'd like to discuss about your symptoms, diet, or wellbeing today?",
+        content: "Hello! I'm Luna, your specialized AI health companion with deep expertise in Morgellons Disease management and patient advocacy.\n\nI understand the unique challenges you face with symptoms like fiber-like materials, skin sensations, and the frustration of medical dismissal. I'm here to provide:\n\n• Evidence-based symptom management strategies\n• Fiber documentation guidance for medical appointments\n• Anti-inflammatory diet recommendations\n• Medical advocacy support and communication tips\n• Stress management techniques for flare-ups\n• Community connection and validation\n\nHow can I support you today? I can help with symptom tracking, preparation for medical visits, or just provide understanding during difficult moments.",
         timestamp: new Date().toISOString(),
       }]);
     }
@@ -245,20 +245,15 @@ export default function AICompanion() {
         stressLevel: "low"
       };
 
-      // Generate AI response with enhanced context
+      // Generate specialized Morgellons AI response
       const aiResponse = await generateAICompanionResponse(currentMessage, {
-        conversationHistory: messages.slice(-10), // Send last 10 messages for context
-        memoryContext: {
-          previousTopics: ["symptom tracking", "daily routines"],
-          userPreferences: { responseStyle: "supportive", focusAreas: ["emotional support"] }
-        },
-        conversationStyle: companion?.conversationStyle || "supportive",
-        preferences: {
-          personality: companion?.personality || "empathetic",
-          communicationStyle: companion?.communicationStyle || "conversational",
-          focusAreas: companion?.focusAreas || ["symptom management", "emotional support"]
-        },
-        userContext
+        conversationHistory: messages.slice(-10),
+        userContext,
+        companion: companion || {
+          personality: "empathetic",
+          communicationStyle: "supportive",
+          focusAreas: ["morgellons_expertise", "medical_advocacy", "symptom_validation"]
+        }
       }, user?.uid || "");
 
       // Handle structured response format
