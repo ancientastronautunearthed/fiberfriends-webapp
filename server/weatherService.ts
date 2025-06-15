@@ -241,7 +241,7 @@ export class WeatherService {
         dayOffMessage = `It's ${dayName} - a perfect day to focus on your health and well-being!`;
       }
 
-      const activities = weather ? this.getHealthyActivities(weather, isWorkDay) : [];
+      const activities = weather ? this.getHealthyActivities(weather, isWorkDay) : this.getGeneralHealthyActivities(isWorkDay);
 
       let weatherMessage = 'Weather information unavailable';
       if (weather) {
@@ -264,6 +264,82 @@ export class WeatherService {
         weatherMessage: 'Unable to get weather information'
       };
     }
+  }
+}
+
+  // General activities when weather data is unavailable
+  getGeneralHealthyActivities(isWorkDay: boolean): HealthyActivity[] {
+    const allActivities: HealthyActivity[] = [
+      {
+        id: "gentle-stretching",
+        name: "Gentle Stretching Routine",
+        description: "Light stretching exercises to improve flexibility and reduce muscle tension. Focus on gentle movements to avoid skin irritation.",
+        duration: "15-20 minutes",
+        category: "both",
+        weatherConditions: ["any"],
+        healthBenefits: ["Improves flexibility", "Reduces stress", "Promotes circulation", "Gentle on sensitive skin"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Yoga mat (optional)"]
+      },
+      {
+        id: "meditation-breathing",
+        name: "Mindfulness and Breathing",
+        description: "Calming meditation and deep breathing exercises to reduce stress and promote mental well-being.",
+        duration: "10-30 minutes",
+        category: "indoor",
+        weatherConditions: ["any"],
+        healthBenefits: ["Reduces anxiety", "Improves focus", "Lowers stress hormones", "Supports immune function"],
+        morgellonsSpecific: true,
+        equipmentNeeded: []
+      },
+      {
+        id: "light-walking",
+        name: "Light Indoor Walking",
+        description: "Gentle walking exercises that can be done indoors or in covered areas. Perfect for maintaining activity without weather concerns.",
+        duration: "20-30 minutes",
+        category: "both",
+        weatherConditions: ["any"],
+        healthBenefits: ["Cardiovascular health", "Gentle exercise", "Mood enhancement", "Joint mobility"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Comfortable shoes"]
+      },
+      {
+        id: "hydration-therapy",
+        name: "Hydration and Skin Care",
+        description: "Focus on proper hydration and gentle skin care routines that support overall health and skin condition.",
+        duration: "15 minutes",
+        category: "indoor",
+        weatherConditions: ["any"],
+        healthBenefits: ["Skin health", "Detoxification", "Improves circulation", "Supports healing"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Water bottle", "Gentle moisturizer"]
+      },
+      {
+        id: "journaling",
+        name: "Health Journaling",
+        description: "Document symptoms, mood, and daily experiences to track patterns and communicate effectively with healthcare providers.",
+        duration: "10-15 minutes",
+        category: "indoor",
+        weatherConditions: ["any"],
+        healthBenefits: ["Mental clarity", "Symptom tracking", "Emotional processing", "Communication aid"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Notebook or app"]
+      },
+      {
+        id: "gentle-yoga",
+        name: "Gentle Yoga Flow",
+        description: "Slow, mindful yoga movements designed to be gentle on sensitive skin while promoting flexibility and relaxation.",
+        duration: "20-30 minutes",
+        category: "indoor",
+        weatherConditions: ["any"],
+        healthBenefits: ["Flexibility", "Stress relief", "Body awareness", "Gentle movement"],
+        morgellonsSpecific: true,
+        equipmentNeeded: ["Yoga mat", "Comfortable clothing"]
+      }
+    ];
+
+    // Return more activities for days off
+    return isWorkDay ? allActivities.slice(0, 3) : allActivities;
   }
 }
 
