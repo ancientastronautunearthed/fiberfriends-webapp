@@ -482,6 +482,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { challengeId } = req.body;
       
+      // Check if user already has 3 active challenges
+      const activeChallenges = await storage.getUserChallenges(userId, 'active');
+      if (activeChallenges.length >= 3) {
+        return res.status(400).json({ 
+          message: "You can only have 3 active challenges at a time. Please complete or dismiss some challenges first." 
+        });
+      }
+      
       const userChallenge = {
         userId,
         challengeId,

@@ -65,10 +65,13 @@ export default function Challenges() {
         description: "You've successfully joined this challenge!"
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const isLimitReached = error.message.includes('You can only have 3 active challenges');
       toast({
         title: "Error",
-        description: "Failed to accept challenge. Please try again.",
+        description: isLimitReached 
+          ? "You can only have 3 active challenges at a time. Please complete or dismiss some challenges first."
+          : "Failed to accept challenge. Please try again.",
         variant: "destructive"
       });
     }

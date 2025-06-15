@@ -1,37 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { getDashboardStats, getDailyLogs } from "@/lib/firestore";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, ClipboardCheck, MessageCircle, Star } from "lucide-react";
+import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, ClipboardCheck, MessageCircle, Star, Target, Heart, Users, Brain, Play } from "lucide-react";
 
 export default function Dashboard() {
-  const { user, isLoading } = useFirebaseAuth();
   const { toast } = useToast();
 
   const { data: dashboardStats } = useQuery({
-    queryKey: ["dashboard-stats", user?.id],
-    queryFn: () => getDashboardStats(user!.id),
-    enabled: !!user,
+    queryKey: ["/api/dashboard-stats"],
   });
 
   const { data: recentLogs } = useQuery({
-    queryKey: ["daily-logs", user?.id],
-    queryFn: () => getDailyLogs(user!.id),
-    enabled: !!user,
+    queryKey: ["/api/daily-logs"],
   });
 
-  if (isLoading || !user) {
+  if (!dashboardStats) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
+
+  // Ensure dashboardStats has required properties with fallbacks
+  const activeChallenges = dashboardStats?.activeChallenges || [];
+  const totalActiveChallenges = dashboardStats?.totalActiveChallenges || 0;
 
   const dailyTasks = [
     { id: 1, name: "Morning Symptom Log", completed: true, icon: ClipboardCheck },
@@ -81,7 +78,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              Good morning, {user?.firstName || "Friend"}!
+              Good morning, Friend!
             </h1>
             <p className="text-primary-100 text-lg">Let's track your health journey today</p>
           </div>
@@ -125,6 +122,68 @@ export default function Dashboard() {
               );
             })}
           </div>
+        </Card>
+
+        {/* Active Challenges */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-slate-800">Active Challenges</h3>
+            <Badge variant="secondary">{dashboardStats.totalActiveChallenges}/3</Badge>
+          </div>
+          
+          {dashboardStats.activeChallenges && dashboardStats.activeChallenges.length > 0 ? (
+            <div className="space-y-3">
+              {dashboardStats.activeChallenges.map((userChallenge: any) => {
+                const getCategoryIcon = (category: string) => {
+                  switch (category) {
+                    case "health": return <Heart className="h-4 w-4" />;
+                    case "nutrition": return <Target className="h-4 w-4" />;
+                    case "social": return <Users className="h-4 w-4" />;
+                    case "mindfulness": return <Brain className="h-4 w-4" />;
+                    default: return <Star className="h-4 w-4" />;
+                  }
+                };
+
+                return (
+                  <div key={userChallenge.id} className="border rounded-lg p-3 hover:bg-slate-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getCategoryIcon(userChallenge.challenge?.category)}
+                        <span className="font-medium text-sm">{userChallenge.challenge?.title}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0} pts
+                      </Badge>
+                    </div>
+                    <div className="mb-2">
+                      <Progress value={userChallenge.progress?.completion_percentage || 0} className="h-2" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-500">
+                        {userChallenge.progress?.completion_percentage || 0}% complete
+                      </span>
+                      <Link to="/challenges">
+                        <Button size="sm" variant="outline" className="text-xs h-7">
+                          <Play className="w-3 h-3 mr-1" />
+                          Continue
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Target className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-slate-500 text-sm mb-3">No active challenges</p>
+              <Link to="/challenges">
+                <Button size="sm" variant="outline">
+                  Browse Challenges
+                </Button>
+              </Link>
+            </div>
+          )}
         </Card>
 
         {/* Health Overview */}

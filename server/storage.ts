@@ -238,6 +238,10 @@ export class DatabaseStorage implements IStorage {
   // Dashboard stats
   async getDashboardStats(userId: string): Promise<any> {
     const recentLogs = await this.getDailyLogs(userId);
+    const activeChallenges = await this.getUserChallenges(userId, 'active');
+    const completedChallenges = await this.getUserChallenges(userId, 'completed');
+    const userAchievements = await this.getUserAchievements(userId);
+    
     const totalLogs = recentLogs.length;
     const streak = 7; // Mock calculation
     
@@ -245,6 +249,10 @@ export class DatabaseStorage implements IStorage {
       totalLogs,
       streak,
       recentLogs: recentLogs.slice(0, 5),
+      activeChallenges: activeChallenges.slice(0, 3),
+      totalActiveChallenges: activeChallenges.length,
+      totalCompletedChallenges: completedChallenges.length,
+      totalAchievements: userAchievements.length,
     };
   }
 
