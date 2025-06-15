@@ -35,6 +35,65 @@ export default function SymptomPatterns() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Create sample symptom data for testing
+  const createSampleData = async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      const sampleLogs = [];
+      const symptoms = ['skin_irritation', 'fatigue', 'joint_pain', 'brain_fog', 'digestive_issues'];
+      
+      // Create 14 days of sample data
+      for (let i = 0; i < 14; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        
+        const symptomData: any = {};
+        symptoms.forEach(symptom => {
+          // Create patterns: skin_irritation peaks on weekends, fatigue cyclical
+          const dayOfWeek = date.getDay();
+          let severity = Math.floor(Math.random() * 5) + 1;
+          
+          if (symptom === 'skin_irritation' && (dayOfWeek === 0 || dayOfWeek === 6)) {
+            severity = Math.min(severity + 2, 5);
+          }
+          if (symptom === 'fatigue' && i % 7 < 3) {
+            severity = Math.min(severity + 1, 5);
+          }
+          
+          symptomData[symptom] = severity;
+        });
+
+        const logData = {
+          logType: 'symptoms',
+          data: {
+            symptoms: symptomData,
+            notes: `Day ${i + 1} sample data`,
+            contextFactors: i % 3 === 0 ? ['stress', 'weather_change'] : ['normal_day']
+          },
+          date: date.toISOString().split('T')[0]
+        };
+
+        const response = await apiRequest("POST", "/api/daily-logs", logData);
+        sampleLogs.push(response);
+      }
+
+      toast({
+        title: "Sample Data Created",
+        description: `Created ${sampleLogs.length} days of sample symptom data`,
+      });
+
+      // Refresh the data
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create sample data",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

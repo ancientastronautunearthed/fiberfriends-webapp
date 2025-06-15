@@ -187,9 +187,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSymptomPattern(pattern: InsertSymptomPattern): Promise<SymptomPattern> {
+    const patternWithId = {
+      ...pattern,
+      id: crypto.randomUUID(),
+    };
     const [newPattern] = await db
       .insert(symptomPatterns)
-      .values(pattern)
+      .values(patternWithId)
       .returning();
     return newPattern;
   }
@@ -201,9 +205,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation> {
+    const correlationWithId = {
+      ...correlation,
+      id: crypto.randomUUID(),
+    };
     const [newCorrelation] = await db
       .insert(symptomCorrelations)
-      .values(correlation)
+      .values(correlationWithId)
       .returning();
     return newCorrelation;
   }
