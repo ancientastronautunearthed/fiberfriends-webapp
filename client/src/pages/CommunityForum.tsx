@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, User, Heart, MessageCircle, Share, Brain } from "lucide-react";
+import { Plus, User, Heart, MessageCircle, Share, Brain, Trophy, Flame, Star, Award, TrendingUp, Clock, Eye, ThumbsUp, Bookmark, Flag, X } from "lucide-react";
 
 export default function CommunityForum() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,12 +19,16 @@ export default function CommunityForum() {
   const queryClient = useQueryClient();
 
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [sortBy, setSortBy] = useState("trending");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [showEngagementTips, setShowEngagementTips] = useState(true);
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
     category: "support",
   });
+  const [likedPosts, setLikedPosts] = useState(new Set());
+  const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -120,7 +124,7 @@ export default function CommunityForum() {
     );
   }
 
-  // Mock posts data if no posts exist
+  // Enhanced posts with engagement metrics
   const mockPosts = posts?.length ? posts : [
     {
       id: 1,
@@ -128,10 +132,19 @@ export default function CommunityForum() {
       content: "I wanted to share my experience with dietary modifications over the past 3 months. After eliminating processed foods and focusing on anti-inflammatory foods, I've noticed significant improvements in my symptoms...",
       category: "story",
       authorId: "anonymous_1",
+      authorName: "Sarah M.",
+      authorLevel: "Supporter",
+      authorBadges: ["Helper", "Streak 30"],
       likes: 24,
       replies: 8,
+      views: 156,
+      shares: 3,
+      bookmarks: 12,
+      trending: true,
+      quality: "high",
       aiAnalysis: "This post discusses evidence-based dietary approaches. The anti-inflammatory diet mentioned has shown benefits in similar conditions. Consider consulting with healthcare providers before major dietary changes.",
       createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      timeToRead: "2 min read",
     },
     {
       id: 2,
@@ -139,19 +152,130 @@ export default function CommunityForum() {
       content: "Has anyone found effective natural methods to improve sleep quality? I've been struggling with restless nights and it's affecting my overall symptom management...",
       category: "question",
       authorId: "anonymous_2",
+      authorName: "Mike R.",
+      authorLevel: "Community Member",
+      authorBadges: ["New Member"],
       likes: 12,
       replies: 15,
+      views: 89,
+      shares: 1,
+      bookmarks: 8,
+      trending: false,
+      quality: "medium",
       aiAnalysis: "Sleep quality is crucial for symptom management. Common helpful approaches include maintaining consistent sleep schedules, creating dark environments, and considering magnesium supplementation under medical guidance.",
       createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      timeToRead: "1 min read",
+    },
+    {
+      id: 3,
+      title: "Weekly Victory: First Symptom-Free Day in Months!",
+      content: "I wanted to celebrate with everyone here - yesterday was my first completely symptom-free day in over 4 months! It might not seem like much, but for me it's huge...",
+      category: "story",
+      authorId: "anonymous_3",
+      authorName: "Alex T.",
+      authorLevel: "Champion",
+      authorBadges: ["Victory Sharer", "Motivator", "Streak 60"],
+      likes: 45,
+      replies: 23,
+      views: 234,
+      shares: 8,
+      bookmarks: 18,
+      trending: true,
+      quality: "high",
+      aiAnalysis: "Celebrating symptom-free days is an important part of recovery tracking. This positive milestone can help maintain motivation and provide hope to others in the community.",
+      createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      timeToRead: "2 min read",
     },
   ];
 
-  const filteredPosts = selectedCategory 
+  // Interaction handlers
+  const handleLike = (postId) => {
+    const newLikedPosts = new Set(likedPosts);
+    if (newLikedPosts.has(postId)) {
+      newLikedPosts.delete(postId);
+    } else {
+      newLikedPosts.add(postId);
+    }
+    setLikedPosts(newLikedPosts);
+    
+    toast({
+      title: newLikedPosts.has(postId) ? "Post liked!" : "Like removed",
+      description: newLikedPosts.has(postId) ? "You showed support for this post" : "Like removed from post",
+    });
+  };
+
+  const handleBookmark = (postId) => {
+    const newBookmarkedPosts = new Set(bookmarkedPosts);
+    if (newBookmarkedPosts.has(postId)) {
+      newBookmarkedPosts.delete(postId);
+    } else {
+      newBookmarkedPosts.add(postId);
+    }
+    setBookmarkedPosts(newBookmarkedPosts);
+    
+    toast({
+      title: newBookmarkedPosts.has(postId) ? "Post bookmarked!" : "Bookmark removed",
+      description: newBookmarkedPosts.has(postId) ? "Saved to your reading list" : "Removed from reading list",
+    });
+  };
+
+  // Sort posts based on selected sorting method
+  const sortedPosts = [...(selectedCategory 
     ? mockPosts.filter(post => post.category === selectedCategory)
-    : mockPosts;
+    : mockPosts)].sort((a, b) => {
+    switch (sortBy) {
+      case "trending":
+        return (b.trending ? 1 : 0) - (a.trending ? 1 : 0) || b.likes - a.likes;
+      case "recent":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case "popular":
+        return b.likes - a.likes;
+      case "mostReplies":
+        return b.replies - a.replies;
+      default:
+        return 0;
+    }
+  });
 
   return (
     <div className="space-y-8">
+      {/* Engagement Tips Banner */}
+      {showEngagementTips && (
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <div className="p-4 flex items-start justify-between">
+            <div className="flex items-start space-x-3">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <Trophy className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-blue-900">Build Your Community Reputation!</h3>
+                <p className="text-sm text-blue-800 mt-1">
+                  Share your progress, help others with questions, and earn badges. Active community members unlock special recognition and features.
+                </p>
+                <div className="flex gap-4 mt-2 text-xs text-blue-700">
+                  <span className="flex items-center gap-1">
+                    <Star className="w-3 h-3" />
+                    Get likes to earn Helper badge
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Flame className="w-3 h-3" />
+                    Post daily for streak badges
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowEngagementTips(false)}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Community Forum</h2>
