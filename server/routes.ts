@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { type Server } from "http";
 import { storage } from "./storage";
 import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
@@ -20,7 +20,7 @@ import { pointsSystem } from "./pointsSystem";
 import { weatherService } from "./weatherService";
 import { generateLunaPersonality, generateLunaImage, type LunaPersonality } from "./lunaGenerator";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, server: Server): Promise<void> {
   // Auth middleware
   setupFirebaseAuth(app);
 
@@ -46,1532 +46,395 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gender: null,
           location: null,
           diagnosisStatus: null,
-          misdiagnoses: [],
+          misdiagnoses: null,
           diagnosisTimeline: null,
-          hasFibers: false,
-          otherDiseases: [],
-          foodPreferences: null,
+          hasFibers: null,
+          otherDiseases: null,
           habits: null,
-          hobbies: null
-        });
-
-        // Create some sample challenges
-        const sampleChallenges = [
-          {
-            title: "Morning Symptom Check",
-            description: "Track your symptoms for 3 consecutive mornings",
-            category: "health",
-            type: "daily",
-            difficulty: "easy",
-            pointReward: 10,
-            requirements: { consecutive_days: 3, time_of_day: "morning" },
-            isActive: true
-          },
-          {
-            title: "Hydration Hero",
-            description: "Drink 8 glasses of water daily for a week",
-            category: "health",
-            type: "weekly",
-            difficulty: "medium",
-            pointReward: 25,
-            requirements: { daily_glasses: 8, duration_days: 7 },
-            isActive: true
-          },
-          {
-            title: "Mindful Moments",
-            description: "Practice 5 minutes of mindfulness daily",
-            category: "mindfulness",
-            type: "personalized",
-            difficulty: "easy",
-            pointReward: 15,
-            requirements: { daily_minutes: 5, technique: "breathing" },
-            isActive: true
-          }
-        ];
-
-        // Create sample challenges
-        const createdChallenges = [];
-        for (const challenge of sampleChallenges) {
-          const created = await storage.createChallenge(challenge);
-          createdChallenges.push(created);
-        }
-
-        // Create sample user challenge
-        await storage.assignChallengeToUser({
-          userId: 'dev-user-123',
-          challengeId: createdChallenges[0].id,
-          status: 'completed',
-          progress: { days_completed: 3, total_days: 3 },
-          pointsEarned: 10
+          onboardingCompleted: false,
         });
       }
       
-      res.json(user);
+      res.json({ user });
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(500).json({ error: "Failed to fetch user" });
     }
   });
 
-  // Daily symptom log check
-  app.get('/api/daily-symptom-check', isAuthenticated, async (req: any, res) => {
+  // Profile routes
+  app.put('/api/profile/complete-onboarding', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      const needsSymptomLog = user.lastDailySymptomLog !== today;
-      
-      res.json({
-        needsSymptomLog,
-        lastSubmission: user.lastDailySymptomLog,
-        today
-      });
+      const updatedUser = await storage.completeOnboarding(userId, req.body);
+      res.json({ user: updatedUser });
     } catch (error) {
-      console.error("Error checking daily symptom log:", error);
-      res.status(500).json({ message: "Failed to check daily symptom log" });
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
     }
   });
 
-  // Submit daily symptom log
-  app.post('/api/daily-symptom-log', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { symptoms, mood, energy, pain, sleep, notes } = req.body;
-      
-      // Create symptom log entry
-      const symptomLog = await storage.createSymptomWheelEntry({
-        userId,
-        entryDate: new Date(),
-        symptomData: {
-          symptoms: symptoms || [],
-          mood: mood || 5,
-          energy: energy || 5,
-          pain: pain || 5,
-          sleep: sleep || 5,
-          notes: notes || '',
-          isDailyLog: true
-        },
-        totalSymptoms: symptoms ? symptoms.length : 0,
-        averageIntensity: Math.round(((mood || 5) + (energy || 5) + (10 - (pain || 5)) + (sleep || 5)) / 4),
-        moodScore: mood || 5,
-        notes: notes || ''
-      });
-
-      // Update user's last daily symptom log date
-      await storage.updateUser(userId, {
-        lastDailySymptomLog: new Date().toISOString().split('T')[0]
-      });
-
-      // Award points for daily symptom log
-      await pointsSystem.awardPoints(userId, 'daily_symptom_log');
-
-      res.json({
-        success: true,
-        symptomLog,
-        message: "Daily symptom log submitted successfully"
-      });
-    } catch (error) {
-      console.error("Error submitting daily symptom log:", error);
-      res.status(500).json({ message: "Failed to submit daily symptom log" });
-    }
-  });
-
-  // Generate daily task list based on symptom log
-  app.post('/api/generate-daily-tasks', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { symptomData } = req.body;
-      
-      // Get user profile for context
-      const user = await storage.getUser(userId);
-      
-      // Generate personalized daily tasks using AI
-      const dailyTasks = await generateDailyChallenge();
-      
-      // Get weather-aware activity recommendations
-      const activityRecommendations = await weatherService.getPersonalizedActivities(userId);
-      
-      res.json({
-        dailyTasks,
-        activityRecommendations: activityRecommendations.activities,
-        weatherMessage: activityRecommendations.weatherMessage,
-        dayOffMessage: activityRecommendations.dayOffMessage
-      });
-    } catch (error) {
-      console.error("Error generating daily tasks:", error);
-      res.status(500).json({ message: "Failed to generate daily tasks" });
-    }
-  });
-
-  // User profile routes
-  app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
+  app.put('/api/profile/update', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const updatedUser = await storage.updateUser(userId, req.body);
-      res.json(updatedUser);
+      res.json({ user: updatedUser });
     } catch (error) {
       console.error("Error updating profile:", error);
-      res.status(500).json({ message: "Failed to update profile" });
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 
-  // Complete onboarding with comprehensive health profile
-  app.post('/api/auth/complete-onboarding', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const profileData = req.body;
-      
-      const user = await storage.completeOnboarding(userId, profileData);
-      res.json(user);
-    } catch (error) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
-    }
-  });
-
-  // Daily logs routes
-  app.get('/api/daily-logs', async (req: any, res) => {
-    try {
-      // Check if user is authenticated
-      const isAuth = req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub;
-      
-      if (!isAuth) {
-        // Return demo data for unauthenticated users
-        const demoLogs = [
-          {
-            id: 1,
-            date: '2024-01-15',
-            symptoms: ['Skin crawling sensations', 'Fatigue', 'Joint pain'],
-            mood: 8,
-            energy: 7,
-            pain: 3,
-            sleep: 8,
-            notes: 'Feeling better today after trying the anti-inflammatory diet suggestions.',
-            timestamp: '2024-01-15T08:30:00Z'
-          },
-          {
-            id: 2,
-            date: '2024-01-14',
-            symptoms: ['Fiber-like material on skin', 'Brain fog', 'Itching'],
-            mood: 7,
-            energy: 6,
-            pain: 4,
-            sleep: 6,
-            notes: 'Documented new fiber samples under microscope. Stress levels moderate.',
-            timestamp: '2024-01-14T09:15:00Z'
-          },
-          {
-            id: 3,
-            date: '2024-01-13',
-            symptoms: ['Burning sensations', 'Skin lesions'],
-            mood: 9,
-            energy: 8,
-            pain: 2,
-            sleep: 9,
-            notes: 'Great day! New skincare routine seems to be helping significantly.',
-            timestamp: '2024-01-13T07:45:00Z'
-          }
-        ];
-        return res.json(demoLogs);
-      }
-
-      const userId = req.user.claims.sub;
-      const logs = await storage.getDailyLogs(userId);
-      res.json(logs);
-    } catch (error) {
-      console.error("Error fetching daily logs:", error);
-      res.status(500).json({ message: "Failed to fetch daily logs" });
-    }
-  });
-
+  // Daily Log routes
   app.post('/api/daily-logs', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validatedData = insertDailyLogSchema.parse({
+      const logData = insertDailyLogSchema.parse({
         ...req.body,
         userId,
-        date: new Date(),
       });
       
-      const log = await storage.createDailyLog(validatedData);
+      const log = await storage.createDailyLog(logData);
       
-      // Mock AI analysis for symptom logs
-      if (log.logType === 'symptoms') {
-        const aiInsight = "Your symptoms appear to be stable. Consider maintaining your current routine and tracking any patterns you notice.";
-        res.json({ ...log, aiInsight });
-      } else if (log.logType === 'food') {
-        const nutritionalAnalysis = {
-          calories: Math.floor(Math.random() * 300) + 200,
-          protein: Math.floor(Math.random() * 20) + 10,
-          critique: "This meal provides good nutritional balance. Consider adding more vegetables for additional vitamins and minerals."
-        };
-        res.json({ ...log, nutritionalAnalysis });
-      } else {
-        res.json(log);
+      // Award points for logging
+      const logType = logData.logType === 'food' ? 'FOOD_LOG_ENTRY' : 'SYMPTOM_LOG_ENTRY';
+      await pointsSystem.awardPoints(userId, logType);
+      
+      // Generate AI insight if symptom log
+      if (logData.logType === 'symptoms') {
+ await generateSymptomInsight(logData.data);
       }
+      
+      res.json({ log });
     } catch (error) {
       console.error("Error creating daily log:", error);
-      res.status(500).json({ message: "Failed to create daily log" });
+      res.status(500).json({ error: "Failed to create daily log" });
     }
   });
 
-  // Community posts routes
-  app.get('/api/community-posts', async (req, res) => {
+  app.get('/api/daily-logs', isAuthenticated, async (req: any, res) => {
     try {
-      const category = req.query.category as string;
-      const posts = await storage.getCommunityPosts(category);
-      res.json(posts);
+      const userId = req.user.claims.sub;
+      const logs = await storage.getDailyLogs(userId);
+      res.json({ logs });
     } catch (error) {
-      console.error("Error fetching community posts:", error);
-      res.status(500).json({ message: "Failed to fetch community posts" });
+      console.error("Error fetching daily logs:", error);
+      res.status(500).json({ error: "Failed to fetch daily logs" });
     }
   });
 
+  // Community Post routes
   app.post('/api/community-posts', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validatedData = insertCommunityPostSchema.parse({
+      const postData = insertCommunityPostSchema.parse({
         ...req.body,
         authorId: userId,
       });
       
-      const post = await storage.createCommunityPost(validatedData);
+      const post = await storage.createCommunityPost(postData);
       
-      // Mock AI analysis
-      const aiAnalysis = "This post discusses valuable health management strategies. The approaches mentioned align with common beneficial practices for symptom management.";
-      const updatedPost = await storage.updateCommunityPost(post.id, { aiAnalysis });
+      // Generate AI analysis
+      const aiAnalysis = await generateCommunityPostAnalysis(postData.content, postData.category);
+      await storage.updateCommunityPost(post.id, { aiAnalysis });
       
-      res.json(updatedPost);
+      // Award points
+      await pointsSystem.awardPoints(userId, 'COMMUNITY_POST_CREATE');
+      
+      res.json({ post: { ...post, aiAnalysis } });
     } catch (error) {
       console.error("Error creating community post:", error);
-      res.status(500).json({ message: "Failed to create community post" });
+      res.status(500).json({ error: "Failed to create community post" });
+    }
+  });
+
+  app.get('/api/community-posts', async (req, res) => {
+    try {
+      const { category } = req.query;
+      const posts = await storage.getCommunityPosts(category as string);
+      res.json({ posts });
+    } catch (error) {
+      console.error("Error fetching community posts:", error);
+      res.status(500).json({ error: "Failed to fetch community posts" });
     }
   });
 
   // AI Companion routes
-  app.get('/api/ai-companion', isAuthenticated, async (req: any, res) => {
+  app.post('/api/companion/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companionData = insertAiCompanionSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const companion = await storage.createAiCompanion(companionData);
+      res.json({ companion });
+    } catch (error) {
+      console.error("Error creating AI companion:", error);
+      res.status(500).json({ error: "Failed to create AI companion" });
+    }
+  });
+
+  app.get('/api/companion', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const companion = await storage.getAiCompanion(userId);
-      res.json(companion);
+      res.json({ companion });
     } catch (error) {
       console.error("Error fetching AI companion:", error);
-      res.status(500).json({ message: "Failed to fetch AI companion" });
+      res.status(500).json({ error: "Failed to fetch AI companion" });
     }
   });
 
-  app.post('/api/ai-companion', isAuthenticated, async (req: any, res) => {
+  app.post('/api/companion/chat', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validatedData = insertAiCompanionSchema.parse({
-        ...req.body,
-        userId,
-      });
+      const { message, companionId } = req.body;
       
-      const companion = await storage.createAiCompanion(validatedData);
-      res.json(companion);
-    } catch (error) {
-      console.error("Error creating AI companion:", error);
-      res.status(500).json({ message: "Failed to create AI companion" });
-    }
-  });
-
-  // Enhanced AI Companion - Conversation History
-  app.get('/api/ai-companion/:companionId/conversation', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { companionId } = req.params;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-      
-      const history = await storage.getConversationHistory(userId, companionId, limit);
-      res.json(history);
-    } catch (error) {
-      console.error("Error fetching conversation history:", error);
-      res.status(500).json({ message: "Failed to fetch conversation history" });
-    }
-  });
-
-  app.post('/api/ai-companion/:companionId/message', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { companionId } = req.params;
-      const { message, context } = req.body;
-      
-      // Save user message
-      const userMessageData = insertConversationHistorySchema.parse({
-        userId,
-        companionId,
-        messageType: 'user',
-        content: message,
-        context: context || {},
-        sentiment: null,
-        metadata: { timestamp: new Date().toISOString() }
-      });
-      
-      const userMessage = await storage.saveConversationMessage(userMessageData);
-      
-      // Get conversation context for AI response
-      const conversationContext = await storage.getConversationContext(userId, companionId);
-      
-      // Get user's complete health profile for personalized responses
-      const userProfile = await storage.getUser(userId);
-      
-      // Generate AI response with comprehensive health profile context
-      const aiResponse = await generateAICompanionResponse(message, {
-        userId,
-        conversationHistory: conversationContext.recentMessages,
-        memoryContext: conversationContext.memoryContext,
-        conversationStyle: conversationContext.conversationStyle,
-        preferences: conversationContext.preferences,
-        userContext: userProfile || {}
-      });
-      
-      // Save AI response
-      const aiMessageData = insertConversationHistorySchema.parse({
-        userId,
-        companionId,
-        messageType: 'ai',
-        content: aiResponse.response || aiResponse,
-        context: { 
-          responseType: aiResponse.responseType || 'conversational',
-          confidence: aiResponse.confidence || 0.8
-        },
-        sentiment: aiResponse.sentiment || 'neutral',
-        metadata: { 
-          responseTime: aiResponse.responseTime || 1000,
-          tokensUsed: aiResponse.tokensUsed || 150
-        }
-      });
-      
-      const aiMessage = await storage.saveConversationMessage(aiMessageData);
-      
-      res.json({
-        userMessage,
-        aiMessage,
-        response: aiResponse.response || aiResponse
-      });
-    } catch (error) {
-      console.error("Error processing AI companion message:", error);
-      res.status(500).json({ message: "Failed to process message" });
-    }
-  });
-
-  // Enhanced AI Companion - Health Insights
-  app.get('/api/ai-companion/health-insights', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const companionId = req.query.companionId as string;
-      
-      const insights = await storage.getAiHealthInsights(userId, companionId);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error fetching health insights:", error);
-      res.status(500).json({ message: "Failed to fetch health insights" });
-    }
-  });
-
-  app.post('/api/ai-companion/health-insights', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validatedData = insertAiHealthInsightSchema.parse({
-        ...req.body,
-        userId,
-      });
-      
-      const insight = await storage.createAiHealthInsight(validatedData);
-      res.json(insight);
-    } catch (error) {
-      console.error("Error creating health insight:", error);
-      res.status(500).json({ message: "Failed to create health insight" });
-    }
-  });
-
-  app.patch('/api/ai-companion/health-insights/:id/dismiss', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const insight = await storage.dismissHealthInsight(id);
-      res.json(insight);
-    } catch (error) {
-      console.error("Error dismissing health insight:", error);
-      res.status(500).json({ message: "Failed to dismiss health insight" });
-    }
-  });
-
-  // AI Companion Personality Update
-  app.patch('/api/ai-companion/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-      
-      const companion = await storage.updateAiCompanion(id, updates);
-      res.json(companion);
-    } catch (error) {
-      console.error("Error updating AI companion:", error);
-      res.status(500).json({ message: "Failed to update AI companion" });
-    }
-  });
-
-  // Dashboard stats
-  app.get('/api/dashboard-stats', async (req: any, res) => {
-    try {
-      // Check if user is authenticated
-      const isAuth = req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub;
-      
-      if (!isAuth) {
-        // Return demo data for unauthenticated users
-        const demoStats = {
-          totalLogs: 14,
-          streak: 7,
-          recentLogs: [
-            { id: 1, date: '2024-01-15', mood: 8, energy: 7, pain: 3 },
-            { id: 2, date: '2024-01-14', mood: 7, energy: 6, pain: 4 },
-            { id: 3, date: '2024-01-13', mood: 9, energy: 8, pain: 2 },
-            { id: 4, date: '2024-01-12', mood: 6, energy: 5, pain: 5 },
-            { id: 5, date: '2024-01-11', mood: 8, energy: 7, pain: 3 }
-          ],
-          activeChallenges: [
-            { id: 1, title: "Daily Symptom Tracking", progress: 70, category: "health" },
-            { id: 2, title: "Mindful Moments", progress: 45, category: "mindfulness" },
-            { id: 3, title: "Anti-Inflammatory Diet", progress: 85, category: "nutrition" }
-          ],
-          totalActiveChallenges: 3,
-          totalCompletedChallenges: 8,
-          totalAchievements: 12
-        };
-        return res.json(demoStats);
+      const companion = await storage.getAiCompanion(userId);
+      if (!companion) {
+        return res.status(404).json({ error: "No AI companion found" });
       }
-
-      const userId = req.user.claims.sub;
-      const stats = await storage.getDashboardStats(userId);
-      res.json(stats);
+      
+      const response = await generateAICompanionResponse(message, companion);
+      
+      // Save conversation history
+      await storage.createConversationHistory({
+        userId,
+        content: message,
+        companionId: companion.id,
+        messageType: "user",
+        context: {},
+        // Optionally add other fields like sentiment or metadata if needed
+      });
+      
+      // Award points for interaction
+      await pointsSystem.awardPoints(userId, 'AI_CONVERSATION_MESSAGE');
+      
+      res.json({ response });
     } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+      console.error("Error in AI chat:", error);
+      res.status(500).json({ error: "Failed to generate AI response" });
     }
   });
 
-  // Symptom wheel routes
-  app.get('/api/symptom-wheel-entries', isAuthenticated, async (req: any, res) => {
+  // Symptom Wheel routes
+  app.post('/api/symptom-wheel', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 30;
-      const entries = await storage.getSymptomWheelEntries(userId, limit);
-      res.json(entries);
-    } catch (error) {
-      console.error("Error fetching symptom wheel entries:", error);
-      res.status(500).json({ message: "Failed to fetch symptom wheel entries" });
-    }
-  });
-
-  app.post('/api/symptom-wheel-entries', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validatedData = insertSymptomWheelEntrySchema.parse({
+      const entryData = insertSymptomWheelEntrySchema.parse({
         ...req.body,
         userId,
       });
       
-      const entry = await storage.createSymptomWheelEntry(validatedData);
-      res.json(entry);
+      const entry = await storage.createSymptomWheelEntry(entryData);
+      
+      // Award points
+      await pointsSystem.awardPoints(userId, 'SYMPTOM_WHEEL_ENTRY');
+      
+      res.json({ entry });
     } catch (error) {
       console.error("Error creating symptom wheel entry:", error);
-      res.status(500).json({ message: "Failed to create symptom wheel entry" });
+      res.status(500).json({ error: "Failed to create symptom wheel entry" });
     }
   });
 
-  app.get('/api/symptom-wheel-analytics', isAuthenticated, async (req: any, res) => {
+  app.get('/api/symptom-wheel', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const analytics = await storage.getSymptomWheelAnalytics(userId);
-      res.json(analytics);
+      const entries = await storage.getSymptomWheelEntries(userId);
+      res.json({ entries });
     } catch (error) {
-      console.error("Error fetching symptom wheel analytics:", error);
-      res.status(500).json({ message: "Failed to fetch symptom wheel analytics" });
+      console.error("Error fetching symptom wheel entries:", error);
+      res.status(500).json({ error: "Failed to fetch symptom wheel entries" });
     }
   });
 
-  // Symptom pattern routes
-  app.get('/api/symptom-patterns', isAuthenticated, async (req: any, res) => {
+  // Pattern detection routes
+  app.get('/api/patterns', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const patterns = await storage.getSymptomPatterns(userId);
-      res.json(patterns);
+      res.json({ patterns });
     } catch (error) {
-      console.error("Error fetching symptom patterns:", error);
-      res.status(500).json({ message: "Failed to fetch symptom patterns" });
+      console.error("Error fetching patterns:", error);
+      res.status(500).json({ error: "Failed to fetch patterns" });
     }
   });
 
-  app.post('/api/symptom-patterns', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const patternData = { ...req.body, userId };
-      const pattern = await storage.createSymptomPattern(patternData);
-      res.json(pattern);
-    } catch (error) {
-      console.error("Error creating symptom pattern:", error);
-      res.status(500).json({ message: "Failed to create symptom pattern" });
-    }
-  });
-
-  // Symptom correlation routes
-  app.get('/api/symptom-correlations', isAuthenticated, async (req: any, res) => {
+  app.get('/api/correlations', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const correlations = await storage.getSymptomCorrelations(userId);
-      res.json(correlations);
+      res.json({ correlations });
     } catch (error) {
-      console.error("Error fetching symptom correlations:", error);
-      res.status(500).json({ message: "Failed to fetch symptom correlations" });
+      console.error("Error fetching correlations:", error);
+      res.status(500).json({ error: "Failed to fetch correlations" });
     }
   });
 
-  app.post('/api/symptom-correlations', isAuthenticated, async (req: any, res) => {
+  // Insights routes
+  app.get('/api/insights', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const correlationData = { ...req.body, userId };
-      const correlation = await storage.createSymptomCorrelation(correlationData);
-      res.json(correlation);
+      const insights = await storage.getAiHealthInsights(userId);
+      res.json({ insights });
     } catch (error) {
-      console.error("Error creating symptom correlation:", error);
-      res.status(500).json({ message: "Failed to create symptom correlation" });
-    }
-  });
-
-  // Chat API routes
-  app.get('/api/chat/rooms', isAuthenticated, async (req: any, res) => {
-    try {
-      const rooms = await storage.getChatRooms();
-      res.json(rooms);
-    } catch (error) {
-      console.error("Error fetching chat rooms:", error);
-      res.status(500).json({ message: "Failed to fetch chat rooms" });
-    }
-  });
-
-  app.post('/api/chat/rooms', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validatedData = insertChatRoomSchema.parse({
-        ...req.body,
-        createdBy: userId,
-      });
-      
-      const room = await storage.createChatRoom(validatedData);
-      
-      // Auto-join the creator to the room
-      await storage.joinRoom(room.id, userId);
-      
-      res.json(room);
-    } catch (error) {
-      console.error("Error creating chat room:", error);
-      res.status(500).json({ message: "Failed to create chat room" });
-    }
-  });
-
-  app.get('/api/chat/rooms/:roomId', isAuthenticated, async (req: any, res) => {
-    try {
-      const { roomId } = req.params;
-      const userId = req.user.claims.sub;
-      
-      // Check if user is a member
-      const isMember = await storage.isRoomMember(roomId, userId);
-      if (!isMember) {
-        return res.status(403).json({ message: "Not authorized to access this room" });
-      }
-      
-      const room = await storage.getChatRoom(roomId);
-      if (!room) {
-        return res.status(404).json({ message: "Room not found" });
-      }
-      
-      res.json(room);
-    } catch (error) {
-      console.error("Error fetching chat room:", error);
-      res.status(500).json({ message: "Failed to fetch chat room" });
-    }
-  });
-
-  app.post('/api/chat/rooms/:roomId/join', isAuthenticated, async (req: any, res) => {
-    try {
-      const { roomId } = req.params;
-      const userId = req.user.claims.sub;
-      
-      // Check if room exists
-      const room = await storage.getChatRoom(roomId);
-      if (!room) {
-        return res.status(404).json({ message: "Room not found" });
-      }
-      
-      // Check if already a member
-      const isMember = await storage.isRoomMember(roomId, userId);
-      if (isMember) {
-        return res.status(400).json({ message: "Already a member of this room" });
-      }
-      
-      const member = await storage.joinRoom(roomId, userId);
-      res.json(member);
-    } catch (error) {
-      console.error("Error joining chat room:", error);
-      res.status(500).json({ message: "Failed to join chat room" });
-    }
-  });
-
-  app.get('/api/chat/rooms/:roomId/messages', isAuthenticated, async (req: any, res) => {
-    try {
-      const { roomId } = req.params;
-      const userId = req.user.claims.sub;
-      const limit = parseInt(req.query.limit as string) || 50;
-      
-      // Check if user is a member
-      const isMember = await storage.isRoomMember(roomId, userId);
-      if (!isMember) {
-        return res.status(403).json({ message: "Not authorized to access this room" });
-      }
-      
-      const messages = await storage.getChatMessages(roomId, limit);
-      res.json(messages);
-    } catch (error) {
-      console.error("Error fetching chat messages:", error);
-      res.status(500).json({ message: "Failed to fetch chat messages" });
-    }
-  });
-
-  // Gamification Routes
-  
-  // Initialize default challenges
-  app.post('/api/challenges/seed', async (req, res) => {
-    try {
-      const existingChallenges = await storage.getChallenges();
-      if (existingChallenges.length === 0) {
-        const defaultChallenges = [
-          {
-            title: "Morning Mindfulness Challenge",
-            description: "Start your day with 5 minutes of meditation to reduce inflammation markers",
-            type: "daily",
-            category: "mindfulness",
-            difficulty: "easy",
-            pointReward: 50,
-            requirements: { duration: 5, type: "meditation" },
-            isActive: true,
-            validFrom: new Date(),
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          },
-          {
-            title: "Anti-Inflammatory Meal Prep",
-            description: "Prepare 3 healing meals focused on reducing systemic inflammation",
-            type: "weekly",
-            category: "nutrition",
-            difficulty: "medium",
-            pointReward: 100,
-            requirements: { meals: 3, type: "anti-inflammatory" },
-            isActive: true,
-            validFrom: new Date(),
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          },
-          {
-            title: "Symptom Pattern Tracking",
-            description: "Log and track symptom patterns for better health insights",
-            type: "ongoing",
-            category: "health",
-            difficulty: "easy",
-            pointReward: 75,
-            requirements: { logs: 7, period: "week" },
-            isActive: true,
-            validFrom: new Date(),
-            validUntil: null
-          }
-        ];
-
-        for (const challengeData of defaultChallenges) {
-          await storage.createChallenge(challengeData);
-        }
-        
-        res.json({ message: "Default challenges created", count: defaultChallenges.length });
-      } else {
-        res.json({ message: "Challenges already exist", count: existingChallenges.length });
-      }
-    } catch (error) {
-      console.error("Error seeding challenges:", error);
-      res.status(500).json({ message: "Failed to seed challenges" });
+      console.error("Error fetching insights:", error);
+      res.status(500).json({ error: "Failed to fetch insights" });
     }
   });
 
   // Challenge routes
-  app.get('/api/challenges', async (req, res) => {
+  app.get('/api/challenges/active', async (req, res) => {
     try {
-      const { type, active } = req.query;
-      let challenges = await storage.getChallenges(
-        type as string, 
-        active === 'true' ? true : active === 'false' ? false : undefined
-      );
-      
-      // Auto-seed if no challenges exist
-      if (challenges.length === 0) {
-        const defaultChallenges = [
-          {
-            title: "Morning Mindfulness Challenge",
-            description: "Start your day with 5 minutes of meditation to reduce inflammation markers",
-            type: "daily",
-            category: "mindfulness",
-            difficulty: "easy",
-            pointReward: 50,
-            requirements: { duration: 5, type: "meditation" },
-            isActive: true,
-            validFrom: new Date(),
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          },
-          {
-            title: "Anti-Inflammatory Meal Prep",
-            description: "Prepare 3 healing meals focused on reducing systemic inflammation",
-            type: "weekly",
-            category: "nutrition",
-            difficulty: "medium",
-            pointReward: 100,
-            requirements: { meals: 3, type: "anti-inflammatory" },
-            isActive: true,
-            validFrom: new Date(),
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          }
-        ];
-
-        for (const challengeData of defaultChallenges) {
-          await storage.createChallenge(challengeData);
-        }
-        
-        challenges = await storage.getChallenges(
-          type as string, 
-          active === 'true' ? true : active === 'false' ? false : undefined
-        );
-      }
-      
-      res.json(challenges);
+      const challenge = await storage.getActiveChallenge();
+      res.json({ challenge });
     } catch (error) {
-      console.error("Error fetching challenges:", error);
-      res.status(500).json({ message: "Failed to fetch challenges" });
+      console.error("Error fetching active challenge:", error);
+      res.status(500).json({ error: "Failed to fetch active challenge" });
     }
   });
 
-  app.post('/api/challenges/generate', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { type = 'daily' } = req.body;
-
-      // Skip rate limiting for now to ensure functionality works
-      // const canCreate = await storage.canCreateChallenge(userId);
-      // if (!canCreate) {
-      //   return res.status(429).json({ 
-      //     message: 'Daily challenge creation limit reached. You can create up to 3 challenges per day.',
-      //     error: 'RATE_LIMIT_EXCEEDED'
-      //   });
-      // }
-      
-      let challenge;
-      
-      if (type === 'daily') {
-        // Create a simple daily challenge without AI
-        const dailyChallenges = [
-          {
-            title: "Morning Inflammation Check",
-            description: "Rate your inflammation levels and log any new symptoms",
-            category: "health",
-            difficulty: "easy",
-            points: 25,
-            requirements: { type: "symptom_log", count: 1 }
-          },
-          {
-            title: "Gentle Movement Session", 
-            description: "Complete 10 minutes of gentle stretching or walking",
-            category: "physical",
-            difficulty: "easy",
-            points: 30,
-            requirements: { type: "activity", duration: 10 }
-          },
-          {
-            title: "Mindful Breathing",
-            description: "Practice 5 minutes of deep breathing to reduce stress",
-            category: "mindfulness", 
-            difficulty: "easy",
-            points: 20,
-            requirements: { type: "breathing", duration: 5 }
-          }
-        ];
-        challenge = dailyChallenges[Math.floor(Math.random() * dailyChallenges.length)];
-      } else {
-        // For other types, create simple fallback challenges
-        challenge = {
-          title: "Weekly Health Focus",
-          description: "Focus on consistent health tracking and symptom management",
-          category: "health",
-          difficulty: "medium", 
-          points: 50,
-          requirements: { type: "weekly_tracking", count: 7 }
-        };
-      }
-      
-      if (challenge) {
-        const challengeData = {
-          title: challenge.title,
-          description: challenge.description,
-          category: challenge.category,
-          difficulty: challenge.difficulty,
-          type,
-          pointReward: challenge.points,
-          requirements: challenge.requirements || {},
-          isActive: true,
-          validFrom: new Date(),
-          validUntil: type === 'daily' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : 
-                      type === 'weekly' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null
-        };
-        
-        const createdChallenge = await storage.createChallenge(challengeData);
-        
-        // Skip rate limit update for now
-        // const today = new Date().toISOString().split('T')[0];
-        // await storage.updateChallengeCreationLimit(userId, today);
-        
-        res.json(createdChallenge);
-      } else {
-        res.status(400).json({ message: "Invalid challenge type" });
-      }
-    } catch (error) {
-      console.error("Error generating challenge:", error);
-      res.status(500).json({ message: "Failed to generate challenge" });
-    }
-  });
-
-  // User challenge routes
-  app.get('/api/user-challenges', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { status } = req.query;
-      const userChallenges = await storage.getUserChallenges(userId, status as string);
-      res.json(userChallenges);
-    } catch (error) {
-      console.error("Error fetching user challenges:", error);
-      res.status(500).json({ message: "Failed to fetch user challenges" });
-    }
-  });
-
-  app.post('/api/user-challenges/accept', isAuthenticated, async (req: any, res) => {
+  app.post('/api/challenges/join', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { challengeId } = req.body;
       
-      // Check if user already has 3 active challenges
-      const activeChallenges = await storage.getUserChallenges(userId, 'active');
-      if (activeChallenges.length >= 3) {
-        return res.status(400).json({ 
-          message: "You can only have 3 active challenges at a time. Please complete or dismiss some challenges first." 
-        });
-      }
-      
-      const userChallenge = {
+      const userChallenge = await storage.createUserChallenge({
         userId,
         challengeId,
         status: 'active',
-        progress: {},
-        pointsEarned: 0
-      };
+        progress: 0,
+      });
       
-      const acceptedChallenge = await storage.assignChallengeToUser(userChallenge);
-      res.json(acceptedChallenge);
+      res.json({ userChallenge });
     } catch (error) {
-      console.error("Error accepting challenge:", error);
-      res.status(500).json({ message: "Failed to accept challenge" });
+      console.error("Error joining challenge:", error);
+      res.status(500).json({ error: "Failed to join challenge" });
     }
   });
 
-  app.patch('/api/user-challenges/:id/progress', isAuthenticated, async (req: any, res) => {
+  app.post('/api/challenges/update-progress', isAuthenticated, async (req: any, res) => {
     try {
-      const { id } = req.params;
-      const { progress, status } = req.body;
+      const userId = req.user.claims.sub;
+      const { challengeId, progress } = req.body;
       
-      const updatedChallenge = await storage.updateUserChallengeProgress(id, progress, status);
-      res.json(updatedChallenge);
+      const userChallenge = await storage.getUserChallenge(userId, challengeId);
+      if (!userChallenge) {
+        return res.status(404).json({ error: "Challenge not found" });
+      }
+      
+      const updated = await storage.updateUserChallenge(userChallenge.id, {
+        progress,
+        completedAt: progress >= 100 ? new Date() : null,
+      });
+      
+      if (progress >= 100) {
+        await pointsSystem.awardPoints(userId, 'CHALLENGE_COMPLETE');
+      }
+      
+      res.json({ userChallenge: updated });
     } catch (error) {
       console.error("Error updating challenge progress:", error);
-      res.status(500).json({ message: "Failed to update challenge progress" });
+      res.status(500).json({ error: "Failed to update challenge progress" });
     }
   });
 
-  app.patch('/api/user-challenges/:id/complete', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { id } = req.params;
-      const { pointsEarned } = req.body;
-      
-      const completedChallenge = await storage.completeUserChallenge(id, pointsEarned);
-      
-      // Update user total points
-      const user = await storage.getUser(userId);
-      if (user) {
-        await storage.updateUserPoints(userId, (user.points || 0) + pointsEarned);
-      }
-      
-      // Update leaderboards
-      await storage.updateUserLeaderboard(userId, 'all_time', 'points', (user?.points || 0) + pointsEarned);
-      
-      res.json(completedChallenge);
-    } catch (error) {
-      console.error("Error completing challenge:", error);
-      res.status(500).json({ message: "Failed to complete challenge" });
-    }
-  });
-
-  // Dismiss user challenge
-  app.delete('/api/user-challenges/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user.claims.sub;
-      
-      // Get all user challenges and find the one to dismiss
-      const userChallenges = await storage.getUserChallenges(userId);
-      const userChallenge = userChallenges.find(uc => uc.id === id);
-      
-      if (!userChallenge) {
-        return res.status(404).json({ message: "Challenge not found" });
-      }
-      
-      // Remove the challenge from user's active list
-      await storage.updateUserChallengeProgress(id, {}, 'dismissed');
-      
-      res.json({ message: "Challenge dismissed successfully" });
-    } catch (error) {
-      console.error("Error dismissing challenge:", error);
-      res.status(500).json({ message: "Failed to dismiss challenge" });
-    }
-  });
-
-  // Achievement routes
-  app.get('/api/achievements', async (req, res) => {
-    try {
-      const { category } = req.query;
-      const achievements = await storage.getAchievements(category as string);
-      res.json(achievements);
-    } catch (error) {
-      console.error("Error fetching achievements:", error);
-      res.status(500).json({ message: "Failed to fetch achievements" });
-    }
-  });
-
-  app.get('/api/user-achievements', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const userAchievements = await storage.getUserAchievements(userId);
-      res.json(userAchievements);
-    } catch (error) {
-      console.error("Error fetching user achievements:", error);
-      res.status(500).json({ message: "Failed to fetch user achievements" });
-    }
-  });
-
-  app.post('/api/user-achievements/unlock', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { achievementId } = req.body;
-      
-      const unlockedAchievement = await storage.unlockAchievement(userId, achievementId);
-      
-      // Update user points
-      const user = await storage.getUser(userId);
-      if (user) {
-        await storage.updateUserPoints(userId, (user.points || 0) + unlockedAchievement.pointsEarned);
-      }
-      
-      res.json(unlockedAchievement);
-    } catch (error) {
-      console.error("Error unlocking achievement:", error);
-      res.status(500).json({ message: "Failed to unlock achievement" });
-    }
-  });
-
-  // Leaderboard routes
-  app.get('/api/leaderboard', async (req, res) => {
-    try {
-      const { period = 'all_time', category = 'points', limit = 10 } = req.query;
-      const leaderboard = await storage.getLeaderboard(
-        period as string, 
-        category as string, 
-        parseInt(limit as string)
-      );
-      res.json(leaderboard);
-    } catch (error) {
-      console.error("Error fetching leaderboard:", error);
-      res.status(500).json({ message: "Failed to fetch leaderboard" });
-    }
-  });
-
-  app.get('/api/user-rank', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { period = 'all_time', category = 'points' } = req.query;
-      const rank = await storage.getUserRank(userId, period as string, category as string);
-      res.json({ rank });
-    } catch (error) {
-      console.error("Error fetching user rank:", error);
-      res.status(500).json({ message: "Failed to fetch user rank" });
-    }
-  });
-
-  // Recommendation Engine Routes
-  
-  // Get personalized challenge recommendations
-  app.get('/api/recommendations/challenges', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { type, count = 3 } = req.query;
-      
-      const recommendations = await recommendationEngine.generateRecommendations(
-        userId, 
-        type as string, 
-        parseInt(count as string)
-      );
-      
-      res.json(recommendations);
-    } catch (error) {
-      console.error("Error generating recommendations:", error);
-      res.status(500).json({ message: "Failed to generate recommendations" });
-    }
-  });
-
-  // Submit user feedback for recommendations
-  app.post('/api/recommendations/feedback', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { challengeId, feedback } = req.body;
-      
-      await recommendationEngine.updateUserFeedback(userId, challengeId, feedback);
-      
-      res.json({ message: "Feedback recorded successfully" });
-    } catch (error) {
-      console.error("Error recording feedback:", error);
-      res.status(500).json({ message: "Failed to record feedback" });
-    }
-  });
-
-  // Get user health profile analytics
-  app.get('/api/recommendations/profile', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      
-      // Generate recommendations to get the profile data
-      const recommendations = await recommendationEngine.generateRecommendations(userId, undefined, 1);
-      
-      // Extract profile insights from the first recommendation
-      const profile = recommendations.length > 0 ? {
-        completionRate: Math.random() * 100, // This would come from actual profile analysis
-        engagementScore: Math.random() * 100,
-        currentLevel: Math.floor(Math.random() * 10) + 1,
-        preferredCategories: ['health', 'nutrition', 'mindfulness'],
-        streakCount: Math.floor(Math.random() * 30),
-        adaptedDifficulty: recommendations[0].adaptedDifficulty
-      } : null;
-      
-      res.json(profile);
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      res.status(500).json({ message: "Failed to fetch user profile" });
-    }
-  });
-
-  // Points System Routes
-  
-  // Award points for specific activity
-  app.post('/api/points/award', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { activityType, description, metadata } = req.body;
-      
-      const pointsEarned = await pointsSystem.awardPoints(userId, activityType, description, metadata);
-      
-      res.json({ 
-        pointsEarned,
-        message: `Earned ${pointsEarned} points for ${activityType}` 
-      });
-    } catch (error) {
-      console.error("Error awarding points:", error);
-      res.status(500).json({ message: "Failed to award points" });
-    }
-  });
-
-  // Get user points summary
+  // Points and gamification routes
   app.get('/api/points/summary', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const summary = await pointsSystem.getUserPointsSummary(userId);
-      
-      res.json(summary);
+      res.json({ summary });
     } catch (error) {
       console.error("Error fetching points summary:", error);
-      res.status(500).json({ message: "Failed to fetch points summary" });
+      res.status(500).json({ error: "Failed to fetch points summary" });
     }
   });
 
-  // Get recent point activities
-  app.get('/api/points/activities', isAuthenticated, async (req: any, res) => {
+  app.get('/api/achievements', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const userAchievements = await storage.getUserAchievements(userId);
+      const allAchievements = await storage.getAchievements();
       
-      const activities = await storage.getRecentPointActivities(userId, limit);
-      
-      res.json(activities);
+      res.json({ 
+        userAchievements,
+        allAchievements,
+      });
     } catch (error) {
-      console.error("Error fetching point activities:", error);
-      res.status(500).json({ message: "Failed to fetch point activities" });
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ error: "Failed to fetch achievements" });
     }
   });
 
-  // Weather and Activity Routes
-  
-  // Get personalized activity recommendations
-  app.get('/api/activities/recommendations', isAuthenticated, async (req: any, res) => {
+  app.get('/api/leaderboard', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const recommendations = await weatherService.getPersonalizedActivities(userId);
-      
-      res.json(recommendations);
+      const { period = 'weekly' } = req.query;
+      const leaderboard = await storage.getLeaderboard(period as string);
+      res.json({ leaderboard });
     } catch (error) {
-      console.error("Error getting activity recommendations:", error);
-      res.status(500).json({ message: "Failed to get activity recommendations" });
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ error: "Failed to fetch leaderboard" });
     }
   });
 
-  // Get current weather for user's location
-  app.get('/api/weather/current', isAuthenticated, async (req: any, res) => {
+  // Recommendations routes
+  app.get('/api/recommendations', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user?.location) {
-        return res.status(400).json({ message: "User location not set" });
-      }
+      const recommendations = await recommendationEngine.generateRecommendations(userId);
+      res.json({ recommendations });
+    } catch (error) {
+      console.error("Error generating recommendations:", error);
+      res.status(500).json({ error: "Failed to generate recommendations" });
+    }
+  });
 
-      const weather = await weatherService.getCurrentWeather(user.location);
-      
-      if (!weather) {
-        return res.status(503).json({ message: "Weather service unavailable" });
+  // Weather service routes
+  app.get('/api/weather/current', async (req, res) => {
+    try {
+      const { lat, lon } = req.query;
+      if (!lat || !lon) {
+        return res.status(400).json({ error: "Latitude and longitude required" });
       }
-
-      res.json(weather);
+      
+      const location = `${lat},${lon}`;
+      const weather = await weatherService.getCurrentWeather(location);
+      res.json({ weather });
     } catch (error) {
       console.error("Error fetching weather:", error);
-      res.status(500).json({ message: "Failed to fetch weather data" });
+      res.status(500).json({ error: "Failed to fetch weather" });
     }
   });
 
-  // Check if user has a day off
-  app.get('/api/schedule/work-status', isAuthenticated, async (req: any, res) => {
+  // Luna personality generation routes
+  app.post('/api/luna/generate-personality', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const isWorkDay = await weatherService.isWorkDay(userId);
+      const { choices } = req.body;
       
-      const now = new Date();
-      const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
-      const timeString = now.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
-
-      res.json({
-        isWorkDay,
-        currentDay: dayName,
-        currentTime: timeString,
-        message: isWorkDay 
-          ? `It's ${dayName} - hope you're having a good work day!`
-          : `It's ${dayName} - a perfect day to focus on your health and well-being!`
-      });
+      const personality = await generateLunaPersonality(choices);
+      res.json({ personality });
     } catch (error) {
-      console.error("Error checking work status:", error);
-      res.status(500).json({ message: "Failed to check work status" });
+      console.error("Error generating Luna personality:", error);
+      res.status(500).json({ error: "Failed to generate Luna personality" });
     }
   });
 
-  // Badge Routes
-  
-  // Get user badges
-  app.get('/api/badges/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const badges = await storage.getUserBadges(userId);
-      
-      res.json(badges);
-    } catch (error) {
-      console.error("Error fetching user badges:", error);
-      res.status(500).json({ message: "Failed to fetch user badges" });
-    }
-  });
-
-  // Research Data and Community Insights Routes
-  
-  // Update research data opt-in preference
-  app.post('/api/research/opt-in', isAuthenticated, async (req: any, res) => {
-    try {
-      const { optIn } = req.body;
-      const userId = req.user.claims.sub;
-
-      const updatedUser = await storage.updateUserResearchOptIn(userId, optIn);
-      res.json({ 
-        success: true, 
-        researchDataOptIn: updatedUser.researchDataOptIn,
-        message: optIn ? 'Successfully opted in to research data contribution' : 'Successfully opted out of research data contribution'
-      });
-    } catch (error) {
-      console.error('Error updating research opt-in:', error);
-      res.status(500).json({ message: 'Failed to update research preferences' });
-    }
-  });
-
-  // Submit anonymized health data for research
-  app.post('/api/research/submit-data', isAuthenticated, async (req: any, res) => {
-    try {
-      const { healthData } = req.body;
-      const userId = req.user.claims.sub;
-
-      await storage.submitAnonymizedHealthData(userId, healthData);
-      res.json({ 
-        success: true, 
-        message: 'Health data submitted for research successfully'
-      });
-    } catch (error) {
-      console.error('Error submitting research data:', error);
-      res.status(500).json({ message: 'Failed to submit research data' });
-    }
-  });
-
-  // Get user's research contribution status
-  app.get('/api/research/contribution-status', async (req: any, res) => {
-    try {
-      const userId = 'dev-user-123'; // Using dev user for testing
-      const user = await storage.getUser(userId);
-      
-      // Count daily logs as contributions
-      const dailyLogs = await storage.getDailyLogs(userId);
-      const contributionCount = dailyLogs.length;
-      
-      res.json({
-        hasContributed: contributionCount > 0,
-        contributionCount: contributionCount,
-        totalDataPoints: contributionCount * 7, // 7 data points per daily log
-        qualityScore: Math.min(100, contributionCount * 10), // Quality improves with more contributions
-        communityImpactScore: contributionCount * 5, // Impact score based on contributions
-        hasInsightsAccess: user?.communityInsightsAccess || contributionCount > 0,
-        researchOptIn: user?.researchDataOptIn !== false // Default to true
-      });
-    } catch (error) {
-      console.error('Error fetching contribution status:', error);
-      res.status(500).json({ message: 'Failed to fetch contribution status' });
-    }
-  });
-
-  // Get community health insights (for contributors only)
-  app.get('/api/community-insights', async (req: any, res) => {
-    try {
-      const userId = 'dev-user-123'; // Using dev user for testing
-      const user = await storage.getUser(userId);
-      const dailyLogs = await storage.getDailyLogs(userId);
-
-      if (dailyLogs.length === 0) {
-        return res.status(403).json({ 
-          message: 'Community insights access requires research data contribution',
-          requiresContribution: true
-        });
-      }
-
-      // Return sample insights from the database
-      const insights = [
-        {
-          id: 'insight-1',
-          insightType: 'trend',
-          title: 'Sleep Quality Impact on Symptoms',
-          description: 'Users with better sleep quality (7+ hours) report 32% fewer severe symptoms during flare-ups',
-          dataPoints: {
-            average_reduction: 32,
-            sleep_threshold: 7,
-            symptom_severity_scale: '1-10'
-          },
-          affectedPopulation: {
-            age_ranges: ['26-35', '36-45'],
-            sample_size: 156
-          },
-          confidenceLevel: 85,
-          sampleSize: 156,
-          priority: 'high',
-          category: 'sleep',
-          generatedAt: '2025-06-15T00:00:00Z'
-        },
-        {
-          id: 'insight-2',
-          insightType: 'correlation',
-          title: 'Diet and Fiber Management',
-          description: 'Eliminating processed foods correlates with 28% improvement in fiber-related symptoms within 2 weeks',
-          dataPoints: {
-            improvement_percentage: 28,
-            timeframe_days: 14,
-            foods_eliminated: ['processed_sugars', 'artificial_additives']
-          },
-          affectedPopulation: {
-            dietary_adherence: 'high',
-            location_regions: ['North America', 'Europe']
-          },
-          confidenceLevel: 78,
-          sampleSize: 203,
-          priority: 'medium',
-          category: 'diet',
-          generatedAt: '2025-06-14T00:00:00Z'
-        },
-        {
-          id: 'insight-3',
-          insightType: 'pattern',
-          title: 'Weather Sensitivity Patterns',
-          description: 'Humid weather (>70% humidity) increases symptom reports by 45% in 67% of contributors',
-          dataPoints: {
-            humidity_threshold: 70,
-            symptom_increase: 45,
-            affected_percentage: 67
-          },
-          affectedPopulation: {
-            climate_zones: ['humid_subtropical', 'oceanic'],
-            diagnosis_status: ['diagnosed', 'suspected']
-          },
-          confidenceLevel: 92,
-          sampleSize: 389,
-          priority: 'high',
-          category: 'environment',
-          generatedAt: '2025-06-13T00:00:00Z'
-        }
-      ];
-
-      res.json(insights);
-    } catch (error) {
-      console.error('Error fetching community insights:', error);
-      res.status(500).json({ message: 'Failed to fetch community insights' });
-    }
-  });
-
-  // Grant community insights access (called when user contributes data)
-  app.post('/api/research/grant-insights-access', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      
-      const updatedUser = await storage.grantCommunityInsightsAccess(userId);
-      res.json({ 
-        success: true, 
-        communityInsightsAccess: updatedUser.communityInsightsAccess,
-        message: 'Community insights access granted'
-      });
-    } catch (error) {
-      console.error('Error granting insights access:', error);
-      res.status(500).json({ message: 'Failed to grant insights access' });
-    }
-  });
-
-  // Get available badges to work toward
-  app.get('/api/badges/available', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const availableBadges = await pointsSystem.getAvailableBadges(userId);
-      
-      res.json(availableBadges);
-    } catch (error) {
-      console.error("Error fetching available badges:", error);
-      res.status(500).json({ message: "Failed to fetch available badges" });
-    }
-  });
-
-  // Enhanced gamification dashboard with points system
-  app.get('/api/gamification/dashboard', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      
-      const [
-        user,
-        pointsSummary,
-        activeChallenges,
-        recentAchievements,
-        userRank,
-        availableChallenges,
-        recommendations
-      ] = await Promise.all([
-        storage.getUser(userId),
-        pointsSystem.getUserPointsSummary(userId),
-        storage.getUserChallenges(userId, 'active'),
-        storage.getUserAchievements(userId),
-        storage.getUserRank(userId, 'all_time', 'points'),
-        storage.getChallenges(undefined, true),
-        recommendationEngine.generateRecommendations(userId, undefined, 3)
-      ]);
-
-      res.json({
-        user: {
-          points: user?.points || 0,
-          totalPoints: user?.totalPoints || 0,
-          currentTier: user?.currentTier || 'Newcomer',
-          pointsToNextTier: user?.nextTierPoints || 100,
-          streakDays: user?.streakDays || 0,
-          rank: userRank,
-          totalChallenges: activeChallenges.length,
-          totalAchievements: recentAchievements.length
-        },
-        pointsSummary,
-        activeChallenges: activeChallenges.slice(0, 5),
-        recentAchievements: recentAchievements.slice(0, 3),
-        availableChallenges: availableChallenges.slice(0, 5),
-        recommendations: recommendations
-      });
-    } catch (error) {
-      console.error("Error fetching gamification dashboard:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard data" });
-    }
-  });
-
-  // Luna Generation Routes
-  
-  // Generate Luna personality and image
-  app.post('/api/luna/generate', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { personality } = req.body;
-      
-      const generatedLuna = await generateLunaPersonality(personality);
-      
-      // Award points for creating Luna
-      await pointsSystem.awardPoints(userId, 'AI_COMPANION_CREATE', 'Created personalized Luna companion');
-      
-      res.json(generatedLuna);
-    } catch (error) {
-      console.error("Error generating Luna:", error);
-      res.status(500).json({ message: "Failed to generate Luna companion" });
-    }
-  });
-
-  // Preview Luna with partial choices
-  app.post('/api/luna/preview', async (req, res) => {
+  app.post('/api/luna/generate-image', isAuthenticated, async (req: any, res) => {
     try {
       const { personality } = req.body;
-      
-      // Generate just the image preview for quick feedback
-      const imageUrl = await generateLunaImage(personality);
-      
+      const imageUrl = await generateLunaImage(personality as LunaPersonality);
       res.json({ imageUrl });
     } catch (error) {
-      console.error("Error generating Luna preview:", error);
-      res.status(500).json({ message: "Failed to generate Luna preview" });
+      console.error("Error generating Luna image:", error);
+      res.status(500).json({ error: "Failed to generate Luna image" });
     }
   });
 
-  const httpServer = createServer(app);
-  
-  // Initialize WebSocket server
-  const chatWS = new SimpleChatServer(httpServer);
-  console.log('Simple Chat WebSocket server initialized');
-  
-  return httpServer;
+  // Set up WebSocket for chat
+  const chatServer = new SimpleChatServer(server);
 }

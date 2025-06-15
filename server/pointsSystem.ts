@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { v4 as uuidv4 } from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 // Point values for different activities
 export const POINT_VALUES = {
@@ -56,258 +56,109 @@ export const TIERS = {
   EXPLORER: { min: 100, max: 299, badge: "🔍", color: "#06b6d4" },
   ADVOCATE: { min: 300, max: 699, badge: "💪", color: "#10b981" },
   CHAMPION: { min: 700, max: 1499, badge: "🏆", color: "#f59e0b" },
-  GUARDIAN: { min: 1500, max: 2999, badge: "🛡️", color: "#8b5cf6" },
-  LEGEND: { min: 3000, max: Infinity, badge: "⭐", color: "#ef4444" },
+  GUARDIAN: { min: 1500, max: Infinity, badge: "👑", color: "#ef4444" },
 };
 
-// Badge definitions for achievements
-export const BADGE_DEFINITIONS = [
-  // Engagement Badges
-  {
-    id: "early_bird",
-    name: "Early Bird",
-    description: "Log symptoms before 8 AM for 7 consecutive days",
-    category: "engagement",
-    tier: "bronze",
-    pointsReward: 50,
-    iconUrl: "🌅",
-    requirements: { type: "early_logging", days: 7 }
-  },
-  {
-    id: "night_owl",
-    name: "Night Owl", 
-    description: "Log symptoms after 10 PM for 5 consecutive days",
-    category: "engagement",
-    tier: "bronze",
-    pointsReward: 30,
-    iconUrl: "🦉",
-    requirements: { type: "late_logging", days: 5 }
-  },
-  {
-    id: "consistency_king",
-    name: "Consistency King",
-    description: "Complete daily logs for 30 consecutive days",
-    category: "achievement",
-    tier: "gold",
-    pointsReward: 200,
-    iconUrl: "👑",
-    requirements: { type: "daily_streak", days: 30 }
-  },
+// Badge definitions
+export const BADGES = {
+  // Milestone badges
+  FIRST_LOG: { id: 'first_log', name: 'First Steps', description: 'Logged your first symptom or food entry', icon: '🎯' },
+  WEEK_STREAK: { id: 'week_streak', name: 'Week Warrior', description: 'Maintained a 7-day logging streak', icon: '🔥' },
+  MONTH_STREAK: { id: 'month_streak', name: 'Monthly Master', description: 'Maintained a 30-day logging streak', icon: '🌟' },
+  HUNDRED_LOGS: { id: 'hundred_logs', name: 'Century Logger', description: 'Created 100 total logs', icon: '💯' },
   
-  // Community Badges
-  {
-    id: "helper",
-    name: "Helper",
-    description: "Receive 10 likes on your community posts",
-    category: "engagement",
-    tier: "bronze",
-    pointsReward: 50,
-    iconUrl: "🤝",
-    requirements: { type: "community_likes", count: 10 }
-  },
-  {
-    id: "mentor",
-    name: "Mentor",
-    description: "Help 5 new users with helpful replies",
-    category: "achievement",
-    tier: "silver",
-    pointsReward: 100,
-    iconUrl: "🧑‍🏫",
-    requirements: { type: "help_newcomers", count: 5 }
-  },
-  {
-    id: "community_champion",
-    name: "Community Champion",
-    description: "Create 25 community posts",
-    category: "achievement",
-    tier: "gold",
-    pointsReward: 150,
-    iconUrl: "📢",
-    requirements: { type: "posts_created", count: 25 }
-  },
+  // Activity badges
+  CONVERSATION_STARTER: { id: 'conversation_starter', name: 'Conversation Starter', description: 'Had your first AI companion chat', icon: '💬' },
+  COMMUNITY_CONTRIBUTOR: { id: 'community_contributor', name: 'Community Contributor', description: 'Made 10 community posts', icon: '🤝' },
+  HELPER_BEE: { id: 'helper_bee', name: 'Helper Bee', description: 'Received 5 helpful reply badges', icon: '🐝' },
+  PATTERN_DETECTIVE: { id: 'pattern_detective', name: 'Pattern Detective', description: 'Discovered 5 symptom patterns', icon: '🔍' },
   
-  // Health Tracking Badges
-  {
-    id: "symptom_tracker",
-    name: "Symptom Tracker",
-    description: "Log symptoms 50 times",
-    category: "milestone",
-    tier: "bronze",
-    pointsReward: 75,
-    iconUrl: "📊",
-    requirements: { type: "symptom_logs", count: 50 }
-  },
-  {
-    id: "food_detective",
-    name: "Food Detective",
-    description: "Log food entries 100 times",
-    category: "milestone",
-    tier: "silver",
-    pointsReward: 100,
-    iconUrl: "🔍",
-    requirements: { type: "food_logs", count: 100 }
-  },
-  {
-    id: "pattern_finder",
-    name: "Pattern Finder",
-    description: "Discover 5 symptom-food correlations",
-    category: "achievement",
-    tier: "gold",
-    pointsReward: 200,
-    iconUrl: "🧩",
-    requirements: { type: "patterns_found", count: 5 }
-  },
+  // Challenge badges
+  CHALLENGE_ACCEPTED: { id: 'challenge_accepted', name: 'Challenge Accepted', description: 'Completed your first challenge', icon: '🎪' },
+  CHALLENGE_CHAMPION: { id: 'challenge_champion', name: 'Challenge Champion', description: 'Won a weekly challenge', icon: '🥇' },
+  CHALLENGER: { id: 'challenger', name: 'Challenger', description: 'Completed 10 challenges', icon: '⚔️' },
   
-  // AI Companion Badges
-  {
-    id: "luna_friend",
-    name: "Luna's Friend",
-    description: "Have 20 conversations with Luna",
-    category: "engagement",
-    tier: "bronze",
-    pointsReward: 50,
-    iconUrl: "💬",
-    requirements: { type: "ai_conversations", count: 20 }
-  },
-  {
-    id: "voice_chat_expert",
-    name: "Voice Chat Expert",
-    description: "Use voice features 25 times",
-    category: "milestone",
-    tier: "silver",
-    pointsReward: 75,
-    iconUrl: "🎤",
-    requirements: { type: "voice_interactions", count: 25 }
-  },
+  // Tier badges
+  EXPLORER_TIER: { id: 'explorer_tier', name: 'Explorer', description: 'Reached Explorer tier', icon: '🔍' },
+  ADVOCATE_TIER: { id: 'advocate_tier', name: 'Advocate', description: 'Reached Advocate tier', icon: '💪' },
+  CHAMPION_TIER: { id: 'champion_tier', name: 'Champion', description: 'Reached Champion tier', icon: '🏆' },
+  GUARDIAN_TIER: { id: 'guardian_tier', name: 'Guardian', description: 'Reached Guardian tier', icon: '👑' },
   
-  // Challenge Badges
-  {
-    id: "challenger",
-    name: "Challenger",
-    description: "Complete 10 health challenges",
-    category: "achievement",
-    tier: "bronze",
-    pointsReward: 100,
-    iconUrl: "🎯",
-    requirements: { type: "challenges_completed", count: 10 }
-  },
-  {
-    id: "challenge_master",
-    name: "Challenge Master",
-    description: "Complete 50 health challenges",
-    category: "achievement",
-    tier: "gold",
-    pointsReward: 300,
-    iconUrl: "🏅",
-    requirements: { type: "challenges_completed", count: 50 }
-  },
-  
-  // Special Badges
-  {
-    id: "week_warrior",
-    name: "Week Warrior",
-    description: "Complete all daily activities for a full week",
-    category: "special",
-    tier: "silver",
-    pointsReward: 150,
-    iconUrl: "⚔️",
-    requirements: { type: "weekly_complete", weeks: 1 }
-  },
-  {
-    id: "month_master",
-    name: "Month Master",
-    description: "Complete all daily activities for a full month",
-    category: "special",
-    tier: "platinum",
-    pointsReward: 500,
-    iconUrl: "🗓️",
-    requirements: { type: "monthly_complete", months: 1 }
-  },
-  {
-    id: "anniversary",
-    name: "Anniversary",
-    description: "Use Fiber Friends for one full year",
-    category: "special",
-    tier: "diamond",
-    pointsReward: 1000,
-    iconUrl: "🎉",
-    requirements: { type: "anniversary", years: 1 }
-  }
-];
+  // Special badges
+  EARLY_BIRD: { id: 'early_bird', name: 'Early Bird', description: 'Logged before 6 AM', icon: '🌅' },
+  NIGHT_OWL: { id: 'night_owl', name: 'Night Owl', description: 'Logged after midnight', icon: '🦉' },
+  WEEKEND_WARRIOR: { id: 'weekend_warrior', name: 'Weekend Warrior', description: 'Logged every weekend for a month', icon: '🗓️' },
+  DATA_SCIENTIST: { id: 'data_scientist', name: 'Data Scientist', description: 'Analyzed 30 days of your data', icon: '📊' },
+};
 
-export class PointsSystem {
-  
-  // Check if it's user's birthday and apply double points
-  private async isBirthdayBonus(userId: string): Promise<boolean> {
-    try {
-      const user = await storage.getUser(userId);
-      if (!user?.dateOfBirth) return false;
-      
-      const today = new Date();
-      const birthDate = new Date(user.dateOfBirth);
-      
-      return (
-        today.getMonth() === birthDate.getMonth() &&
-        today.getDate() === birthDate.getDate()
-      );
-    } catch (error) {
-      console.error('Error checking birthday bonus:', error);
-      return false;
-    }
+// Badge definitions for database
+const BADGE_DEFINITIONS = Object.values(BADGES).map(badge => ({
+  ...badge,
+  requirements: {
+    type: badge.id.includes('streak') ? 'daily_streak' : 
+          badge.id.includes('log') ? 'symptom_logs' : 
+          badge.id.includes('community') ? 'community_posts' : 
+          'achievement',
+    count: badge.id === 'first_log' ? 1 : 
+           badge.id === 'week_streak' ? 7 :
+           badge.id === 'month_streak' ? 30 :
+           badge.id === 'hundred_logs' ? 100 :
+           badge.id === 'community_contributor' ? 10 : 1,
+    days: badge.id.includes('streak') ? (badge.id === 'week_streak' ? 7 : 30) : undefined
+  },
+  pointsReward: 50
+}));
+
+class PointsSystem {
+  // Check if it's the first time doing this activity
+  private async isFirstTimeActivity(userId: string, activityType: string): Promise<boolean> {
+    const previousActivities = await storage.getPointActivitiesByType(userId, activityType);
+    return previousActivities.length === 0;
   }
 
-  // Award points for specific activity
+  // Award points for an activity
   async awardPoints(
-    userId: string, 
-    activityType: string, 
-    description?: string, 
+    userId: string,
+    activityType: keyof typeof POINT_VALUES,
     metadata?: any
   ): Promise<number> {
-    let pointsEarned = POINT_VALUES[activityType] || 0;
-    
-    if (pointsEarned <= 0) {
+    const basePoints = POINT_VALUES[activityType];
+    if (!basePoints) {
+      console.error(`Unknown activity type: ${activityType}`);
       return 0;
     }
 
-    // Check for birthday bonus (double points)
-    const isBirthday = await this.isBirthdayBonus(userId);
-    if (isBirthday) {
-      pointsEarned *= 2;
-    }
-
-    // Check for bonuses
-    let totalPoints = pointsEarned;
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    
-    // Weekend bonus
-    const dayOfWeek = now.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday or Saturday
-      totalPoints += POINT_VALUES.WEEKEND_BONUS;
-    }
-    
-    // First time bonus
-    const isFirstTime = await this.isFirstTimeActivity(userId, activityType);
-    if (isFirstTime) {
-      totalPoints += POINT_VALUES.FIRST_TIME_BONUS;
-    }
-    
-    // Streak bonus
+    // Check for special modifiers
     const user = await storage.getUser(userId);
-    if (user?.streakDays && user.streakDays > 0) {
-      totalPoints += Math.min(user.streakDays * POINT_VALUES.DAILY_STREAK_BONUS, 100); // Cap at 100 bonus points
+    if (!user) return 0;
+
+    const today = new Date();
+    const isWeekend = today.getDay() === 0 || today.getDay() === 6;
+    
+    // Check if this is the first time doing this activity
+    const previousActivities = await storage.getPointActivitiesByType(userId, activityType);
+    const isFirstTime = previousActivities.length === 0;
+
+    // Calculate total points with bonuses
+    let totalPoints = basePoints;
+    if (isWeekend) totalPoints += POINT_VALUES.WEEKEND_BONUS;
+    if (isFirstTime) totalPoints += POINT_VALUES.FIRST_TIME_BONUS;
+    
+    // Award streak bonus if applicable
+    if (user.streakDays && user.streakDays > 0) {
+      totalPoints += Math.min(user.streakDays * POINT_VALUES.DAILY_STREAK_BONUS, 100); // Cap at 100
     }
 
-    // Record the activity
+    // Record the point activity
     await storage.createPointActivity({
       userId,
-      activityType,
-      pointsEarned: totalPoints,
-      description: description || this.getActivityDescription(activityType),
+      points: totalPoints,
+      type: activityType,
+      description: this.getActivityDescription(activityType, metadata),
       metadata: {
-        ...metadata,
+        basePoints,
         bonuses: {
-          weekend: (dayOfWeek === 0 || dayOfWeek === 6) ? POINT_VALUES.WEEKEND_BONUS : 0,
+          weekend: isWeekend ? POINT_VALUES.WEEKEND_BONUS : 0,
           firstTime: isFirstTime ? POINT_VALUES.FIRST_TIME_BONUS : 0,
           streak: user?.streakDays ? Math.min(user.streakDays * POINT_VALUES.DAILY_STREAK_BONUS, 100) : 0
         }
@@ -372,205 +223,264 @@ export class PointsSystem {
         return nextTier ? nextTier[1].min : tierData.max;
       }
     }
-    return TIERS.EXPLORER.min; // Default to first tier threshold
+    return TIERS.GUARDIAN.max;
+  }
+
+  // Award tier badge
+  private async awardTierBadge(userId: string, tier: string): Promise<void> {
+    const tierBadgeMap: Record<string, string> = {
+      EXPLORER: 'explorer_tier',
+      ADVOCATE: 'advocate_tier',
+      CHAMPION: 'champion_tier',
+      GUARDIAN: 'guardian_tier',
+    };
+
+    const badgeId = tierBadgeMap[tier];
+    if (badgeId) {
+      await this.awardBadge(userId, badgeId);
+    }
   }
 
   // Update daily activity tracking
   private async updateDailyActivity(
-    userId: string, 
-    date: string, 
-    activityType: string, 
-    pointsEarned: number
+    userId: string,
+    date: Date,
+    activityType: string,
+    points: number
   ): Promise<void> {
-    let dailyActivity = await storage.getDailyActivity(userId, date);
+    const existingActivity = await storage.getDailyActivity(userId, date);
     
-    if (!dailyActivity) {
-      dailyActivity = await storage.createDailyActivity({
+    if (existingActivity) {
+      const activities = existingActivity.activities || [];
+      activities.push({
+        type: activityType,
+        points,
+        timestamp: new Date(),
+      });
+      
+      await storage.updateDailyActivity(existingActivity.id, {
+        activities,
+        totalPoints: existingActivity.totalPoints + points,
+      });
+    } else {
+      await storage.createDailyActivity({
         userId,
         date,
-        activitiesCompleted: [activityType],
-        totalPoints: pointsEarned,
-        streakEligible: this.isStreakEligibleActivity(activityType),
-      });
-    } else {
-      const activities = dailyActivity.activitiesCompleted || [];
-      if (!activities.includes(activityType)) {
-        activities.push(activityType);
-      }
-      
-      await storage.updateDailyActivity(dailyActivity.id, {
-        activitiesCompleted: activities,
-        totalPoints: (dailyActivity.totalPoints || 0) + pointsEarned,
-        streakEligible: dailyActivity.streakEligible || this.isStreakEligibleActivity(activityType),
+        activities: [{
+          type: activityType,
+          points,
+          timestamp: new Date(),
+        }],
+        totalPoints: points,
       });
     }
-
-    // Update user streak
-    await this.updateUserStreak(userId, date);
-  }
-
-  // Update user's daily streak
-  private async updateUserStreak(userId: string, date: string): Promise<void> {
-    const user = await storage.getUser(userId);
-    if (!user) return;
-
-    const today = new Date(date);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    const todayActivity = await storage.getDailyActivity(userId, date);
-    const yesterdayActivity = await storage.getDailyActivity(userId, yesterdayStr);
-
-    let newStreakDays = 1; // At least today
-    
-    if (todayActivity?.streakEligible) {
-      if (yesterdayActivity?.streakEligible && user.lastActiveDate === yesterdayStr) {
-        // Continue streak
-        newStreakDays = (user.streakDays || 0) + 1;
-      }
-      // If there's a gap, streak resets to 1
-    } else {
-      // Today is not streak eligible, keep current streak but don't increment
-      newStreakDays = user.streakDays || 0;
-    }
-
-    const longestStreak = Math.max(newStreakDays, user.longestStreak || 0);
-
-    await storage.updateUser(userId, {
-      streakDays: newStreakDays,
-      longestStreak,
-      lastActiveDate: date,
-    });
-  }
-
-  // Check if activity is eligible for streak counting
-  private isStreakEligibleActivity(activityType: string): boolean {
-    const streakActivities = [
-      'SYMPTOM_LOG_ENTRY',
-      'FOOD_LOG_ENTRY', 
-      'DAILY_LOG_COMPLETE',
-      'SYMPTOM_WHEEL_ENTRY',
-      'AI_CONVERSATION_SESSION'
-    ];
-    return streakActivities.includes(activityType);
-  }
-
-  // Check if this is the first time doing this activity
-  private async isFirstTimeActivity(userId: string, activityType: string): Promise<boolean> {
-    const existingActivity = await storage.getPointActivitiesByType(userId, activityType);
-    return existingActivity.length === 0;
-  }
-
-  // Get description for activity type
-  private getActivityDescription(activityType: string): string {
-    const descriptions = {
-      SYMPTOM_LOG_ENTRY: "Logged symptoms for health tracking",
-      FOOD_LOG_ENTRY: "Recorded food intake",
-      AI_CONVERSATION_MESSAGE: "Chatted with Luna AI companion",
-      COMMUNITY_POST_CREATE: "Created a community post",
-      CHALLENGE_COMPLETE: "Completed a health challenge",
-      DAILY_STREAK_BONUS: "Daily activity streak bonus",
-      // Add more as needed
-    };
-    return descriptions[activityType] || "Completed activity";
-  }
-
-  // Award tier badge when user reaches new tier
-  private async awardTierBadge(userId: string, tier: string): Promise<void> {
-    const tierBadgeId = `tier_${tier.toLowerCase()}`;
-    const tierInfo = TIERS[tier];
-    
-    await storage.createUserBadge({
-      userId,
-      badgeId: tierBadgeId,
-      progress: { tier, pointsAtUnlock: (await storage.getUser(userId))?.totalPoints }
-    });
   }
 
   // Check for badge unlocks based on activity
-  private async checkBadgeUnlocks(userId: string, activityType: string, metadata?: any): Promise<void> {
-    // This would implement complex badge checking logic
-    // For now, let's implement a few key badges
-    
-    for (const badge of BADGE_DEFINITIONS) {
-      const hasUnlocked = await storage.hasUserBadge(userId, badge.id);
-      if (hasUnlocked) continue;
-
-      let shouldUnlock = false;
+  private async checkBadgeUnlocks(
+    userId: string,
+    activityType: string,
+    metadata?: any
+  ): Promise<void> {
+    // First time badges
+    if (activityType === 'SYMPTOM_LOG_ENTRY' || activityType === 'FOOD_LOG_ENTRY') {
+      const totalLogs = await storage.getActivityCount(userId, 'SYMPTOM_LOG_ENTRY') +
+                       await storage.getActivityCount(userId, 'FOOD_LOG_ENTRY');
       
-      switch (badge.requirements.type) {
-        case 'symptom_logs':
-          if (activityType === 'SYMPTOM_LOG_ENTRY') {
-            const count = await storage.getActivityCount(userId, 'SYMPTOM_LOG_ENTRY');
-            shouldUnlock = count >= badge.requirements.count;
-          }
-          break;
-          
-        case 'food_logs':
-          if (activityType === 'FOOD_LOG_ENTRY') {
-            const count = await storage.getActivityCount(userId, 'FOOD_LOG_ENTRY');
-            shouldUnlock = count >= badge.requirements.count;
-          }
-          break;
-          
-        case 'community_likes':
-          if (activityType === 'COMMUNITY_POST_LIKE' && metadata?.isReceived) {
-            const count = await storage.getCommunityLikesReceived(userId);
-            shouldUnlock = count >= badge.requirements.count;
-          }
-          break;
-          
-        case 'daily_streak':
-          const user = await storage.getUser(userId);
-          shouldUnlock = (user?.streakDays || 0) >= badge.requirements.days;
-          break;
+      if (totalLogs === 1) {
+        await this.awardBadge(userId, 'first_log');
+      } else if (totalLogs === 100) {
+        await this.awardBadge(userId, 'hundred_logs');
       }
+    }
 
-      if (shouldUnlock) {
-        await storage.createUserBadge({
-          userId,
-          badgeId: badge.id,
-          progress: { unlockedAt: new Date().toISOString() }
-        });
-        
-        // Award badge points
-        if (badge.pointsReward > 0) {
-          await this.awardPoints(userId, 'BADGE_UNLOCK', `Unlocked badge: ${badge.name}`, { badgeId: badge.id });
-        }
+    // Conversation badges
+    if (activityType === 'AI_CONVERSATION_MESSAGE') {
+      const conversations = await storage.getActivityCount(userId, 'AI_CONVERSATION_MESSAGE');
+      if (conversations === 1) {
+        await this.awardBadge(userId, 'conversation_starter');
+      }
+    }
+
+    // Community badges
+    if (activityType === 'COMMUNITY_POST_CREATE') {
+      const posts = await storage.getActivityCount(userId, 'COMMUNITY_POST_CREATE');
+      if (posts === 10) {
+        await this.awardBadge(userId, 'community_contributor');
+      }
+    }
+
+    // Challenge badges
+    if (activityType === 'CHALLENGE_COMPLETE') {
+      const challenges = await storage.getActivityCount(userId, 'CHALLENGE_COMPLETE');
+      if (challenges === 1) {
+        await this.awardBadge(userId, 'challenge_accepted');
+      } else if (challenges === 10) {
+        await this.awardBadge(userId, 'challenger');
+      }
+    }
+
+    // Time-based badges
+    const hour = new Date().getHours();
+    if (hour < 6) {
+      await this.awardBadge(userId, 'early_bird');
+    } else if (hour >= 0 && hour < 4) {
+      await this.awardBadge(userId, 'night_owl');
+    }
+
+    // Check for helpful reply badges
+    if (activityType === 'HELPFUL_REPLY_RECEIVED') {
+      const helpfulReplies = await storage.getActivityCount(userId, 'HELPFUL_REPLY_RECEIVED');
+      if (helpfulReplies === 5) {
+        await this.awardBadge(userId, 'helper_bee');
+      }
+    }
+
+    // Pattern discovery badges
+    if (activityType === 'PATTERN_DISCOVERY') {
+      const patterns = await storage.getActivityCount(userId, 'PATTERN_DISCOVERY');
+      if (patterns === 5) {
+        await this.awardBadge(userId, 'pattern_detective');
       }
     }
   }
 
+  // Award a badge to a user
+  private async awardBadge(userId: string, badgeId: string): Promise<void> {
+    // Check if user already has this badge
+    const hasBadge = await storage.hasUserBadge(userId, badgeId);
+    if (hasBadge) return;
+
+    await storage.createUserBadge({
+      userId,
+      badgeId,
+    });
+
+    // Award points for earning a badge
+    await storage.createPointActivity({
+      userId,
+      points: 25, // Badge unlock bonus
+      type: 'BADGE_EARNED',
+      description: `Earned badge: ${BADGES[badgeId as keyof typeof BADGES]?.name || badgeId}`,
+    });
+  }
+
+  // Get activity description
+  private getActivityDescription(activityType: string, metadata?: any): string {
+    const descriptions: Record<string, string> = {
+      SYMPTOM_LOG_ENTRY: 'Logged symptom data',
+      FOOD_LOG_ENTRY: 'Logged food intake',
+      SYMPTOM_WHEEL_ENTRY: 'Completed symptom wheel',
+      DAILY_LOG_COMPLETE: 'Completed daily health log',
+      AI_CONVERSATION_MESSAGE: 'Chatted with AI companion',
+      AI_CONVERSATION_SESSION: 'Had a meaningful AI conversation',
+      VOICE_INTERACTION: 'Used voice interaction',
+      COMMUNITY_POST_CREATE: 'Created a community post',
+      COMMUNITY_POST_REPLY: 'Replied to a community post',
+      COMMUNITY_POST_LIKE: 'Liked a community post',
+      COMMUNITY_POST_SHARE: 'Shared a community post',
+      HELPFUL_REPLY_RECEIVED: 'Received a helpful reply badge',
+      CHALLENGE_COMPLETE: 'Completed a challenge',
+      CHALLENGE_CREATE: 'Created a custom challenge',
+      WEEKLY_CHALLENGE_COMPLETE: 'Completed weekly challenge',
+      MILESTONE_ACHIEVEMENT: 'Reached a milestone',
+      PATTERN_DISCOVERY: 'Discovered a health pattern',
+      CORRELATION_FOUND: 'Found a symptom correlation',
+      INSIGHT_GENERATED: 'Generated a health insight',
+      DAILY_STREAK_BONUS: 'Daily streak bonus',
+      WEEKLY_GOAL_COMPLETE: 'Completed weekly goal',
+      MONTHLY_MILESTONE: 'Reached monthly milestone',
+      PROFILE_COMPLETION: 'Completed profile setup',
+      ONBOARDING_COMPLETE: 'Completed onboarding',
+      FIRST_TIME_BONUS: 'First time activity bonus',
+      WEEKEND_BONUS: 'Weekend activity bonus',
+      BIRTHDAY_BONUS: 'Birthday bonus!',
+      REFERRAL_SIGNUP: 'Referred a new user',
+      HELP_NEWCOMER: 'Helped a newcomer',
+      MENTOR_ACTIVITY: 'Mentored another user',
+    };
+
+    return descriptions[activityType] || `Completed ${activityType}`;
+  }
+
   // Get user's points summary
-  async getUserPointsSummary(userId: string) {
+  async getUserPointsSummary(userId: string): Promise<any> {
     const user = await storage.getUser(userId);
     if (!user) return null;
 
-    const tierInfo = TIERS[user.currentTier || 'NEWCOMER'];
     const recentActivities = await storage.getRecentPointActivities(userId, 10);
-    const userBadges = await storage.getUserBadges(userId);
-    
+    const badges = await storage.getUserBadges(userId);
+    const today = new Date();
+    const dailyActivity = await storage.getDailyActivity(userId, today);
+
     return {
       currentPoints: user.points || 0,
       totalPoints: user.totalPoints || 0,
       currentTier: user.currentTier || 'NEWCOMER',
-      tierInfo,
-      pointsToNextTier: user.nextTierPoints || 100,
+      tierInfo: TIERS[user.currentTier as keyof typeof TIERS] || TIERS.NEWCOMER,
+      nextTierPoints: user.nextTierPoints || TIERS.EXPLORER.min,
       streakDays: user.streakDays || 0,
-      longestStreak: user.longestStreak || 0,
+      todayPoints: dailyActivity?.totalPoints || 0,
       recentActivities,
-      badges: userBadges,
-      weeklyProgress: user.weeklyGoalProgress || {}
+      badges: badges.map(b => ({
+        ...b,
+        details: BADGES[b.badgeId as keyof typeof BADGES],
+      })),
+      badgeCount: badges.length,
+      totalBadges: Object.keys(BADGES).length,
     };
   }
 
-  // Get available badges for user to work toward
-  async getAvailableBadges(userId: string) {
-    const userBadges = await storage.getUserBadges(userId);
-    const unlockedBadgeIds = userBadges.map(ub => ub.badgeId);
+  // Check and update streak
+  async updateStreak(userId: string): Promise<number> {
+    const user = await storage.getUser(userId);
+    if (!user) return 0;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
     
-    return BADGE_DEFINITIONS.filter(badge => !unlockedBadgeIds.includes(badge.id));
+    const yesterdayActivity = await storage.getDailyActivity(userId, yesterday);
+    const todayActivity = await storage.getDailyActivity(userId, new Date());
+
+    let newStreakDays = user.streakDays || 0;
+
+    if (todayActivity && todayActivity.totalPoints > 0) {
+      // Already logged today, check if we need to increment streak
+      if (yesterdayActivity && yesterdayActivity.totalPoints > 0) {
+        // Logged yesterday too, continue streak
+        newStreakDays = (user.streakDays || 0) + 1;
+      } else {
+        // Didn't log yesterday, reset streak to 1
+        newStreakDays = 1;
+      }
+    } else {
+      // Haven't logged today yet
+      if (!yesterdayActivity || yesterdayActivity.totalPoints === 0) {
+        // Didn't log yesterday either, reset streak
+        newStreakDays = 0;
+      }
+    }
+
+    // Update streak in database
+    await storage.updateUser(userId, {
+      streakDays: newStreakDays,
+    });
+
+    // Check for streak badges
+    if (newStreakDays === 7) {
+      await this.awardBadge(userId, 'week_streak');
+    } else if (newStreakDays === 30) {
+      await this.awardBadge(userId, 'month_streak');
+    }
+
+    return newStreakDays;
+  }
+
+  // Get leaderboard
+  async getLeaderboard(period: 'daily' | 'weekly' | 'monthly' | 'all-time' = 'weekly'): Promise<any[]> {
+    // This would typically query a leaderboard collection
+    // For now, we'll return a simplified version
+    return [];
   }
 }
 
