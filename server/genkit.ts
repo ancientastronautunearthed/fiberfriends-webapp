@@ -264,10 +264,25 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     - Other Health Conditions: ${userContext.otherDiseases?.length ? userContext.otherDiseases.join(', ') : 'None reported'}
     - Food Dislikes: ${userContext.foodPreferences?.dislikes?.length ? userContext.foodPreferences.dislikes.join(', ') : 'None specified'}
     - Food Favorites: ${userContext.foodPreferences?.favorites?.length ? userContext.foodPreferences.favorites.join(', ') : 'None specified'}
-    - Smoking: ${userContext.habits?.smoking ? 'Yes' : 'No'}
-    - Alcohol: ${userContext.habits?.alcohol ? 'Yes' : 'No'}
+    - Smoking: ${userContext.habits?.smoking ? 'Yes' : 'No'}${userContext.smokingDuration ? ` (Duration: ${userContext.smokingDuration}, Frequency: ${userContext.smokingFrequency})` : ''}
+    - Alcohol: ${userContext.habits?.alcohol ? 'Yes' : 'No'}${userContext.alcoholDuration ? ` (Duration: ${userContext.alcoholDuration}, Frequency: ${userContext.alcoholFrequency})` : ''}
     - Exercise Frequency: ${userContext.habits?.exercise || 'Not specified'}
     - Hobbies: ${userContext.hobbies || 'Not specified'}
+    
+    PERSONAL & FAMILY INFORMATION:
+    - Relationship Status: ${userContext.relationshipStatus || 'Not specified'}
+    - Children: ${userContext.hasChildren ? `Yes (${userContext.childrenCount || 'unspecified'} children${userContext.childrenAges ? `, ages: ${userContext.childrenAges}` : ''})` : 'No'}
+    - Siblings: ${userContext.hasSiblings ? `Yes (${userContext.siblingsCount || 'unspecified'} siblings)` : 'No'}
+    - Close Friends: ${userContext.closeFriends || 'Not specified'}
+    - Family Support Level: ${userContext.familySupport || 'Not specified'}
+    - Social Preferences: ${userContext.socialPreferences || 'Not specified'}
+    
+    BIRTHDAY & IMPORTANT DATE REMINDERS:
+    - User's Birthday: ${userContext.dateOfBirth || 'Not provided'}
+    - Partner's Birthday: ${userContext.partnerBirthday || 'Not provided'}
+    - Children's Birthdays: ${userContext.childrenBirthdays || 'Not provided'}
+    - Family Birthdays: ${userContext.familyBirthdays || 'Not provided'}
+    - Other Important Dates: ${userContext.importantDates || 'Not provided'}
     
     MEMORY CONTEXT: ${JSON.stringify(memoryContext)}
     

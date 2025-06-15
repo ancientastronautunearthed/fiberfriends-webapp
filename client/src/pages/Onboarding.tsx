@@ -130,6 +130,32 @@ export default function Onboarding() {
           alcohol: data.alcoholHabit,
           exercise: data.exerciseFrequency,
         },
+        // Enhanced smoking/alcohol details
+        smokingDuration: data.smokingDuration,
+        smokingFrequency: data.smokingFrequency,
+        alcoholDuration: data.alcoholDuration,
+        alcoholFrequency: data.alcoholFrequency,
+        
+        // Personal & Family Information
+        relationshipStatus: data.relationshipStatus,
+        hasChildren: data.hasChildren || false,
+        childrenCount: data.childrenCount,
+        childrenAges: data.childrenAges,
+        hasSiblings: data.hasSiblings || false,
+        siblingsCount: data.siblingsCount,
+        
+        // Birthday & Important Dates for Luna's reminders and gift suggestions
+        dateOfBirth: data.dateOfBirth,
+        partnerBirthday: data.partnerBirthday,
+        childrenBirthdays: data.childrenBirthdays,
+        familyBirthdays: data.familyBirthdays,
+        importantDates: data.importantDates,
+        
+        // Social Support Network
+        closeFriends: data.closeFriends,
+        familySupport: data.familySupport,
+        socialPreferences: data.socialPreferences,
+        
         hobbies: data.hobbies,
         onboardingCompleted: true,
       };
