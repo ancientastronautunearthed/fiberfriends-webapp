@@ -328,18 +328,83 @@ export default function CommunityForum() {
         </Dialog>
       </div>
 
-      {/* Category Filters */}
-      <div className="flex flex-wrap gap-3">
-        {categories.map((category) => (
+      {/* Enhanced Filters and Sorting */}
+      <div className="bg-white rounded-lg border p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-800">Browse Posts</h3>
+          <div className="flex items-center gap-4">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="trending">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Trending
+                  </span>
+                </SelectItem>
+                <SelectItem value="recent">
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Most Recent
+                  </span>
+                </SelectItem>
+                <SelectItem value="popular">
+                  <span className="flex items-center gap-2">
+                    <Heart className="w-4 h-4" />
+                    Most Liked
+                  </span>
+                </SelectItem>
+                <SelectItem value="mostReplies">
+                  <span className="flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4" />
+                    Most Replies
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        {/* Category filters */}
+        <div className="flex gap-3 flex-wrap">
           <Button
-            key={category.value}
-            variant={selectedCategory === category.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(category.value)}
+            variant={selectedCategory === "" ? "default" : "outline"}
+            onClick={() => setSelectedCategory("")}
+            className="text-sm"
           >
-            {category.label}
+            All Posts
           </Button>
-        ))}
+          <Button
+            variant={selectedCategory === "support" ? "default" : "outline"}
+            onClick={() => setSelectedCategory("support")}
+            className="text-sm"
+          >
+            Support
+          </Button>
+          <Button
+            variant={selectedCategory === "question" ? "default" : "outline"}
+            onClick={() => setSelectedCategory("question")}
+            className="text-sm"
+          >
+            Questions
+          </Button>
+          <Button
+            variant={selectedCategory === "story" ? "default" : "outline"}
+            onClick={() => setSelectedCategory("story")}
+            className="text-sm"
+          >
+            Success Stories
+          </Button>
+          <Button
+            variant={selectedCategory === "success_tactic" ? "default" : "outline"}
+            onClick={() => setSelectedCategory("success_tactic")}
+            className="text-sm"
+          >
+            Treatment Tips
+          </Button>
+        </div>
       </div>
 
       {/* Forum Posts */}
@@ -348,25 +413,56 @@ export default function CommunityForum() {
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           </div>
-        ) : filteredPosts.length === 0 ? (
+        ) : sortedPosts.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-slate-600">No posts found in this category.</p>
           </Card>
         ) : (
-          filteredPosts.map((post) => (
-            <Card key={post.id} className="p-6">
+          sortedPosts.map((post) => (
+            <Card key={post.id} className={`p-6 ${post.trending ? 'ring-2 ring-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50' : ''}`}>
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-6 h-6 text-slate-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold">
+                  {post.authorName.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <h3 className="font-semibold text-slate-800">Anonymous User</h3>
-                    {getCategoryBadge(post.category)}
-                    <span className="text-sm text-slate-500">
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-slate-800">{post.authorName}</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {post.authorLevel}
+                      </Badge>
+                      {post.trending && (
+                        <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
+                          <Flame className="w-3 h-3" />
+                          Trending
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {post.authorBadges.map((badge, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {badge}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="ml-auto flex items-center gap-2 text-sm text-slate-500">
+                      <span>{post.timeToRead}</span>
+                      <span>•</span>
+                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
+                  
+                  {/* Post Category Badge */}
+                  <div className="flex items-center gap-2 mb-3">
+                    {getCategoryBadge(post.category)}
+                    {post.quality === 'high' && (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <Star className="w-3 h-3 mr-1" />
+                        Quality Post
+                      </Badge>
+                    )}
+                  </div>
+                  
                   <h4 className="text-lg font-medium text-slate-800 mb-3">{post.title}</h4>
                   <p className="text-slate-600 mb-4">{post.content}</p>
                   
@@ -383,19 +479,63 @@ export default function CommunityForum() {
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-6 text-sm text-slate-500">
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
-                      <Heart className="w-4 h-4" />
-                      <span>{post.likes} likes</span>
-                    </button>
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>{post.replies} replies</span>
-                    </button>
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                  {/* Enhanced Engagement Metrics */}
+                  <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      {post.views} views
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bookmark className="w-4 h-4" />
+                      {post.bookmarks} saved
+                    </span>
+                    <span className="flex items-center gap-1">
                       <Share className="w-4 h-4" />
-                      <span>Share</span>
-                    </button>
+                      {post.shares} shares
+                    </span>
+                  </div>
+                  
+                  {/* Interactive Post Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex items-center gap-4">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={`transition-all ${likedPosts.has(post.id) 
+                          ? 'text-red-600 bg-red-50 hover:bg-red-100' 
+                          : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
+                        }`}
+                        onClick={() => handleLike(post.id)}
+                      >
+                        <Heart className={`w-4 h-4 mr-2 ${likedPosts.has(post.id) ? 'fill-current' : ''}`} />
+                        {post.likes + (likedPosts.has(post.id) ? 1 : 0)}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600 hover:bg-blue-50">
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Reply ({post.replies})
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={`transition-all ${bookmarkedPosts.has(post.id) 
+                          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                          : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
+                        }`}
+                        onClick={() => handleBookmark(post.id)}
+                      >
+                        <Bookmark className={`w-4 h-4 mr-2 ${bookmarkedPosts.has(post.id) ? 'fill-current' : ''}`} />
+                        {bookmarkedPosts.has(post.id) ? 'Saved' : 'Save'}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="text-slate-600 hover:text-green-600 hover:bg-green-50">
+                        <Share className="w-4 h-4 mr-1" />
+                        Share
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600">
+                        <Flag className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
