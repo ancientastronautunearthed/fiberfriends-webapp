@@ -122,6 +122,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete onboarding with comprehensive health profile
+  app.post('/api/auth/complete-onboarding', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = req.body;
+      
+      const user = await storage.completeOnboarding(userId, profileData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
   // Daily logs routes
   app.get('/api/daily-logs', isAuthenticated, async (req: any, res) => {
     try {

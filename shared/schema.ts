@@ -32,20 +32,26 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  // Health profile fields
+  
+  // Complete health profile fields from initial document
   height: varchar("height"),
   weight: varchar("weight"),
   age: integer("age"),
   gender: varchar("gender"),
-  location: varchar("location"),
+  location: varchar("location"), // city, state
   diagnosisStatus: varchar("diagnosis_status"), // 'diagnosed', 'suspected'
   misdiagnoses: text("misdiagnoses").array(),
   diagnosisTimeline: text("diagnosis_timeline"),
   hasFibers: boolean("has_fibers").default(false),
   otherDiseases: text("other_diseases").array(),
   foodPreferences: jsonb("food_preferences"), // {dislikes: [], favorites: []}
-  habits: jsonb("habits"), // {smoking: boolean, etc}
+  habits: jsonb("habits"), // {smoking: boolean, alcohol: boolean, exercise: string, etc}
   hobbies: text("hobbies"),
+  
+  // Onboarding completion tracking
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  
+  // Gamification
   points: integer("points").default(0),
   trophyCase: text("trophy_case").array(),
   createdAt: timestamp("created_at").defaultNow(),

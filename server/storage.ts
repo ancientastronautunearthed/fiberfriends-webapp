@@ -63,6 +63,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<UpsertUser>): Promise<User>;
+  completeOnboarding(id: string, profileData: any): Promise<User>;
   
   // AI Companion operations
   getAiCompanion(userId: string): Promise<AiCompanion | undefined>;
@@ -172,6 +173,19 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async completeOnboarding(id: string, profileData: any): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        ...profileData, 
+        onboardingCompleted: true,
+        updatedAt: new Date() 
+      })
       .where(eq(users.id, id))
       .returning();
     return user;

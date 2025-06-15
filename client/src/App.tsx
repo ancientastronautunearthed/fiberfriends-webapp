@@ -3,8 +3,9 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
+import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import SymptomTracker from "@/pages/SymptomTracker";
 import SymptomWheel from "@/pages/SymptomWheel";
@@ -22,12 +23,34 @@ import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { user, isLoading } = useFirebaseAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
-  // Always show the authenticated routes for testing the chat system
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // Show landing page for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
+  // Show onboarding for authenticated users who haven't completed their profile
+  if (user && !user.onboardingCompleted) {
+    return <Onboarding />;
+  }
+
+  // Show main app for authenticated users with completed profiles
   return (
     <Switch>
-      <Route path="/landing" component={Landing} />
       <Layout>
         <Route path="/" component={AICompanion} />
         <Route path="/dashboard" component={Dashboard} />

@@ -1,0 +1,646 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { ArrowLeft, ArrowRight, User, MapPin, Heart, Utensils, Activity } from "lucide-react";
+
+// Comprehensive onboarding schema based on your initial document
+const onboardingSchema = z.object({
+  // Basic Information
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  age: z.number().min(1).max(150),
+  gender: z.enum(["male", "female", "non-binary", "prefer-not-to-say"]),
+  height: z.string().min(1, "Height is required"),
+  weight: z.string().min(1, "Weight is required"),
+  location: z.string().min(1, "Location is required"),
+  
+  // Medical History
+  diagnosisStatus: z.enum(["diagnosed", "suspected"]),
+  misdiagnoses: z.array(z.string()).optional(),
+  diagnosisTimeline: z.string().optional(),
+  hasFibers: z.boolean(),
+  otherDiseases: z.array(z.string()).optional(),
+  
+  // Lifestyle & Preferences
+  foodDislikes: z.array(z.string()).optional(),
+  foodFavorites: z.array(z.string()).optional(),
+  smokingHabit: z.boolean(),
+  alcoholHabit: z.boolean(),
+  exerciseFrequency: z.enum(["daily", "weekly", "monthly", "rarely", "never"]),
+  
+  // Optional Profile
+  hobbies: z.string().optional(),
+});
+
+type OnboardingData = z.infer<typeof onboardingSchema>;
+
+const steps = [
+  { id: 1, title: "Basic Information", icon: User },
+  { id: 2, title: "Location & Health", icon: MapPin },
+  { id: 3, title: "Medical History", icon: Heart },
+  { id: 4, title: "Food & Lifestyle", icon: Utensils },
+  { id: 5, title: "Personal Interests", icon: Activity },
+];
+
+export default function Onboarding() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [commonMisdiagnoses, setCommonMisdiagnoses] = useState<string[]>([]);
+  const [commonDiseases, setCommonDiseases] = useState<string[]>([]);
+  const [foodDislikes, setFoodDislikes] = useState<string[]>([]);
+  const [foodFavorites, setFoodFavorites] = useState<string[]>([]);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const form = useForm<OnboardingData>({
+    resolver: zodResolver(onboardingSchema),
+    defaultValues: {
+      misdiagnoses: [],
+      otherDiseases: [],
+      foodDislikes: [],
+      foodFavorites: [],
+      hasFibers: false,
+      smokingHabit: false,
+      alcoholHabit: false,
+    },
+  });
+
+  const onboardingMutation = useMutation({
+    mutationFn: async (data: OnboardingData) => {
+      // Transform data to match backend schema
+      const profileData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        age: data.age,
+        gender: data.gender,
+        height: data.height,
+        weight: data.weight,
+        location: data.location,
+        diagnosisStatus: data.diagnosisStatus,
+        misdiagnoses: data.misdiagnoses || [],
+        diagnosisTimeline: data.diagnosisTimeline,
+        hasFibers: data.hasFibers,
+        otherDiseases: data.otherDiseases || [],
+        foodPreferences: {
+          dislikes: data.foodDislikes || [],
+          favorites: data.foodFavorites || [],
+        },
+        habits: {
+          smoking: data.smokingHabit,
+          alcohol: data.alcoholHabit,
+          exercise: data.exerciseFrequency,
+        },
+        hobbies: data.hobbies,
+        onboardingCompleted: true,
+      };
+
+      return await apiRequest("POST", "/api/auth/complete-onboarding", profileData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile Complete!",
+        description: "Welcome to Fiber Friends! Luna is ready to meet you.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      window.location.href = "/";
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to complete profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: OnboardingData) => {
+    onboardingMutation.mutate(data);
+  };
+
+  const nextStep = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const progress = (currentStep / steps.length) * 100;
+
+  const addMisdiagnosis = (diagnosis: string) => {
+    if (diagnosis && !commonMisdiagnoses.includes(diagnosis)) {
+      const updated = [...commonMisdiagnoses, diagnosis];
+      setCommonMisdiagnoses(updated);
+      form.setValue("misdiagnoses", updated);
+    }
+  };
+
+  const removeMisdiagnosis = (diagnosis: string) => {
+    const updated = commonMisdiagnoses.filter(d => d !== diagnosis);
+    setCommonMisdiagnoses(updated);
+    form.setValue("misdiagnoses", updated);
+  };
+
+  const addDisease = (disease: string) => {
+    if (disease && !commonDiseases.includes(disease)) {
+      const updated = [...commonDiseases, disease];
+      setCommonDiseases(updated);
+      form.setValue("otherDiseases", updated);
+    }
+  };
+
+  const removeDisease = (disease: string) => {
+    const updated = commonDiseases.filter(d => d !== disease);
+    setCommonDiseases(updated);
+    form.setValue("otherDiseases", updated);
+  };
+
+  const addFoodItem = (item: string, type: 'dislikes' | 'favorites') => {
+    if (!item) return;
+    
+    if (type === 'dislikes') {
+      const updated = [...foodDislikes, item];
+      setFoodDislikes(updated);
+      form.setValue("foodDislikes", updated);
+    } else {
+      const updated = [...foodFavorites, item];
+      setFoodFavorites(updated);
+      form.setValue("foodFavorites", updated);
+    }
+  };
+
+  const removeFoodItem = (item: string, type: 'dislikes' | 'favorites') => {
+    if (type === 'dislikes') {
+      const updated = foodDislikes.filter(f => f !== item);
+      setFoodDislikes(updated);
+      form.setValue("foodDislikes", updated);
+    } else {
+      const updated = foodFavorites.filter(f => f !== item);
+      setFoodFavorites(updated);
+      form.setValue("foodFavorites", updated);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome to Fiber Friends</h1>
+          <p className="text-slate-600">Let's set up your health profile so Luna can provide personalized support</p>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                  currentStep >= step.id ? 'bg-primary border-primary text-white' : 'border-slate-300 text-slate-400'
+                }`}>
+                  <step.icon className="w-5 h-5" />
+                </div>
+                <span className="text-xs mt-2 text-slate-600">{step.title}</span>
+              </div>
+            ))}
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <Card>
+            <CardHeader>
+              <CardTitle>{steps[currentStep - 1].title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {/* Step 1: Basic Information */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input {...form.register("firstName")} />
+                      {form.formState.errors.firstName && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.firstName.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input {...form.register("lastName")} />
+                      {form.formState.errors.lastName && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.lastName.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="age">Age</Label>
+                      <Input 
+                        type="number" 
+                        {...form.register("age", { valueAsNumber: true })} 
+                      />
+                      {form.formState.errors.age && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.age.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="height">Height</Label>
+                      <Input 
+                        placeholder="e.g., 5'8&quot;" 
+                        {...form.register("height")} 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="weight">Weight</Label>
+                      <Input 
+                        placeholder="e.g., 150 lbs" 
+                        {...form.register("weight")} 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Gender</Label>
+                    <RadioGroup 
+                      value={form.watch("gender")} 
+                      onValueChange={(value) => form.setValue("gender", value as any)}
+                      className="flex flex-wrap gap-4 mt-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="male" id="male" />
+                        <Label htmlFor="male">Male</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="female" id="female" />
+                        <Label htmlFor="female">Female</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="non-binary" id="non-binary" />
+                        <Label htmlFor="non-binary">Non-binary</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="prefer-not-to-say" id="prefer-not-to-say" />
+                        <Label htmlFor="prefer-not-to-say">Prefer not to say</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Location & Health */}
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="location">Location (City, State)</Label>
+                    <Input 
+                      placeholder="e.g., Austin, TX" 
+                      {...form.register("location")} 
+                    />
+                    {form.formState.errors.location && (
+                      <p className="text-red-500 text-sm">{form.formState.errors.location.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label>Diagnosis Status</Label>
+                    <RadioGroup 
+                      value={form.watch("diagnosisStatus")} 
+                      onValueChange={(value) => form.setValue("diagnosisStatus", value as any)}
+                      className="mt-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="diagnosed" id="diagnosed" />
+                        <Label htmlFor="diagnosed">Officially diagnosed with Morgellons</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="suspected" id="suspected" />
+                        <Label htmlFor="suspected">Suspected Morgellons (self-diagnosed)</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="diagnosisTimeline">Diagnosis Timeline (Optional)</Label>
+                    <Textarea 
+                      placeholder="Tell us about your journey to diagnosis..."
+                      {...form.register("diagnosisTimeline")}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="hasFibers"
+                      checked={form.watch("hasFibers")}
+                      onCheckedChange={(checked) => form.setValue("hasFibers", checked as boolean)}
+                    />
+                    <Label htmlFor="hasFibers">I have experienced fiber-like symptoms</Label>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Medical History */}
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Previous Misdiagnoses (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Add any conditions you were previously diagnosed with before Morgellons</p>
+                    <div className="flex gap-2 mb-2">
+                      <Input 
+                        placeholder="Enter a previous diagnosis..." 
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addMisdiagnosis((e.target as HTMLInputElement).value);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addMisdiagnosis(input.value);
+                          input.value = '';
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {commonMisdiagnoses.map((diagnosis) => (
+                        <span 
+                          key={diagnosis}
+                          className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                        >
+                          {diagnosis}
+                          <button 
+                            type="button"
+                            onClick={() => removeMisdiagnosis(diagnosis)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Other Health Conditions (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Any other health conditions you currently have</p>
+                    <div className="flex gap-2 mb-2">
+                      <Input 
+                        placeholder="Enter a health condition..." 
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addDisease((e.target as HTMLInputElement).value);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addDisease(input.value);
+                          input.value = '';
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {commonDiseases.map((disease) => (
+                        <span 
+                          key={disease}
+                          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                        >
+                          {disease}
+                          <button 
+                            type="button"
+                            onClick={() => removeDisease(disease)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Food & Lifestyle */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
+                  <div>
+                    <Label>Food Dislikes (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Foods you avoid or dislike</p>
+                    <div className="flex gap-2 mb-2">
+                      <Input 
+                        placeholder="Enter a food you dislike..." 
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addFoodItem((e.target as HTMLInputElement).value, 'dislikes');
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addFoodItem(input.value, 'dislikes');
+                          input.value = '';
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {foodDislikes.map((food) => (
+                        <span 
+                          key={food}
+                          className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                        >
+                          {food}
+                          <button 
+                            type="button"
+                            onClick={() => removeFoodItem(food, 'dislikes')}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Food Favorites (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Foods you enjoy or find helpful</p>
+                    <div className="flex gap-2 mb-2">
+                      <Input 
+                        placeholder="Enter a food you love..." 
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addFoodItem((e.target as HTMLInputElement).value, 'favorites');
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addFoodItem(input.value, 'favorites');
+                          input.value = '';
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {foodFavorites.map((food) => (
+                        <span 
+                          key={food}
+                          className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                        >
+                          {food}
+                          <button 
+                            type="button"
+                            onClick={() => removeFoodItem(food, 'favorites')}
+                            className="text-green-600 hover:text-green-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="smokingHabit"
+                        checked={form.watch("smokingHabit")}
+                        onCheckedChange={(checked) => form.setValue("smokingHabit", checked as boolean)}
+                      />
+                      <Label htmlFor="smokingHabit">I smoke or use tobacco</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="alcoholHabit"
+                        checked={form.watch("alcoholHabit")}
+                        onCheckedChange={(checked) => form.setValue("alcoholHabit", checked as boolean)}
+                      />
+                      <Label htmlFor="alcoholHabit">I drink alcohol regularly</Label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Exercise Frequency</Label>
+                    <Select 
+                      value={form.watch("exerciseFrequency")} 
+                      onValueChange={(value) => form.setValue("exerciseFrequency", value as any)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="How often do you exercise?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Several times a week</SelectItem>
+                        <SelectItem value="monthly">A few times a month</SelectItem>
+                        <SelectItem value="rarely">Rarely</SelectItem>
+                        <SelectItem value="never">Never</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Personal Interests */}
+              {currentStep === 5 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="hobbies">Hobbies & Interests (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-2">Tell Luna about your interests so she can have more personalized conversations with you</p>
+                    <Textarea 
+                      placeholder="e.g., reading, gardening, cooking, art, music, sports..."
+                      {...form.register("hobbies")}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-blue-900 mb-2">You're almost done!</h3>
+                    <p className="text-blue-800 text-sm">
+                      Luna will use this information to provide personalized health insights, 
+                      nutrition recommendations, and supportive conversations tailored to your journey with Morgellons.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex justify-between pt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={prevStep}
+                  disabled={currentStep === 1}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+
+                {currentStep < steps.length ? (
+                  <Button 
+                    type="button" 
+                    onClick={nextStep}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button 
+                    type="submit"
+                    disabled={onboardingMutation.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    {onboardingMutation.isPending ? "Completing..." : "Complete Profile"}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </div>
+    </div>
+  );
+}
