@@ -8,6 +8,9 @@ import {
   symptomPatterns,
   symptomCorrelations,
   symptomWheelEntries,
+  anonymizedHealthData,
+  communityHealthInsights,
+  researchContributions,
   chatRooms,
   chatMessages,
   chatRoomMembers,
@@ -161,9 +164,9 @@ export interface IStorage {
   // Research data operations
   updateUserResearchOptIn(userId: string, optIn: boolean): Promise<User>;
   submitAnonymizedHealthData(userId: string, healthData: any): Promise<void>;
-  getUserResearchContribution(userId: string): Promise<ResearchContribution | undefined>;
-  getCommunityHealthInsights(accessLevel: string): Promise<CommunityHealthInsight[]>;
-  updateResearchContribution(userId: string, contributionData: any): Promise<ResearchContribution>;
+  getUserResearchContribution(userId: string): Promise<any>;
+  getCommunityHealthInsights(accessLevel: string): Promise<any[]>;
+  updateResearchContribution(userId: string, contributionData: any): Promise<any>;
   grantCommunityInsightsAccess(userId: string): Promise<User>;
 
   // Points System operations
