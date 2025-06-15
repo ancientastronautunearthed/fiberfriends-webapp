@@ -235,7 +235,7 @@ export class WeatherService {
         weather,
         isWorkDay,
         dayOffMessage,
-        activities: activities.slice(0, 4), // Return top 4 recommendations
+        activities: activities.length > 0 ? activities.slice(0, 4) : this.getGeneralHealthyActivities(isWorkDay).slice(0, 4),
         weatherMessage
       };
     } catch (error) {
