@@ -1,6 +1,6 @@
 // server/db.ts
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // Check if the app is already initialized to prevent errors
 if (!admin.apps.length) {
