@@ -57,14 +57,7 @@ const onboardingSchema = z.object({
   
   // Birthday & Important Dates for Reminders
   dateOfBirth: z.string().optional(),
-  partnerBirthday: z.string().optional(),
-  childrenBirthdays: z.string().optional(), // JSON string of dates
-  familyBirthdays: z.string().optional(), // JSON string of family member birthdays
-  importantDates: z.string().optional(), // JSON string of other important dates
-  
-  // Social Support Network
-  closeFriends: z.number().optional(), // Number of close friends
-  familySupport: z.string().optional(), // Level of family support
+  importantBirthdays: z.string().optional(), // JSON string of birthday objects
   socialPreferences: z.string().optional(), // How they prefer to socialize
   
   // Optional Profile
@@ -90,6 +83,7 @@ export default function Onboarding() {
   const [foodFavorites, setFoodFavorites] = useState<string[]>([]);
   const [foodAllergies, setFoodAllergies] = useState<string[]>([]);
   const [currentMedications, setCurrentMedications] = useState<string[]>([]);
+  const [importantBirthdays, setImportantBirthdays] = useState<Array<{id: string, relationship: string, name: string, dateOfBirth: string}>>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -274,6 +268,25 @@ export default function Onboarding() {
     const updated = currentMedications.filter(m => m !== medication);
     setCurrentMedications(updated);
     form.setValue("currentMedications", updated);
+  };
+
+  const addBirthday = (relationship: string, name: string, dateOfBirth: string) => {
+    if (!relationship || !name || !dateOfBirth) return;
+    const newBirthday = {
+      id: Date.now().toString(),
+      relationship,
+      name,
+      dateOfBirth
+    };
+    const updated = [...importantBirthdays, newBirthday];
+    setImportantBirthdays(updated);
+    form.setValue("importantBirthdays", JSON.stringify(updated));
+  };
+
+  const removeBirthday = (id: string) => {
+    const updated = importantBirthdays.filter(b => b.id !== id);
+    setImportantBirthdays(updated);
+    form.setValue("importantBirthdays", JSON.stringify(updated));
   };
 
   return (

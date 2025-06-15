@@ -65,14 +65,7 @@ export const users = pgTable("users", {
   
   // Birthday & Important Dates for Reminders and Gift Ideas
   dateOfBirth: varchar("date_of_birth"),
-  partnerBirthday: varchar("partner_birthday"),
-  childrenBirthdays: varchar("children_birthdays"), // JSON string of dates
-  familyBirthdays: varchar("family_birthdays"), // JSON string of family member birthdays
-  importantDates: varchar("important_dates"), // JSON string of other important dates
-  
-  // Social Support Network
-  closeFriends: integer("close_friends"), // Number of close friends
-  familySupport: varchar("family_support"), // Level of family support
+  importantBirthdays: text("important_birthdays"), // JSON string: [{id, relationship, name, dateOfBirth}]
   socialPreferences: text("social_preferences"), // How they prefer to socialize
   
   // Hobbies and interests
