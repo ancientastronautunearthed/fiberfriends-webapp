@@ -80,6 +80,11 @@ export default function Navigation() {
             </div>
             
             <div className="flex items-center gap-4">
+              {isTestMode && (
+                <div className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">
+                  Demo Mode
+                </div>
+              )}
               <div className="hidden sm:flex items-center gap-2 bg-accent text-white px-3 py-1 rounded-full text-sm">
                 <Star className="w-4 h-4" />
                 <span>{user?.points || 0}</span>
