@@ -179,6 +179,9 @@ export default function SymptomPatterns() {
 
       // Calculate correlations between symptoms
       const symptoms = Object.keys(symptomGroups);
+      console.log('Symptoms found:', symptoms);
+      console.log('Symptom groups:', Object.keys(symptomGroups).map(s => `${s}: ${symptomGroups[s].length} entries`));
+      
       for (let i = 0; i < symptoms.length; i++) {
         for (let j = i + 1; j < symptoms.length; j++) {
           const symptom1 = symptoms[i];
@@ -188,7 +191,9 @@ export default function SymptomPatterns() {
             symptomGroups[symptom2]
           );
           
-          if (Math.abs(correlation) > 0.1) {
+          console.log(`Correlation between ${symptom1} and ${symptom2}:`, correlation);
+          
+          if (Math.abs(correlation) > 0.01) { // Very low threshold for testing
             results.correlations.push({
               primarySymptom: symptom1,
               correlatedSymptom: symptom2,
@@ -200,7 +205,9 @@ export default function SymptomPatterns() {
       }
 
       // Identify triggers across all symptoms
+      console.log('Symptom data for triggers:', symptomData.slice(0, 3));
       results.triggers = identifyTriggers(symptomData);
+      console.log('Triggers found:', results.triggers);
 
       // Generate AI insights
       const insights = [];
