@@ -5,6 +5,9 @@ import {
   communityPosts,
   symptomPatterns,
   symptomCorrelations,
+  chatRooms,
+  chatMessages,
+  chatRoomMembers,
   type User, 
   type UpsertUser,
   type AiCompanion,
@@ -16,7 +19,13 @@ import {
   type SymptomPattern,
   type InsertSymptomPattern,
   type SymptomCorrelation,
-  type InsertSymptomCorrelation
+  type InsertSymptomCorrelation,
+  type ChatRoom,
+  type InsertChatRoom,
+  type ChatMessage,
+  type InsertChatMessage,
+  type ChatRoomMember,
+  type InsertChatRoomMember
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -51,6 +60,17 @@ export interface IStorage {
   // Symptom correlation operations
   getSymptomCorrelations(userId: string): Promise<SymptomCorrelation[]>;
   createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation>;
+  
+  // Chat operations
+  getChatRooms(): Promise<ChatRoom[]>;
+  getChatRoom(roomId: string): Promise<ChatRoom | undefined>;
+  createChatRoom(room: InsertChatRoom): Promise<ChatRoom>;
+  getChatMessages(roomId: string, limit?: number): Promise<ChatMessage[]>;
+  getChatMessageWithUser(messageId: string): Promise<any>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  isRoomMember(roomId: string, userId: string): Promise<boolean>;
+  joinRoom(roomId: string, userId: string): Promise<ChatRoomMember>;
+  updateRoomActivity(roomId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -214,6 +234,102 @@ export class DatabaseStorage implements IStorage {
       .values(correlationWithId)
       .returning();
     return newCorrelation;
+  }
+
+  // Chat operations
+  async getChatRooms(): Promise<ChatRoom[]> {
+    const rooms = await db.select().from(chatRooms).orderBy(desc(chatRooms.lastActivity));
+    return rooms;
+  }
+
+  async getChatRoom(roomId: string): Promise<ChatRoom | undefined> {
+    const [room] = await db.select().from(chatRooms).where(eq(chatRooms.id, roomId));
+    return room;
+  }
+
+  async createChatRoom(room: InsertChatRoom): Promise<ChatRoom> {
+    const roomWithId = {
+      ...room,
+      id: crypto.randomUUID(),
+    };
+    const [newRoom] = await db
+      .insert(chatRooms)
+      .values(roomWithId)
+      .returning();
+    return newRoom;
+  }
+
+  async getChatMessages(roomId: string, limit = 50): Promise<ChatMessage[]> {
+    const messages = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.roomId, roomId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+    return messages.reverse(); // Return in chronological order
+  }
+
+  async getChatMessageWithUser(messageId: string): Promise<any> {
+    const [result] = await db
+      .select({
+        id: chatMessages.id,
+        roomId: chatMessages.roomId,
+        userId: chatMessages.userId,
+        content: chatMessages.content,
+        messageType: chatMessages.messageType,
+        replyToId: chatMessages.replyToId,
+        isEdited: chatMessages.isEdited,
+        editedAt: chatMessages.editedAt,
+        createdAt: chatMessages.createdAt,
+        authorName: users.firstName,
+        authorEmail: users.email,
+        authorProfileImage: users.profileImageUrl,
+      })
+      .from(chatMessages)
+      .innerJoin(users, eq(chatMessages.userId, users.id))
+      .where(eq(chatMessages.id, messageId));
+    return result;
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const messageWithId = {
+      ...message,
+      id: crypto.randomUUID(),
+    };
+    const [newMessage] = await db
+      .insert(chatMessages)
+      .values(messageWithId)
+      .returning();
+    return newMessage;
+  }
+
+  async isRoomMember(roomId: string, userId: string): Promise<boolean> {
+    const [member] = await db
+      .select()
+      .from(chatRoomMembers)
+      .where(and(eq(chatRoomMembers.roomId, roomId), eq(chatRoomMembers.userId, userId)));
+    return !!member;
+  }
+
+  async joinRoom(roomId: string, userId: string): Promise<ChatRoomMember> {
+    const memberWithId = {
+      id: crypto.randomUUID(),
+      roomId,
+      userId,
+      role: 'member' as const,
+    };
+    const [newMember] = await db
+      .insert(chatRoomMembers)
+      .values(memberWithId)
+      .returning();
+    return newMember;
+  }
+
+  async updateRoomActivity(roomId: string): Promise<void> {
+    await db
+      .update(chatRooms)
+      .set({ lastActivity: new Date() })
+      .where(eq(chatRooms.id, roomId));
   }
 }
 

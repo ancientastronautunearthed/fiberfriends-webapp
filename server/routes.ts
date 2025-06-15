@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema } from "@shared/schema";
+import { ChatWebSocketServer } from "./websocket";
+import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema } from "@shared/schema";
 import { 
   generateNutritionalAnalysis, 
   generateSymptomInsight, 
@@ -203,6 +204,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat API routes
+  app.get('/api/chat/rooms', isAuthenticated, async (req: any, res) => {
+    try {
+      const rooms = await storage.getChatRooms();
+      res.json(rooms);
+    } catch (error) {
+      console.error("Error fetching chat rooms:", error);
+      res.status(500).json({ message: "Failed to fetch chat rooms" });
+    }
+  });
+
+  app.post('/api/chat/rooms', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertChatRoomSchema.parse({
+        ...req.body,
+        createdBy: userId,
+      });
+      
+      const room = await storage.createChatRoom(validatedData);
+      
+      // Auto-join the creator to the room
+      await storage.joinRoom(room.id, userId);
+      
+      res.json(room);
+    } catch (error) {
+      console.error("Error creating chat room:", error);
+      res.status(500).json({ message: "Failed to create chat room" });
+    }
+  });
+
+  app.get('/api/chat/rooms/:roomId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { roomId } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Check if user is a member
+      const isMember = await storage.isRoomMember(roomId, userId);
+      if (!isMember) {
+        return res.status(403).json({ message: "Not authorized to access this room" });
+      }
+      
+      const room = await storage.getChatRoom(roomId);
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+      
+      res.json(room);
+    } catch (error) {
+      console.error("Error fetching chat room:", error);
+      res.status(500).json({ message: "Failed to fetch chat room" });
+    }
+  });
+
+  app.post('/api/chat/rooms/:roomId/join', isAuthenticated, async (req: any, res) => {
+    try {
+      const { roomId } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Check if room exists
+      const room = await storage.getChatRoom(roomId);
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+      
+      // Check if already a member
+      const isMember = await storage.isRoomMember(roomId, userId);
+      if (isMember) {
+        return res.status(400).json({ message: "Already a member of this room" });
+      }
+      
+      const member = await storage.joinRoom(roomId, userId);
+      res.json(member);
+    } catch (error) {
+      console.error("Error joining chat room:", error);
+      res.status(500).json({ message: "Failed to join chat room" });
+    }
+  });
+
+  app.get('/api/chat/rooms/:roomId/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const { roomId } = req.params;
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      // Check if user is a member
+      const isMember = await storage.isRoomMember(roomId, userId);
+      if (!isMember) {
+        return res.status(403).json({ message: "Not authorized to access this room" });
+      }
+      
+      const messages = await storage.getChatMessages(roomId, limit);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch chat messages" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Initialize WebSocket server
+  const chatWS = new ChatWebSocketServer(httpServer);
+  console.log('Chat WebSocket server initialized');
+  
   return httpServer;
 }
