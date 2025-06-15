@@ -47,7 +47,7 @@ export default function Chat() {
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -67,7 +67,7 @@ export default function Chat() {
   }, [isAuthenticated, isLoading, toast]);
 
   // Fetch chat rooms
-  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery<ChatRoom[]>({
     queryKey: ['/api/chat/rooms'],
     enabled: isAuthenticated,
     retry: false,
@@ -88,7 +88,11 @@ export default function Chat() {
         
         case 'user_typing':
           if (message.data.userId !== user?.id) {
-            setTypingUsers(prev => new Set([...prev, message.data.userId]));
+            setTypingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.add(message.data.userId);
+              return newSet;
+            });
           }
           break;
         
