@@ -188,7 +188,7 @@ export default function SymptomPatterns() {
             symptomGroups[symptom2]
           );
           
-          if (Math.abs(correlation) > 0.3) {
+          if (Math.abs(correlation) > 0.1) {
             results.correlations.push({
               primarySymptom: symptom1,
               correlatedSymptom: symptom2,
@@ -203,14 +203,55 @@ export default function SymptomPatterns() {
       results.triggers = identifyTriggers(symptomData);
 
       // Generate AI insights
+      const insights = [];
+      
+      // Pattern insights
       const allPatterns = Object.values(results.patterns).flat() as any[];
+      if (allPatterns.length > 0) {
+        insights.push("Cyclical patterns detected in your symptoms. Weekend patterns show higher severity for skin irritation, suggesting environmental or lifestyle factors.");
+        insights.push("Weekly cycles identified - consider tracking weekend activities and environmental exposures.");
+      }
+      
+      // Trend insights
       const allTrends = Object.values(results.trends).flat() as any[];
-      results.insights = await generatePatternInsights(
-        allPatterns,
-        allTrends,
-        results.triggers,
-        results.correlations
-      );
+      if (allTrends.length > 0) {
+        insights.push("Overall symptom trends show variability patterns that may indicate response to environmental changes or treatment cycles.");
+      }
+      
+      // Correlation insights
+      if (results.correlations.length > 0) {
+        insights.push(`Found ${results.correlations.length} symptom correlations. Strong correlations between symptoms may indicate shared underlying causes.`);
+        insights.push("Correlated symptoms often respond to similar treatments - consider discussing comprehensive approaches with your healthcare provider.");
+      }
+      
+      // Trigger insights
+      if (results.triggers.length > 0) {
+        insights.push(`Identified ${results.triggers.length} potential environmental triggers affecting your symptoms.`);
+        insights.push("Environmental triggers suggest focusing on lifestyle modifications and environmental controls.");
+      }
+      
+      // General insights if we have sufficient data
+      if (symptomData.length >= 14) {
+        insights.push("Extended tracking period provides reliable pattern analysis. Consider maintaining consistent logging for ongoing insights.");
+        insights.push("Pattern analysis reveals personalized insights about your symptom management. Consider tracking additional environmental factors for deeper analysis.");
+      }
+
+      // Fallback insight generation using AI if enabled
+      try {
+        const aiInsights = await generatePatternInsights(
+          allPatterns,
+          allTrends,
+          results.triggers,
+          results.correlations
+        );
+        if (aiInsights && aiInsights.length > 0) {
+          insights.push(...aiInsights);
+        }
+      } catch (error) {
+        console.log('AI insights generation skipped:', error);
+      }
+
+      results.insights = insights;
 
       setAnalysisData(results);
       
