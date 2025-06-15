@@ -25,6 +25,7 @@ import Recommendations from "@/pages/Recommendations";
 import HealthyActivities from "@/pages/HealthyActivities";
 import TestLuna from "@/pages/TestLuna";
 import CommunityInsights from "@/pages/CommunityInsights";
+import EnvironmentalTriggers from "@/pages/EnvironmentalTriggers";
 import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
