@@ -55,8 +55,7 @@ const onboardingSchema = z.object({
   hasSiblings: z.boolean().optional(),
   siblingsCount: z.number().optional(),
   
-  // Birthday & Important Dates for Reminders
-  dateOfBirth: z.string().optional(),
+  // Important Dates for Reminders
   importantBirthdays: z.string().optional(), // JSON string of birthday objects
   socialPreferences: z.string().optional(), // How they prefer to socialize
   
@@ -243,8 +242,7 @@ export default function Onboarding() {
         hasSiblings: data.hasSiblings || false,
         siblingsCount: data.siblingsCount,
         
-        // Birthday & Important Dates for Luna's reminders and gift suggestions
-        dateOfBirth: data.dateOfBirth,
+        // Important Dates for Luna's reminders and gift suggestions
         importantBirthdays: data.importantBirthdays,
         socialPreferences: data.socialPreferences,
         
@@ -1014,42 +1012,7 @@ export default function Onboarding() {
                     )}
                   </div>
 
-                  {/* Birthday & Important Dates */}
-                  <div className="space-y-4 bg-pink-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-pink-900">Birthday Reminders & Gift Ideas (Optional)</h3>
-                    <p className="text-sm text-pink-800 mb-4">Luna can help remind you of important dates and suggest gift ideas</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="dateOfBirth">Your Date of Birth</Label>
-                        <Input 
-                          type="date" 
-                          {...form.register("dateOfBirth")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="partnerBirthday">Partner's Birthday</Label>
-                        <Input 
-                          type="date" 
-                          {...form.register("partnerBirthday")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="childrenBirthdays">Children's Birthdays</Label>
-                        <Input 
-                          placeholder="e.g., 2015-03-15, 2018-07-22"
-                          {...form.register("childrenBirthdays")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="familyBirthdays">Family Members' Birthdays</Label>
-                        <Input 
-                          placeholder="e.g., Mom: 1965-05-10, Dad: 1962-11-03"
-                          {...form.register("familyBirthdays")}
-                        />
-                      </div>
-                    </div>
-                  </div>
+
 
                   {/* Interactive Birthday Management */}
                   <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
