@@ -31,7 +31,7 @@ export function calculateCorrelation(symptom1Data: SymptomData[], symptom2Data: 
     }
   });
 
-  if (alignedData.length < 3) return 0;
+  if (alignedData.length < 2) return 0;
 
   const n = alignedData.length;
   const sumX = alignedData.reduce((sum, d) => sum + d.s1, 0);
