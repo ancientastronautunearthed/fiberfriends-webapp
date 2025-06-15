@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -74,7 +74,7 @@ export default function Chat() {
   });
 
   // WebSocket connection
-  const { isConnected, sendMessage } = useWebSocket('/ws/chat', {
+  const { isConnected, sendMessage } = useWebSocket('/ws', {
     onMessage: (message) => {
       switch (message.type) {
         case 'room_joined':
@@ -88,20 +88,18 @@ export default function Chat() {
         
         case 'user_typing':
           if (message.data.userId !== user?.id) {
-            setTypingUsers(prev => {
-              const newSet = new Set(prev);
-              newSet.add(message.data.userId);
-              return newSet;
-            });
+            setTypingUsers(prev => 
+              prev.includes(message.data.userId) 
+                ? prev 
+                : [...prev, message.data.userId]
+            );
           }
           break;
         
         case 'user_stopped_typing':
-          setTypingUsers(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(message.data.userId);
-            return newSet;
-          });
+          setTypingUsers(prev => 
+            prev.filter(userId => userId !== message.data.userId)
+          );
           break;
         
         case 'error':
@@ -373,14 +371,14 @@ export default function Chat() {
                       )}
                       
                       {/* Typing indicator */}
-                      {typingUsers.size > 0 && (
+                      {typingUsers.length > 0 && (
                         <div className="flex items-center gap-2 text-sm text-slate-500">
                           <div className="flex gap-1">
                             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
                             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
                             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                           </div>
-                          <span>{Array.from(typingUsers).join(', ')} typing...</span>
+                          <span>{typingUsers.join(', ')} typing...</span>
                         </div>
                       )}
                       <div ref={messagesEndRef} />
