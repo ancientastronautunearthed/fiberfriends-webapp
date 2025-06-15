@@ -8,6 +8,7 @@ import {
   serial,
   integer,
   boolean,
+  real,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -84,11 +85,46 @@ export const communityPosts = pgTable("community_posts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Symptom Patterns and Analytics
+export const symptomPatterns = pgTable("symptom_patterns", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  patternType: varchar("pattern_type").notNull(), // 'correlation', 'trend', 'trigger', 'cycle'
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  confidence: integer("confidence").notNull(), // 0-100 confidence score
+  frequency: varchar("frequency"), // 'daily', 'weekly', 'monthly', 'irregular'
+  triggeredBy: text("triggered_by").array(), // Food items, activities, weather, etc.
+  symptoms: jsonb("symptoms").notNull(), // Affected symptoms and severity patterns
+  timeframe: jsonb("timeframe").notNull(), // Start/end dates, duration
+  recommendations: text("recommendations").array(),
+  isActive: boolean("is_active").default(true),
+  lastDetected: timestamp("last_detected"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Symptom Correlations
+export const symptomCorrelations = pgTable("symptom_correlations", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  primarySymptom: varchar("primary_symptom").notNull(),
+  correlatedSymptom: varchar("correlated_symptom").notNull(),
+  correlationStrength: integer("correlation_strength").notNull(), // -100 to 100
+  occurrenceCount: integer("occurrence_count").default(1),
+  averageTimeLag: integer("average_time_lag"), // Hours between symptoms
+  contextFactors: text("context_factors").array(), // Weather, food, stress, etc.
+  lastObserved: timestamp("last_observed").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   aiCompanions: many(aiCompanions),
   dailyLogs: many(dailyLogs),
   communityPosts: many(communityPosts),
+  symptomPatterns: many(symptomPatterns),
+  symptomCorrelations: many(symptomCorrelations),
 }));
 
 export const aiCompanionsRelations = relations(aiCompanions, ({ one }) => ({
@@ -108,6 +144,20 @@ export const dailyLogsRelations = relations(dailyLogs, ({ one }) => ({
 export const communityPostsRelations = relations(communityPosts, ({ one }) => ({
   author: one(users, {
     fields: [communityPosts.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const symptomPatternsRelations = relations(symptomPatterns, ({ one }) => ({
+  user: one(users, {
+    fields: [symptomPatterns.userId],
+    references: [users.id],
+  }),
+}));
+
+export const symptomCorrelationsRelations = relations(symptomCorrelations, ({ one }) => ({
+  user: one(users, {
+    fields: [symptomCorrelations.userId],
     references: [users.id],
   }),
 }));
