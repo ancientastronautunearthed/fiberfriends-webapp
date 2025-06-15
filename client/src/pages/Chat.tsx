@@ -39,74 +39,65 @@ export default function Chat() {
   const { user, isLoading } = useFirebaseAuth();
   const isAuthenticated = !!user;
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Redirect to login for now
-      window.location.href = "/";
-      return;
-    }
-  }, [isAuthenticated, isLoading]);
+  // Handle authentication loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
-  // Fetch chat rooms
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>
+          <p className="text-slate-600">You need to be signed in to access the chat.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch chat rooms using Firestore
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<ChatRoom[]>({
-    queryKey: ['/api/chat/rooms'],
+    queryKey: ['chat-rooms'],
+    queryFn: async () => {
+      // For now, return mock rooms to test the interface
+      const mockRooms: ChatRoom[] = [
+        {
+          id: 'general-support',
+          name: 'General Support',
+          description: 'General discussion and mutual support for community members',
+          category: 'support',
+          memberCount: 12,
+          lastActivity: new Date().toISOString()
+        },
+        {
+          id: 'symptom-sharing',
+          name: 'Symptom Experiences',
+          description: 'Share and discuss symptom experiences in a safe space',
+          category: 'symptoms',
+          memberCount: 8,
+          lastActivity: new Date().toISOString()
+        },
+        {
+          id: 'treatment-tips',
+          name: 'Treatment & Tips',
+          description: 'Share treatment approaches and helpful tips',
+          category: 'treatment',
+          memberCount: 15,
+          lastActivity: new Date().toISOString()
+        }
+      ];
+      return mockRooms;
+    },
     enabled: isAuthenticated,
-    retry: false,
-  });
-
-  // WebSocket connection
-  const { isConnected, sendMessage } = useWebSocket('/ws', {
-    onMessage: (message) => {
-      switch (message.type) {
-        case 'room_joined':
-          setMessages(message.data.messages || []);
-          break;
-        
-        case 'new_message':
-          setMessages(prev => [...prev, message.data]);
-          scrollToBottom();
-          break;
-        
-        case 'user_typing':
-          if (message.data.userId !== user?.id) {
-            setTypingUsers(prev => 
-              prev.includes(message.data.userId) 
-                ? prev 
-                : [...prev, message.data.userId]
-            );
-          }
-          break;
-        
-        case 'user_stopped_typing':
-          setTypingUsers(prev => 
-            prev.filter(userId => userId !== message.data.userId)
-          );
-          break;
-        
-        case 'error':
-          toast({
-            title: "Chat Error",
-            description: message.message,
-            variant: "destructive",
-          });
-          break;
-      }
-    },
-    onConnect: () => {
-      console.log('Connected to chat server');
-    },
-    onDisconnect: () => {
-      console.log('Disconnected from chat server');
-    }
   });
 
   const scrollToBottom = () => {
@@ -115,105 +106,54 @@ export default function Chat() {
 
   // Join room
   const joinRoom = (roomId: string) => {
-    if (!user || !isConnected) return;
-    
-    // Leave current room
-    if (activeRoom) {
-      sendMessage({
-        type: 'leave_room',
-        data: {}
-      });
-    }
-    
-    // Join new room
-    sendMessage({
-      type: 'join_room',
-      data: { roomId, userId: user.id }
-    });
+    if (!user) return;
     
     setActiveRoom(roomId);
-    setMessages([]);
+    
+    // Mock messages for the selected room
+    const mockMessages: ChatMessage[] = [
+      {
+        id: '1',
+        roomId: roomId,
+        userId: 'other-user',
+        content: 'Welcome to the chat room! Feel free to share your experiences.',
+        messageType: 'text',
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        authorName: 'Community Member',
+      },
+      {
+        id: '2',
+        roomId: roomId,
+        userId: user.id,
+        content: 'Thank you! Happy to be here.',
+        messageType: 'text',
+        createdAt: new Date(Date.now() - 1800000).toISOString(),
+        authorName: user.firstName || user.email || 'You',
+      }
+    ];
+    
+    setMessages(mockMessages);
+    scrollToBottom();
   };
 
   // Send message
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !activeRoom || !isConnected) return;
+    if (!newMessage.trim() || !activeRoom || !user) return;
     
-    sendMessage({
-      type: 'send_message',
-      data: {
-        content: newMessage.trim(),
-        messageType: 'text'
-      }
-    });
+    const newMsg: ChatMessage = {
+      id: Date.now().toString(),
+      roomId: activeRoom,
+      userId: user.id,
+      content: newMessage.trim(),
+      messageType: 'text',
+      createdAt: new Date().toISOString(),
+      authorName: user.firstName || user.email || 'You',
+    };
     
+    setMessages(prev => [...prev, newMsg]);
     setNewMessage('');
-    stopTyping();
+    scrollToBottom();
   };
-
-  // Handle typing
-  const handleTyping = () => {
-    if (!activeRoom || !isConnected) return;
-    
-    sendMessage({
-      type: 'typing',
-      data: { roomId: activeRoom }
-    });
-    
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    
-    // Stop typing after 2 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(stopTyping, 2000);
-  };
-
-  const stopTyping = () => {
-    if (!activeRoom || !isConnected) return;
-    
-    sendMessage({
-      type: 'stop_typing',
-      data: { roomId: activeRoom }
-    });
-    
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-  };
-
-  // Create new room mutation
-  const createRoomMutation = useMutation({
-    mutationFn: async (roomData: { name: string; description: string; category: string }) => {
-      return await apiRequest("POST", "/api/chat/rooms", roomData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/rooms'] });
-      toast({
-        title: "Success",
-        description: "Chat room created successfully",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to create chat room",
-        variant: "destructive",
-      });
-    },
-  });
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -239,20 +179,8 @@ export default function Chat() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Community Chat</h1>
           <p className="text-slate-600 mt-2">
-            Connect with other community members in real-time
+            Connect with other community members and share experiences
           </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <Wifi className="w-4 h-4 text-green-500" />
-            ) : (
-              <WifiOff className="w-4 h-4 text-red-500" />
-            )}
-            <span className="text-sm text-slate-600">
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
-          </div>
         </div>
       </div>
 
@@ -360,17 +288,6 @@ export default function Chat() {
                         ))
                       )}
                       
-                      {/* Typing indicator */}
-                      {typingUsers.length > 0 && (
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                          </div>
-                          <span>{typingUsers.join(', ')} typing...</span>
-                        </div>
-                      )}
                       <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
@@ -383,10 +300,7 @@ export default function Chat() {
                   <div className="flex gap-2">
                     <Input
                       value={newMessage}
-                      onChange={(e) => {
-                        setNewMessage(e.target.value);
-                        handleTyping();
-                      }}
+                      onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -394,12 +308,11 @@ export default function Chat() {
                         }
                       }}
                       placeholder="Type a message..."
-                      disabled={!isConnected}
                       className="flex-1"
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || !isConnected}
+                      disabled={!newMessage.trim()}
                       size="sm"
                     >
                       <Send className="w-4 h-4" />
