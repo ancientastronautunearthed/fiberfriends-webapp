@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,8 @@ interface ChatMessage {
 }
 
 export default function Chat() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useFirebaseAuth();
+  const isAuthenticated = !!user;
   const { toast } = useToast();
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
