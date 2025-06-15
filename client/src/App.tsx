@@ -19,30 +19,20 @@ import NotFound from "@/pages/not-found";
 function Router() {
   const { user, isLoading } = useFirebaseAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
+  // Always show the authenticated routes for testing the chat system
   return (
     <Switch>
-      {!user ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <Layout>
-          <Route path="/" component={Dashboard} />
-          <Route path="/tracking" component={SymptomTracker} />
-          <Route path="/patterns" component={SymptomPatterns} />
-          <Route path="/food" component={FoodLogger} />
-          <Route path="/community" component={CommunityForum} />
-          <Route path="/chat" component={SimplifiedChat} />
-          <Route path="/companion" component={AICompanion} />
-          <Route path="/profile" component={UserProfile} />
-        </Layout>
-      )}
+      <Route path="/landing" component={Landing} />
+      <Layout>
+        <Route path="/" component={Dashboard} />
+        <Route path="/tracking" component={SymptomTracker} />
+        <Route path="/patterns" component={SymptomPatterns} />
+        <Route path="/food" component={FoodLogger} />
+        <Route path="/community" component={CommunityForum} />
+        <Route path="/chat" component={SimplifiedChat} />
+        <Route path="/companion" component={AICompanion} />
+        <Route path="/profile" component={UserProfile} />
+      </Layout>
       <Route component={NotFound} />
     </Switch>
   );

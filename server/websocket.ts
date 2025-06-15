@@ -29,6 +29,9 @@ export class ChatWebSocketServer {
 
   private handleConnection(ws: AuthenticatedWebSocket) {
     console.log('New WebSocket connection');
+    
+    // For testing purposes, assign a mock user ID
+    ws.userId = 'test-user-' + Math.random().toString(36).substr(2, 9);
 
     ws.on('message', async (data) => {
       try {
