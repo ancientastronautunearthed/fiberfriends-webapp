@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, User, Send, Mic, MicOff, Volume2, VolumeX, Calendar, Heart, Activity, Apple } from "lucide-react";
-import { generateAICompanionResponse, getConversationHistoryForUser } from "@/lib/api";
+import { generateAICompanionResponse, getConversationHistoryForUser, getAICompanionPersonality } from "@/lib/api";
 
 // TypeScript declarations for Web Speech API
 declare global {
@@ -43,7 +43,7 @@ declare var SpeechRecognition: {
 };
 
 export default function AICompanion() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useFirebaseAuth();
   const { toast } = useToast();
   
   const [message, setMessage] = useState("");
@@ -52,25 +52,21 @@ export default function AICompanion() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
-  const [messages, setMessages] = useState([]);
-  const [companion, setCompanion] = useState(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [companion, setCompanion] = useState<any>(null);
 
-  // Load AI companion data
+  // Load AI companion data from Firebase
   const { data: companionData, isLoading: companionLoading } = useQuery({
-    queryKey: ["/api/ai-companion"],
-    enabled: isAuthenticated
+    queryKey: ["ai-companion", user?.uid],
+    queryFn: () => getAICompanionPersonality(user?.uid),
+    enabled: isAuthenticated && !!user?.uid
   });
 
-  // Load conversation history
+  // Load conversation history from Firebase
   const { data: conversationHistory, isLoading: historyLoading } = useQuery({
-    queryKey: ["/api/ai-companion", companionData?.id, "conversation"],
-    enabled: !!companionData?.id
-  });
-
-  // Load health insights
-  const { data: healthInsights, isLoading: insightsLoading } = useQuery({
-    queryKey: ["/api/ai-companion/health-insights"],
-    enabled: isAuthenticated
+    queryKey: ["conversation-history", user?.uid],
+    queryFn: () => getConversationHistoryForUser(user?.uid),
+    enabled: isAuthenticated && !!user?.uid
   });
 
   // Initialize companion and conversation history
@@ -98,16 +94,16 @@ export default function AICompanion() {
     }
   }, [companionData, conversationHistory, historyLoading]);
 
-  // Redirect to home if not authenticated
+  // Redirect to home if not authenticated  
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
+        title: "Authentication Required",
+        description: "Please sign in to access your AI companion.",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -251,7 +247,6 @@ export default function AICompanion() {
 
       // Generate AI response with enhanced context
       const aiResponse = await generateAICompanionResponse(currentMessage, {
-        userId: "current-user",
         conversationHistory: messages.slice(-10), // Send last 10 messages for context
         memoryContext: {
           previousTopics: ["symptom tracking", "daily routines"],
