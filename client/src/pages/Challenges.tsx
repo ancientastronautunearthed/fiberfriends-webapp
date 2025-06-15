@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { ChallengeTracker } from "@/components/challenge-trackers/ChallengeTracker";
-import { Trophy, Target, Calendar, Star, Gift, Zap, Heart, Users, Brain, Play } from "lucide-react";
+import { JourneyTracker } from "@/components/challenge-trackers/JourneyTracker";
+import { Trophy, Target, Calendar, Star, Gift, Zap, Heart, Users, Brain, Play, X } from "lucide-react";
 
 export default function Challenges() {
   const [selectedTab, setSelectedTab] = useState("available");
@@ -39,10 +40,13 @@ export default function Challenges() {
         description: "A new personalized challenge has been created for you!"
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const isRateLimited = error.message.includes('RATE_LIMIT_EXCEEDED');
       toast({
         title: "Error",
-        description: "Failed to generate challenge. Please try again.",
+        description: isRateLimited 
+          ? "Daily challenge creation limit reached. You can create up to 3 challenges per day."
+          : "Failed to generate challenge. Please try again.",
         variant: "destructive"
       });
     }
@@ -87,6 +91,28 @@ export default function Challenges() {
       toast({
         title: "Error",
         description: "Failed to complete challenge. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Dismiss challenge mutation
+  const dismissChallengeMutation = useMutation({
+    mutationFn: async (challengeId: string) => {
+      const response = await apiRequest("DELETE", `/api/user-challenges/${challengeId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user-challenges"] });
+      toast({
+        title: "Challenge Dismissed",
+        description: "Challenge has been removed from your active list."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to dismiss challenge. Please try again.",
         variant: "destructive"
       });
     }

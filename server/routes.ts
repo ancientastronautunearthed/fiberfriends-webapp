@@ -535,6 +535,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dismiss user challenge
+  app.delete('/api/user-challenges/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Verify the challenge belongs to the user
+      const userChallenge = await storage.getUserChallenge(userId, id);
+      if (!userChallenge) {
+        return res.status(404).json({ message: "Challenge not found" });
+      }
+      
+      // Remove the challenge from user's active list
+      await storage.updateUserChallengeProgress(userChallenge.id, {}, 'dismissed');
+      
+      res.json({ message: "Challenge dismissed successfully" });
+    } catch (error) {
+      console.error("Error dismissing challenge:", error);
+      res.status(500).json({ message: "Failed to dismiss challenge" });
+    }
+  });
+
   // Achievement routes
   app.get('/api/achievements', async (req, res) => {
     try {

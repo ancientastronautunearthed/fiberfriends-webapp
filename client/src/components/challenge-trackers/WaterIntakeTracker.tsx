@@ -94,16 +94,18 @@ export function WaterIntakeTracker({ challengeId, targetGlasses, onProgress, onC
                 onClick={() => handleGlassClick(index)}
               >
                 {/* Glass interior water animation - starts full, empties when consumed */}
-                {!isFilled && (
-                  <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-b-lg" />
-                )}
+                <div 
+                  className={`absolute bottom-0 left-0 right-0 rounded-b-lg transition-all duration-500 ${
+                    isFilled ? 'h-0 bg-transparent' : 'h-full bg-gradient-to-t from-blue-500 to-blue-300'
+                  }`}
+                />
                 
                 {/* Glass number label */}
                 <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground">
                   Glass {index + 1}
                 </div>
                 
-                {/* Check mark for consumed glasses */}
+                {/* Check mark for consumed (empty) glasses */}
                 {isFilled && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-green-500 text-xl">✓</div>
