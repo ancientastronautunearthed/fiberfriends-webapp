@@ -14,3 +14,4 @@
 [debug] [2025-06-15T18:45:56.223Z] Field "/apphosting" in "firebase.json" is possibly invalid: must match a schema in anyOf
 [debug] [2025-06-15T18:45:56.711Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
 [debug] [2025-06-15T18:45:56.711Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] [Firebase Plugin] Stopping Data Connect toolkit

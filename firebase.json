@@ -1,15 +1,15 @@
 {
-  "apphosting": {
+  "hosting": {
     "source": ".",
-    "environmentVariables": {
-      "VITE_FIREBASE_API_KEY": "${secret:VITE_FIREBASE_API_KEY}",
-      "VITE_FIREBASE_PROJECT_ID": "${secret:VITE_FIREBASE_PROJECT_ID}",
-      "VITE_FIREBASE_APP_ID": "${secret:VITE_FIREBASE_APP_ID}",
-      "GEMINI_API_KEY": "${secret:GEMINI_API_KEY}"
-    },
-    "buildCommand": "npm run build",
-    "outputDirectory": "dist",
-    "startCommand": "npm start"
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "id": "fiberfriends-webapp",
+      "region": "us-central1"
+    }
   },
   "firestore": {
     "rules": "firestore.rules",
