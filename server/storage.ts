@@ -415,14 +415,37 @@ export class DatabaseStorage implements IStorage {
     return updatedChallenge;
   }
 
-  async getUserChallenges(userId: string, status?: string): Promise<UserChallenge[]> {
-    let query = db.select().from(userChallenges).where(eq(userChallenges.userId, userId));
+  async getUserChallenges(userId: string, status?: string): Promise<any[]> {
+    const userChallengeRows = await db
+      .select()
+      .from(userChallenges)
+      .where(
+        status 
+          ? and(eq(userChallenges.userId, userId), eq(userChallenges.status, status))
+          : eq(userChallenges.userId, userId)
+      )
+      .orderBy(desc(userChallenges.startedAt));
+
+    // Get all challenge IDs to fetch in batch
+    const challengeIds = userChallengeRows.map(uc => uc.challengeId);
     
-    if (status) {
-      query = query.where(eq(userChallenges.status, status));
+    let challengeMap = new Map();
+    if (challengeIds.length > 0) {
+      const challengesData = await db
+        .select()
+        .from(challenges)
+        .where(challenges.id);
+      
+      challengesData.forEach(challenge => {
+        challengeMap.set(challenge.id, challenge);
+      });
     }
-    
-    return await query.orderBy(desc(userChallenges.startedAt));
+
+    // Combine user challenges with challenge data
+    return userChallengeRows.map(userChallenge => ({
+      ...userChallenge,
+      challenge: challengeMap.get(userChallenge.challengeId) || null
+    }));
   }
 
   async getUserChallenge(userId: string, challengeId: string): Promise<UserChallenge | undefined> {
