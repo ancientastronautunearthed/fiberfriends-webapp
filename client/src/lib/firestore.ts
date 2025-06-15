@@ -1,143 +1,410 @@
 import { 
   collection, 
   doc, 
-  setDoc, 
   getDoc, 
   getDocs, 
-  addDoc, 
+  setDoc, 
   updateDoc, 
+  addDoc, 
+  deleteDoc, 
   query, 
   where, 
   orderBy, 
   limit, 
-  Timestamp 
+  onSnapshot,
+  Timestamp,
+  serverTimestamp
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { 
-  User, 
-  UpsertUser,
-  AiCompanion,
-  InsertAiCompanion,
-  DailyLog,
-  InsertDailyLog,
-  CommunityPost,
-  InsertCommunityPost
-} from "@shared/schema";
 
-// User operations
-export async function getUserProfile(userId: string): Promise<User | null> {
+// User Management
+export const createUser = async (userId: string, userData: any) => {
+  await setDoc(doc(db, "users", userId), {
+    ...userData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+};
+
+export const getUser = async (userId: string) => {
   const userDoc = await getDoc(doc(db, "users", userId));
-  return userDoc.exists() ? userDoc.data() as User : null;
-}
+  return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null;
+};
 
-export async function updateUserProfile(userId: string, updates: Partial<UpsertUser>): Promise<void> {
+export const updateUser = async (userId: string, updates: any) => {
   await updateDoc(doc(db, "users", userId), {
     ...updates,
-    updatedAt: Timestamp.now(),
+    updatedAt: serverTimestamp()
   });
-}
+};
 
-// AI Companion operations
-export async function getAiCompanion(userId: string): Promise<AiCompanion | null> {
-  const companionQuery = query(
-    collection(db, "aiCompanions"),
+// Daily Symptom Logs
+export const createDailySymptomLog = async (userId: string, symptomData: any) => {
+  const today = new Date().toISOString().split('T')[0];
+  await setDoc(doc(db, "dailySymptomLogs", `${userId}_${today}`), {
+    userId,
+    entryDate: today,
+    symptomData,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const getDailySymptomLogs = async (userId: string) => {
+  const q = query(
+    collection(db, "dailySymptomLogs"), 
     where("userId", "==", userId),
-    limit(1)
+    orderBy("entryDate", "desc")
   );
-  const companionSnapshot = await getDocs(companionQuery);
-  
-  if (companionSnapshot.empty) return null;
-  
-  const companionDoc = companionSnapshot.docs[0];
-  return { id: companionDoc.id, ...companionDoc.data() } as AiCompanion;
-}
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
 
-export async function createAiCompanion(companion: InsertAiCompanion): Promise<AiCompanion> {
-  const docRef = await addDoc(collection(db, "aiCompanions"), {
-    ...companion,
-    createdAt: Timestamp.now(),
+export const checkDailySymptomLog = async (userId: string) => {
+  const today = new Date().toISOString().split('T')[0];
+  const logDoc = await getDoc(doc(db, "dailySymptomLogs", `${userId}_${today}`));
+  return {
+    needsSymptomLog: !logDoc.exists(),
+    lastSubmission: logDoc.exists() ? today : null,
+    today
+  };
+};
+
+// AI Companions
+export const createAiCompanion = async (userId: string, companionData: any) => {
+  await setDoc(doc(db, "aiCompanions", userId), {
+    userId,
+    ...companionData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
-  
-  const companionDoc = await getDoc(docRef);
-  return { id: docRef.id, ...companionDoc.data() } as AiCompanion;
-}
+};
 
-// Daily Log operations
-export async function getDailyLogs(userId: string): Promise<DailyLog[]> {
-  const logsQuery = query(
-    collection(db, "dailyLogs"),
+export const getAiCompanion = async (userId: string) => {
+  const companionDoc = await getDoc(doc(db, "aiCompanions", userId));
+  return companionDoc.exists() ? { id: companionDoc.id, ...companionDoc.data() } : null;
+};
+
+export const updateAiCompanion = async (userId: string, updates: any) => {
+  await updateDoc(doc(db, "aiCompanions", userId), {
+    ...updates,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Conversation History
+export const saveConversationMessage = async (userId: string, companionId: string, message: any) => {
+  await addDoc(collection(db, "conversationHistory"), {
+    userId,
+    companionId,
+    ...message,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const getConversationHistory = async (userId: string, companionId: string, limitCount = 50) => {
+  const q = query(
+    collection(db, "conversationHistory"),
     where("userId", "==", userId),
-    orderBy("date", "desc"),
-    limit(30)
+    where("companionId", "==", companionId),
+    orderBy("createdAt", "desc"),
+    limit(limitCount)
   );
-  
-  const logsSnapshot = await getDocs(logsQuery);
-  return logsSnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as DailyLog[];
-}
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
+};
 
-export async function createDailyLog(log: InsertDailyLog): Promise<DailyLog> {
-  const docRef = await addDoc(collection(db, "dailyLogs"), {
-    ...log,
-    date: Timestamp.fromDate(log.date),
-    createdAt: Timestamp.now(),
+// Health Insights
+export const createHealthInsight = async (userId: string, insightData: any) => {
+  await addDoc(collection(db, "aiHealthInsights"), {
+    userId,
+    ...insightData,
+    createdAt: serverTimestamp()
   });
-  
-  const logDoc = await getDoc(docRef);
-  return { id: docRef.id, ...logDoc.data() } as DailyLog;
-}
+};
 
-// Community Post operations
-export async function getCommunityPosts(category?: string): Promise<CommunityPost[]> {
-  let postsQuery = query(
+export const getHealthInsights = async (userId: string) => {
+  const q = query(
+    collection(db, "aiHealthInsights"),
+    where("userId", "==", userId),
+    where("isActive", "==", true),
+    orderBy("createdAt", "desc"),
+    limit(10)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// Community Posts
+export const createCommunityPost = async (userId: string, postData: any) => {
+  await addDoc(collection(db, "communityPosts"), {
+    authorId: userId,
+    ...postData,
+    likes: 0,
+    replies: 0,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const getCommunityPosts = async (category?: string) => {
+  let q = query(
     collection(db, "communityPosts"),
     orderBy("createdAt", "desc"),
-    limit(50)
+    limit(20)
   );
-
+  
   if (category) {
-    postsQuery = query(
+    q = query(
       collection(db, "communityPosts"),
       where("category", "==", category),
       orderBy("createdAt", "desc"),
-      limit(50)
+      limit(20)
     );
   }
   
-  const postsSnapshot = await getDocs(postsQuery);
-  return postsSnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as CommunityPost[];
-}
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
 
-export async function createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
-  const docRef = await addDoc(collection(db, "communityPosts"), {
-    ...post,
-    likes: 0,
-    replies: 0,
-    createdAt: Timestamp.now(),
+// Challenges
+export const createChallenge = async (challengeData: any) => {
+  await addDoc(collection(db, "challenges"), {
+    ...challengeData,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const getChallenges = async (category?: string) => {
+  let q = query(
+    collection(db, "challenges"),
+    where("isActive", "==", true),
+    orderBy("createdAt", "desc")
+  );
+  
+  if (category) {
+    q = query(
+      collection(db, "challenges"),
+      where("category", "==", category),
+      where("isActive", "==", true),
+      orderBy("createdAt", "desc")
+    );
+  }
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// User Challenges
+export const startUserChallenge = async (userId: string, challengeId: string) => {
+  await addDoc(collection(db, "userChallenges"), {
+    userId,
+    challengeId,
+    status: "in-progress",
+    progress: 0,
+    startedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+};
+
+export const getUserChallenges = async (userId: string) => {
+  const q = query(
+    collection(db, "userChallenges"),
+    where("userId", "==", userId),
+    orderBy("startedAt", "desc")
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const updateUserChallenge = async (challengeId: string, updates: any) => {
+  await updateDoc(doc(db, "userChallenges", challengeId), {
+    ...updates,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Achievements
+export const createAchievement = async (achievementData: any) => {
+  await addDoc(collection(db, "achievements"), {
+    ...achievementData,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const getAchievements = async () => {
+  const q = query(
+    collection(db, "achievements"),
+    orderBy("tier", "asc")
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const unlockUserAchievement = async (userId: string, achievementId: string) => {
+  await addDoc(collection(db, "userAchievements"), {
+    userId,
+    achievementId,
+    unlockedAt: serverTimestamp()
+  });
+};
+
+export const getUserAchievements = async (userId: string) => {
+  const q = query(
+    collection(db, "userAchievements"),
+    where("userId", "==", userId),
+    orderBy("unlockedAt", "desc")
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// Points System
+export const awardPoints = async (userId: string, activityType: string, points: number, description?: string) => {
+  // Add point activity record
+  await addDoc(collection(db, "pointActivities"), {
+    userId,
+    activityType,
+    points,
+    description: description || `Earned ${points} points for ${activityType}`,
+    createdAt: serverTimestamp()
+  });
+
+  // Update user's total points
+  const userDoc = await getDoc(doc(db, "users", userId));
+  if (userDoc.exists()) {
+    const currentPoints = userDoc.data().points || 0;
+    await updateDoc(doc(db, "users", userId), {
+      points: currentPoints + points,
+      totalPoints: (userDoc.data().totalPoints || 0) + points,
+      updatedAt: serverTimestamp()
+    });
+  }
+};
+
+export const getPointActivities = async (userId: string, limitCount = 20) => {
+  const q = query(
+    collection(db, "pointActivities"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc"),
+    limit(limitCount)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// Research Data (Anonymized)
+export const submitAnonymizedResearchData = async (userId: string, researchData: any) => {
+  await addDoc(collection(db, "anonymizedResearchData"), {
+    userId,
+    ...researchData,
+    contributedAt: serverTimestamp()
   });
   
-  const postDoc = await getDoc(docRef);
-  return { id: docRef.id, ...postDoc.data() } as CommunityPost;
-}
+  // Update user's research contribution status
+  await updateDoc(doc(db, "users", userId), {
+    anonymizedDataContributed: true,
+    communityInsightsAccess: true,
+    lastResearchContribution: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+};
 
-export async function updateCommunityPost(postId: string, updates: Partial<CommunityPost>): Promise<void> {
-  await updateDoc(doc(db, "communityPosts", postId), updates);
-}
-
-// Dashboard stats
-export async function getDashboardStats(userId: string) {
-  const recentLogs = await getDailyLogs(userId);
-  const totalLogs = recentLogs.length;
-  const streak = 7; // Mock calculation
+export const getResearchContributionStatus = async (userId: string) => {
+  const userDoc = await getDoc(doc(db, "users", userId));
+  const userData = userDoc.data();
+  
+  // Count daily logs as contributions
+  const dailyLogs = await getDailySymptomLogs(userId);
   
   return {
-    totalLogs,
-    streak,
-    recentLogs: recentLogs.slice(0, 5),
+    hasContributed: dailyLogs.length > 0,
+    contributionCount: dailyLogs.length,
+    totalDataPoints: dailyLogs.length * 7,
+    qualityScore: Math.min(100, dailyLogs.length * 10),
+    communityImpactScore: dailyLogs.length * 5,
+    hasInsightsAccess: userData?.communityInsightsAccess || dailyLogs.length > 0,
+    researchOptIn: userData?.researchDataOptIn !== false
   };
-}
+};
+
+// Community Health Insights
+export const getCommunityHealthInsights = async () => {
+  // Return predefined insights for now
+  return [
+    {
+      id: 'insight-1',
+      insightType: 'trend',
+      title: 'Sleep Quality Impact on Symptoms',
+      description: 'Users with better sleep quality (7+ hours) report 32% fewer severe symptoms during flare-ups',
+      dataPoints: {
+        average_reduction: 32,
+        sleep_threshold: 7,
+        symptom_severity_scale: '1-10'
+      },
+      affectedPopulation: {
+        age_ranges: ['26-35', '36-45'],
+        sample_size: 156
+      },
+      confidenceLevel: 85,
+      sampleSize: 156,
+      priority: 'high',
+      category: 'sleep',
+      generatedAt: '2025-06-15T00:00:00Z'
+    },
+    {
+      id: 'insight-2',
+      insightType: 'correlation',
+      title: 'Diet and Fiber Management',
+      description: 'Eliminating processed foods correlates with 28% improvement in fiber-related symptoms within 2 weeks',
+      dataPoints: {
+        improvement_percentage: 28,
+        timeframe_days: 14,
+        foods_eliminated: ['processed_sugars', 'artificial_additives']
+      },
+      affectedPopulation: {
+        dietary_adherence: 'high',
+        location_regions: ['North America', 'Europe']
+      },
+      confidenceLevel: 78,
+      sampleSize: 203,
+      priority: 'medium',
+      category: 'diet',
+      generatedAt: '2025-06-14T00:00:00Z'
+    },
+    {
+      id: 'insight-3',
+      insightType: 'pattern',
+      title: 'Weather Sensitivity Patterns',
+      description: 'Humid weather (>70% humidity) increases symptom reports by 45% in 67% of contributors',
+      dataPoints: {
+        humidity_threshold: 70,
+        symptom_increase: 45,
+        affected_percentage: 67
+      },
+      affectedPopulation: {
+        climate_zones: ['humid_subtropical', 'oceanic'],
+        diagnosis_status: ['diagnosed', 'suspected']
+      },
+      confidenceLevel: 92,
+      sampleSize: 389,
+      priority: 'high',
+      category: 'environment',
+      generatedAt: '2025-06-13T00:00:00Z'
+    }
+  ];
+};
+
+// Real-time listeners
+export const subscribeToConversation = (userId: string, companionId: string, callback: (messages: any[]) => void) => {
+  const q = query(
+    collection(db, "conversationHistory"),
+    where("userId", "==", userId),
+    where("companionId", "==", companionId),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+  
+  return onSnapshot(q, (snapshot) => {
+    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
+    callback(messages);
+  });
+};

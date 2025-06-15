@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useDailySymptomCheck } from "@/hooks/useDailySymptomCheck";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
@@ -29,7 +29,7 @@ import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated } = useFirebaseAuth();
   const { needsSymptomLog, isLoading: isCheckingSymptomLog } = useDailySymptomCheck();
 
   if (isLoading || isCheckingSymptomLog) {

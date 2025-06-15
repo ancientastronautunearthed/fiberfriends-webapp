@@ -1,62 +1,44 @@
 import { useState, useEffect } from "react";
 import { 
-  User as FirebaseUser, 
-  signInWithPopup, 
+  User,
+  onAuthStateChanged,
+  signInWithRedirect,
   signOut as firebaseSignOut,
-  onAuthStateChanged 
+  getRedirectResult
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, googleProvider, db } from "@/lib/firebase";
-import { User } from "@shared/schema";
+import { auth, googleProvider } from "@/lib/firebase";
+import { getUser, createUser } from "@/lib/firestore";
 
 export function useFirebaseAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Handle redirect result on page load
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          await handleUserLogin(result.user);
+        }
+      } catch (error) {
+        console.error("Error handling redirect result:", error);
+      }
+    };
+
+    handleRedirectResult();
+
+    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
       
       if (firebaseUser) {
-        // Get or create user profile in Firestore
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
-        } else {
-          // Create new user profile
-          const newUser: User = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email,
-            firstName: firebaseUser.displayName?.split(" ")[0] || "",
-            lastName: firebaseUser.displayName?.split(" ")[1] || "",
-            profileImageUrl: firebaseUser.photoURL,
-            points: 0,
-            trophyCase: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            height: null,
-            weight: null,
-            age: null,
-            gender: null,
-            location: null,
-            diagnosisStatus: null,
-            misdiagnoses: [],
-            diagnosisTimeline: null,
-            hasFibers: false,
-            otherDiseases: [],
-            foodPreferences: null,
-            habits: null,
-            hobbies: null,
-          };
-          
-          await setDoc(userDocRef, newUser);
-          setUser(newUser);
-        }
+        await handleUserLogin(firebaseUser);
       } else {
         setUser(null);
+        setIsAuthenticated(false);
       }
       
       setIsLoading(false);
@@ -65,21 +47,56 @@ export function useFirebaseAuth() {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const handleUserLogin = async (firebaseUser: User) => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      // Check if user exists in Firestore
+      let userData = await getUser(firebaseUser.uid);
+      
+      if (!userData) {
+        // Create new user in Firestore
+        const newUserData = {
+          email: firebaseUser.email,
+          firstName: firebaseUser.displayName?.split(' ')[0] || '',
+          lastName: firebaseUser.displayName?.split(' ')[1] || '',
+          profileImageUrl: firebaseUser.photoURL,
+          onboardingCompleted: false,
+          points: 0,
+          totalPoints: 0,
+          currentTier: "Newcomer",
+          streakDays: 0,
+          longestStreak: 0,
+          researchDataOptIn: true,
+          communityInsightsAccess: false,
+          anonymizedDataContributed: false
+        };
+        
+        await createUser(firebaseUser.uid, newUserData);
+        userData = { id: firebaseUser.uid, ...newUserData };
+      }
+
+      setUser(userData);
+      setIsAuthenticated(true);
     } catch (error) {
-      console.error("Error signing in with Google:", error);
-      throw error;
+      console.error("Error handling user login:", error);
+      setIsAuthenticated(false);
+    }
+  };
+
+  const signIn = async () => {
+    try {
+      await signInWithRedirect(auth, googleProvider);
+    } catch (error) {
+      console.error("Error signing in:", error);
     }
   };
 
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      setUser(null);
+      setIsAuthenticated(false);
     } catch (error) {
       console.error("Error signing out:", error);
-      throw error;
     }
   };
 
@@ -87,8 +104,8 @@ export function useFirebaseAuth() {
     user,
     firebaseUser,
     isLoading,
-    isAuthenticated: !!user,
-    signInWithGoogle,
-    signOut,
+    isAuthenticated,
+    signIn,
+    signOut
   };
 }
