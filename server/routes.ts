@@ -3,6 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema } from "@shared/schema";
+import { 
+  generateNutritionalAnalysis, 
+  generateSymptomInsight, 
+  generateCommunityPostAnalysis,
+  generateAICompanionResponse,
+  generateDailyChallenge
+} from "./genkit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
