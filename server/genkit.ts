@@ -184,37 +184,40 @@ export async function generateAICompanionResponse(userMessage: string, userConte
 }
 
 export async function generateDailyChallenge() {
+  // Create variety by using random elements
+  const seed = Math.floor(Math.random() * 10000);
+  const categories = ['nutrition', 'wellness', 'movement', 'mindfulness', 'skincare', 'sleep', 'social'];
+  const focusAreas = [
+    'anti-inflammatory foods', 'detox support', 'gut health', 'energy boosting',
+    'stress relief', 'gentle stretching', 'deep breathing', 'gratitude practice',
+    'skin barrier repair', 'sleep optimization', 'connection building', 'creative expression'
+  ];
+  
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+  const randomFocus = focusAreas[Math.floor(Math.random() * focusAreas.length)];
+  
   const prompt = `
-    Create a daily wellness challenge for someone managing Morgellons disease.
-    Focus on:
-    - Nutrition education
-    - Stress management
-    - Sleep hygiene
-    - Gentle movement
-    - Mindfulness
+    Create a UNIQUE wellness challenge for Morgellons disease management (seed: ${seed}).
+    Focus area: ${randomFocus}
+    Category: ${randomCategory}
     
-    Format as a JSON object with trackable requirements:
+    AVOID these overused titles: "Mindful Moments", "Hydration Hero", "Continue Your Journey", "Mindful Breathing"
+    
+    Create something specific and actionable. Format as JSON:
     {
-      "title": "challenge_title",
-      "description": "challenge_description", 
-      "points": points_reward_number,
-      "category": "nutrition|wellness|movement|mindfulness",
+      "title": "specific_creative_title",
+      "description": "detailed_actionable_description", 
+      "points": 15-45,
+      "category": "${randomCategory}",
       "difficulty": "easy|medium|hard",
       "requirements": {
-        // For breathing exercises:
-        "technique": "breathing",
-        "daily_minutes": 5,
-        
-        // For water intake:
-        "daily_glasses": 8,
-        
-        // For journaling:
-        "daily_words": 150,
-        "duration_days": 7,
-        
-        // For symptom tracking:
-        "consecutive_days": 3,
-        "time_of_day": "morning"
+        "technique": "breathing|water-intake|journaling|symptom-tracking|general",
+        "daily_minutes": 5-15,
+        "daily_glasses": 6-10,
+        "daily_words": 50-200,
+        "duration_days": 1-7,
+        "consecutive_days": 3-7,
+        "time_of_day": "morning|evening|anytime"
       }
     }
     

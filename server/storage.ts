@@ -111,6 +111,11 @@ export interface IStorage {
   getUserRank(userId: string, period: string, category: string): Promise<number>;
   
   updateUserPoints(userId: string, points: number): Promise<User>;
+  
+  // Challenge creation rate limiting
+  getChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit | undefined>;
+  updateChallengeCreationLimit(userId: string, date: string): Promise<ChallengeCreationLimit>;
+  canCreateChallenge(userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {

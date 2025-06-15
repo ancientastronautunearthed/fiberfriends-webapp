@@ -222,6 +222,17 @@ export const leaderboards = pgTable("leaderboards", {
   index("idx_leaderboards_rank").on(table.rank),
 ]);
 
+export const challengeCreationLimits = pgTable("challenge_creation_limits", {
+  id: varchar("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  date: varchar("date").notNull(), // YYYY-MM-DD format
+  challengesCreated: integer("challenges_created").notNull().default(0),
+  lastCreatedAt: timestamp("last_created_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_creation_limits_user_date").on(table.userId, table.date),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   aiCompanions: many(aiCompanions),
@@ -344,6 +355,13 @@ export const leaderboardsRelations = relations(leaderboards, ({ one }) => ({
   }),
 }));
 
+export const challengeCreationLimitsRelations = relations(challengeCreationLimits, ({ one }) => ({
+  user: one(users, {
+    fields: [challengeCreationLimits.userId],
+    references: [users.id],
+  }),
+}));
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -452,3 +470,11 @@ export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
 export type UserAchievement = typeof userAchievements.$inferSelect;
 export type InsertLeaderboard = z.infer<typeof insertLeaderboardSchema>;
 export type Leaderboard = typeof leaderboards.$inferSelect;
+
+export const insertChallengeCreationLimitSchema = createInsertSchema(challengeCreationLimits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChallengeCreationLimit = z.infer<typeof insertChallengeCreationLimitSchema>;
+export type ChallengeCreationLimit = typeof challengeCreationLimits.$inferSelect;
