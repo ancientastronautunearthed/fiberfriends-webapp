@@ -277,14 +277,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get conversation context for AI response
       const conversationContext = await storage.getConversationContext(userId, companionId);
       
-      // Generate AI response with context
+      // Get user's complete health profile for personalized responses
+      const userProfile = await storage.getUser(userId);
+      
+      // Generate AI response with comprehensive health profile context
       const aiResponse = await generateAICompanionResponse(message, {
         userId,
         conversationHistory: conversationContext.recentMessages,
         memoryContext: conversationContext.memoryContext,
         conversationStyle: conversationContext.conversationStyle,
         preferences: conversationContext.preferences,
-        userContext: context || {}
+        userContext: userProfile || {}
       });
       
       // Save AI response

@@ -250,12 +250,24 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     RECENT CONVERSATION CONTEXT:
     ${recentMessages}
     
-    USER'S CURRENT CONTEXT:
-    - Recent mood: ${userContext.recentMood || 'Not specified'}
-    - Sleep quality: ${userContext.sleepQuality || 'Not specified'}
-    - Symptom level: ${userContext.symptomLevel || 'Not specified'}
-    - Energy level: ${userContext.energyLevel || 'Not specified'}
-    - Stress level: ${userContext.stressLevel || 'Not specified'}
+    USER'S HEALTH PROFILE:
+    - Name: ${userContext.firstName || 'User'} ${userContext.lastName || ''}
+    - Age: ${userContext.age || 'Not specified'}
+    - Gender: ${userContext.gender || 'Not specified'}
+    - Height: ${userContext.height || 'Not specified'}
+    - Weight: ${userContext.weight || 'Not specified'}
+    - Location: ${userContext.location || 'Not specified'}
+    - Diagnosis Status: ${userContext.diagnosisStatus || 'Not specified'}
+    - Has Fiber Symptoms: ${userContext.hasFibers ? 'Yes' : 'No'}
+    - Diagnosis Timeline: ${userContext.diagnosisTimeline || 'Not provided'}
+    - Previous Misdiagnoses: ${userContext.misdiagnoses?.length ? userContext.misdiagnoses.join(', ') : 'None reported'}
+    - Other Health Conditions: ${userContext.otherDiseases?.length ? userContext.otherDiseases.join(', ') : 'None reported'}
+    - Food Dislikes: ${userContext.foodPreferences?.dislikes?.length ? userContext.foodPreferences.dislikes.join(', ') : 'None specified'}
+    - Food Favorites: ${userContext.foodPreferences?.favorites?.length ? userContext.foodPreferences.favorites.join(', ') : 'None specified'}
+    - Smoking: ${userContext.habits?.smoking ? 'Yes' : 'No'}
+    - Alcohol: ${userContext.habits?.alcohol ? 'Yes' : 'No'}
+    - Exercise Frequency: ${userContext.habits?.exercise || 'Not specified'}
+    - Hobbies: ${userContext.hobbies || 'Not specified'}
     
     MEMORY CONTEXT: ${JSON.stringify(memoryContext)}
     
@@ -263,11 +275,17 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     
     SPECIALIZED RESPONSE GUIDELINES:
     - Validate the reality of Morgellons symptoms and patient experiences
+    - Use the comprehensive health profile to provide PERSONALIZED recommendations:
+      * Tailor anti-inflammatory food suggestions based on their food preferences and dislikes
+      * Consider their exercise habits when suggesting physical activities
+      * Reference their diagnosis timeline and previous misdiagnoses for emotional validation
+      * Acknowledge their specific health conditions and how they might interact with Morgellons
+      * Adapt advice based on their age, gender, and lifestyle factors (smoking, alcohol)
+      * Incorporate their hobbies and interests into stress management suggestions
     - Provide specific, actionable strategies based on Morgellons research and patient reports
     - Reference symptom patterns, triggers, and management techniques specific to Morgellons
     - Suggest documentation methods for skin lesions, fibers, and symptom tracking
-    - Recommend anti-inflammatory foods, supplements, and lifestyle modifications
-    - Address the emotional toll of living with a misunderstood condition
+    - Address the emotional toll of living with a misunderstood condition, especially acknowledging their journey
     - Encourage seeking knowledgeable healthcare providers familiar with Morgellons
     - Share insights about environmental factors, detoxification, and immune support
     - Never minimize symptoms or suggest they are psychological in nature
