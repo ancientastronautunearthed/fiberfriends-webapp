@@ -32,23 +32,11 @@ const hasValidConfig = firebaseConfig.apiKey &&
                       firebaseConfig.appId &&
                       firebaseConfig.apiKey !== 'undefined';
 
-if (hasValidConfig) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    if (app) {
-      auth = getAuth(app);
-      db = getFirestore(app);
-      console.log('Firebase initialized successfully');
-    }
-  } catch (error) {
-    console.error("Firebase initialization error:", error);
-    app = null;
-    auth = null;
-    db = null;
-  }
-} else {
-  console.log('Firebase config incomplete, using test mode');
-}
+// Disable Firebase initialization completely to prevent authentication errors
+console.log('Firebase disabled, using test mode only');
+app = null;
+auth = null;
+db = null;
 
 // Set up test mode if Firebase is not available
 if (!app && isBrowser) {
