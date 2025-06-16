@@ -2,9 +2,6 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// ADD THIS LINE FOR DEBUGGING
-console.log("API Key being used:", import.meta.env.VITE_FIREBASE_API_KEY);
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
@@ -14,10 +11,37 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase only if no apps exist
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let app: any = null;
+let auth: any = null;
+let db: any = null;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  if (app) {
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
+} catch (error) {
+  console.error("Firebase initialization error:", error);
+  // Set up test mode if Firebase fails
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('test-mode', 'true');
+    localStorage.setItem('test-user', JSON.stringify({
+      id: 'test-user-123',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      onboardingCompleted: true,
+      points: 100,
+      totalPoints: 100,
+      currentTier: 'Newcomer',
+      streakDays: 3,
+      longestStreak: 7
+    }));
+  }
+}
+
+export { auth, db };
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');

@@ -33,21 +33,44 @@ export function useFirebaseAuth() {
       }
     }
 
+    // Check if Firebase auth is available
+    if (!auth) {
+      console.log('Firebase auth not available, using test mode');
+      setIsLoading(false);
+      return;
+    }
+
     // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setFirebaseUser(firebaseUser);
-      
-      if (firebaseUser) {
-        await handleUserLogin(firebaseUser);
-      } else {
+    let unsubscribe: (() => void) | null = null;
+    
+    try {
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setFirebaseUser(firebaseUser);
+        
+        if (firebaseUser) {
+          await handleUserLogin(firebaseUser);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        
+        setIsLoading(false);
+      }, (error) => {
+        console.error('Auth state change error:', error);
         setUser(null);
         setIsAuthenticated(false);
-      }
-      
+        setIsLoading(false);
+      });
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
       setIsLoading(false);
-    });
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const handleUserLogin = async (firebaseUser: User) => {
@@ -81,6 +104,8 @@ export function useFirebaseAuth() {
       setIsAuthenticated(true);
     } catch (error) {
       console.error("Error handling user login:", error);
+      // Don't throw the error, just set auth to false
+      setUser(null);
       setIsAuthenticated(false);
     }
   };
