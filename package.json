@@ -1,11 +1,10 @@
 {
   "name": "rest-express",
   "version": "1.0.0",
-  "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "cross-env GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && esbuild server/index.ts --platform=node --bundle --format=esm --outdir=dist",
+    "build": "vite build && esbuild server/index.ts --platform=node --bundle --format=cjs --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc"
   },
