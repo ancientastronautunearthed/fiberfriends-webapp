@@ -3,12 +3,20 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+// Vite environment variables with fallbacks for different environments
+const getEnvVar = (key: string) => {
+  if (typeof window !== 'undefined') {
+    return (window as any).__ENV__?.[key] || (import.meta as any).env?.[key];
+  }
+  return process.env[key];
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
+  authDomain: `${getEnvVar('VITE_FIREBASE_PROJECT_ID')}.firebaseapp.com`,
+  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: `${getEnvVar('VITE_FIREBASE_PROJECT_ID')}.firebasestorage.app`,
+  appId: getEnvVar('VITE_FIREBASE_APP_ID'),
 };
 
 // Initialize Firebase
