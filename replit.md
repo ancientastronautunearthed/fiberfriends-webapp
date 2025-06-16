@@ -123,6 +123,12 @@ Fiber Friends is a comprehensive health tracking application specifically design
 ## Changelog
 
 - June 16, 2025. Initial setup
+- June 16, 2025. Migrated from Replit Agent to standard Replit environment for Firebase deployment
+  - Removed Replit-specific dependencies (@replit/vite-plugin-cartographer, @replit/vite-plugin-runtime-error-modal)
+  - Configured Firebase integration with user's project credentials (fiber-friends)
+  - Fixed vite configuration and server startup issues
+  - Added Firebase configuration files for App Hosting deployment
+  - All data operations configured for Firebase Firestore and Storage
 
 ## User Preferences
 
