@@ -1,936 +1,319 @@
-import {
-  pgTable,
-  text,
-  varchar,
-  timestamp,
-  jsonb,
-  index,
-  serial,
-  integer,
-  boolean,
-  real,
-} from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { relations } from "drizzle-orm";
-
-// Session storage table (required for Replit Auth)
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
-
-// User storage table (required for Replit Auth)
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  
-  // Complete health profile fields from initial document
-  height: varchar("height"),
-  weight: varchar("weight"),
-  age: integer("age"),
-  gender: varchar("gender"),
-  location: varchar("location"), // city, state
-  diagnosisStatus: varchar("diagnosis_status"), // 'diagnosed', 'suspected'
-  misdiagnoses: text("misdiagnoses").array(),
-  diagnosisTimeline: text("diagnosis_timeline"),
-  hasFibers: boolean("has_fibers").default(false),
-  otherDiseases: text("other_diseases").array(),
-  dateOfBirth: varchar("date_of_birth"), // For birthday bonus points
-  foodDislikes: text("food_dislikes").array(), // Comprehensive list with custom options
-  foodFavorites: text("food_favorites").array(), // Comprehensive list with custom options
-  foodAllergies: text("food_allergies").array(), // Critical for Luna's meal planning
-  currentMedications: text("current_medications").array(), // Critical for drug-food interactions
-  
-  // Employment Information
-  isEmployed: boolean("is_employed").default(false),
-  workHours: varchar("work_hours"), // e.g., "9am-5pm", "Night shift", "Part-time"
-  incomeLevel: varchar("income_level"), // Optional: "low", "middle", "high", "prefer-not-to-say"
-  
-  // Enhanced lifestyle habits with detailed smoking/alcohol info
-  habits: jsonb("habits"), // {smoking: boolean, alcohol: boolean, exercise: string}
-  smokingDuration: varchar("smoking_duration"), // How long they've smoked
-  smokingFrequency: varchar("smoking_frequency"), // How often they smoke
-  alcoholDuration: varchar("alcohol_duration"), // How long they've been drinking
-  alcoholFrequency: varchar("alcohol_frequency"), // How often they drink
-  
-  // Personal & Family Information
-  relationshipStatus: varchar("relationship_status"),
-  hasChildren: boolean("has_children").default(false),
-  childrenCount: integer("children_count"),
-  childrenAges: varchar("children_ages"),
-  hasSiblings: boolean("has_siblings").default(false),
-  siblingsCount: integer("siblings_count"),
-  
-  // Important Dates for Reminders and Gift Ideas
-  importantBirthdays: text("important_birthdays"), // JSON string: [{id, relationship, name, dateOfBirth}]
-  socialPreferences: text("social_preferences"), // How they prefer to socialize
-  
-  // Hobbies and interests
-  hobbies: text("hobbies"),
-  
-  // Onboarding completion tracking
-  onboardingCompleted: boolean("onboarding_completed").default(false),
-  
-  // Enhanced Gamification System
-  points: integer("points").default(0),
-  totalPoints: integer("total_points").default(0), // Lifetime points earned
-  currentTier: varchar("current_tier").default("Newcomer"),
-  nextTierPoints: integer("next_tier_points").default(100),
-  streakDays: integer("streak_days").default(0),
-  longestStreak: integer("longest_streak").default(0),
-  lastActiveDate: varchar("last_active_date"),
-  lastDailySymptomLog: varchar("last_daily_symptom_log"), // Track last daily log submission
-  trophyCase: text("trophy_case").array(),
-  unlockedBadges: text("unlocked_badges").array(),
-  weeklyGoalProgress: jsonb("weekly_goal_progress"), // Track weekly activity goals
-  
-  // Research Data Contribution
-  researchDataOptIn: boolean("research_data_opt_in").default(true), // Default opt-in
-  anonymizedDataContributed: boolean("anonymized_data_contributed").default(false),
-  researchContributorLevel: varchar("research_contributor_level").default("basic"), // basic, contributor, advocate
-  communityInsightsAccess: boolean("community_insights_access").default(false),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Environmental Triggers table - tracks external factors
-export const environmentalTriggers = pgTable("environmental_triggers", {
-  id: varchar("id").primaryKey().notNull(),
-  userId: varchar("user_id").notNull(),
-  
-  // Weather data
-  temperature: real("temperature"), // in Fahrenheit
-  humidity: real("humidity"), // percentage
-  barometricPressure: real("barometric_pressure"), // in inHg
-  weatherCondition: varchar("weather_condition"), // sunny, cloudy, rainy, etc.
-  windSpeed: real("wind_speed"), // mph
-  uvIndex: real("uv_index"),
-  airQuality: integer("air_quality"), // AQI value
-  
-  // Location data
-  locationName: varchar("location_name"), // city, state
-  latitude: real("latitude"),
-  longitude: real("longitude"),
-  timezone: varchar("timezone"),
-  
-  // Environmental factors
-  stressLevel: integer("stress_level"), // 1-10 scale
-  sleepQuality: integer("sleep_quality"), // 1-10 scale
-  sleepHours: real("sleep_hours"),
-  indoorOutdoorTime: jsonb("indoor_outdoor_time"), // {indoor: hours, outdoor: hours}
-  exposureFactors: text("exposure_factors").array(), // chemicals, allergens, etc.
-  
-  // Correlation tracking
-  symptomSeverity: integer("symptom_severity"), // 1-10 scale
-  primarySymptoms: text("primary_symptoms").array(),
-  moodRating: integer("mood_rating"), // 1-10 scale
-  energyLevel: integer("energy_level"), // 1-10 scale
-  
-  // Meta data
-  recordedAt: timestamp("recorded_at").defaultNow(),
-  dataSource: varchar("data_source"), // manual, weather_api, wearable, etc.
-  notes: text("notes"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Environmental Correlations - AI-generated insights
-export const environmentalCorrelations = pgTable("environmental_correlations", {
-  id: varchar("id").primaryKey().notNull(),
-  userId: varchar("user_id").notNull(),
-  
-  // Correlation data
-  triggerType: varchar("trigger_type"), // weather, location, stress, sleep, etc.
-  triggerValue: varchar("trigger_value"), // specific weather condition, stress level, etc.
-  correlationStrength: real("correlation_strength"), // 0-1 scale
-  confidenceLevel: real("confidence_level"), // 0-1 scale
-  
-  // Pattern analysis
-  patternDescription: text("pattern_description"),
-  recommendations: text("recommendations").array(),
-  timeframe: varchar("timeframe"), // daily, weekly, seasonal, etc.
-  
-  // Statistical data
-  occurrenceCount: integer("occurrence_count"),
-  averageSymptomIncrease: real("average_symptom_increase"), // percentage
-  dataPointsAnalyzed: integer("data_points_analyzed"),
-  
-  // Meta data
-  generatedAt: timestamp("generated_at").defaultNow(),
-  lastUpdated: timestamp("last_updated").defaultNow(),
-  isActive: boolean("is_active").default(true),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Location History - for pattern analysis
-export const locationHistory = pgTable("location_history", {
-  id: varchar("id").primaryKey().notNull(),
-  userId: varchar("user_id").notNull(),
-  
-  locationName: varchar("location_name").notNull(),
-  latitude: real("latitude"),
-  longitude: real("longitude"),
-  address: text("address"),
-  
-  // Time tracking
-  entryTime: timestamp("entry_time").notNull(),
-  exitTime: timestamp("exit_time"),
-  duration: integer("duration"), // minutes
-  
-  // Context
-  locationType: varchar("location_type"), // home, work, medical, outdoor, etc.
-  symptomChanges: jsonb("symptom_changes"), // before/after symptoms
-  notes: text("notes"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// AI Companions
-export const aiCompanions = pgTable("ai_companions", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  companionName: varchar("companion_name").notNull(),
-  companionImageUrl: varchar("companion_image_url"),
-  personaKeywords: text("persona_keywords").array(),
-  personality: text("personality"),
-  preferences: jsonb("preferences"),
-  voiceEnabled: boolean("voice_enabled").default(true),
-  conversationStyle: varchar("conversation_style").default("supportive"),
-  memoryContext: jsonb("memory_context"),
-  lastInteraction: timestamp("last_interaction"),
-  totalConversations: integer("total_conversations").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Conversation History
-export const conversationHistory = pgTable("conversation_history", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  companionId: varchar("companion_id").notNull().references(() => aiCompanions.id, { onDelete: "cascade" }),
-  messageType: varchar("message_type").notNull(),
-  content: text("content").notNull(),
-  context: jsonb("context"),
-  sentiment: varchar("sentiment"),
-  timestamp: timestamp("timestamp").defaultNow(),
-  metadata: jsonb("metadata"),
-});
-
-// AI Health Insights
-export const aiHealthInsights = pgTable("ai_health_insights", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  companionId: varchar("companion_id").notNull().references(() => aiCompanions.id, { onDelete: "cascade" }),
-  insightType: varchar("insight_type").notNull(),
-  title: varchar("title").notNull(),
-  description: text("description").notNull(),
-  dataSource: varchar("data_source"),
-  confidence: real("confidence"),
-  actionable: boolean("actionable").default(false),
-  dismissed: boolean("dismissed").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  relevantData: jsonb("relevant_data"),
-});
-
-// Daily Logs
-export const dailyLogs = pgTable("daily_logs", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  date: timestamp("date").notNull(),
-  logType: varchar("log_type").notNull(), // 'food', 'symptoms'
-  data: jsonb("data").notNull(), // Contains specific log details
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Community Posts
-export const communityPosts = pgTable("community_posts", {
-  id: varchar("id").primaryKey(),
-  authorId: varchar("author_id").notNull(),
-  category: varchar("category").notNull(), // 'story', 'success_tactic', 'question', 'support'
-  title: varchar("title").notNull(),
-  content: text("content").notNull(),
-  aiAnalysis: text("ai_analysis"),
-  likes: integer("likes").default(0),
-  replies: integer("replies").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Symptom Patterns and Analytics
-export const symptomPatterns = pgTable("symptom_patterns", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  patternType: varchar("pattern_type").notNull(), // 'correlation', 'trend', 'trigger', 'cycle'
-  title: varchar("title").notNull(),
-  description: text("description").notNull(),
-  confidence: integer("confidence").notNull(), // 0-100 confidence score
-  frequency: varchar("frequency"), // 'daily', 'weekly', 'monthly', 'irregular'
-  triggeredBy: text("triggered_by").array(), // Food items, activities, weather, etc.
-  symptoms: jsonb("symptoms").notNull(), // Affected symptoms and severity patterns
-  timeframe: jsonb("timeframe").notNull(), // Start/end dates, duration
-  recommendations: text("recommendations").array(),
-  isActive: boolean("is_active").default(true),
-  lastDetected: timestamp("last_detected"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Symptom Correlations
-export const symptomCorrelations = pgTable("symptom_correlations", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  primarySymptom: varchar("primary_symptom").notNull(),
-  correlatedSymptom: varchar("correlated_symptom").notNull(),
-  correlationStrength: integer("correlation_strength").notNull(), // -100 to 100
-  occurrenceCount: integer("occurrence_count").default(1),
-  averageTimeLag: integer("average_time_lag"), // Hours between symptoms
-  contextFactors: text("context_factors").array(), // Weather, food, stress, etc.
-  lastObserved: timestamp("last_observed").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Symptom Wheel Entries
-export const symptomWheelEntries = pgTable("symptom_wheel_entries", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  entryDate: timestamp("entry_date").notNull(),
-  symptomData: jsonb("symptom_data").notNull(), // Array of {symptomId, intensity, mood}
-  totalSymptoms: integer("total_symptoms").default(0),
-  averageIntensity: real("average_intensity").default(0),
-  notes: text("notes"),
-  moodScore: integer("mood_score"), // Overall mood 1-10
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Chat Rooms
-export const chatRooms = pgTable("chat_rooms", {
-  id: varchar("id").primaryKey(),
-  name: varchar("name").notNull(),
-  description: text("description"),
-  category: varchar("category").notNull(), // general, support, research, etc.
-  isPrivate: boolean("is_private").default(false),
-  createdBy: varchar("created_by").notNull(),
-  memberCount: integer("member_count").default(0),
-  lastActivity: timestamp("last_activity").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Chat Messages
-export const chatMessages = pgTable("chat_messages", {
-  id: varchar("id").primaryKey(),
-  roomId: varchar("room_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  content: text("content").notNull(),
-  messageType: varchar("message_type").default("text"), // text, image, file, system
-  replyToId: varchar("reply_to_id"), // For threaded conversations
-  isEdited: boolean("is_edited").default(false),
-  editedAt: timestamp("edited_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Chat Room Members
-export const chatRoomMembers = pgTable("chat_room_members", {
-  id: varchar("id").primaryKey(),
-  roomId: varchar("room_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  role: varchar("role").default("member"), // member, moderator, admin
-  joinedAt: timestamp("joined_at").defaultNow(),
-  lastRead: timestamp("last_read").defaultNow(),
-});
-
-// Gamification Tables
-export const challenges = pgTable("challenges", {
-  id: varchar("id").primaryKey(),
-  title: varchar("title").notNull(),
-  description: text("description").notNull(),
-  type: varchar("type").notNull(), // 'daily', 'weekly', 'milestone', 'special'
-  category: varchar("category").notNull(), // 'health', 'nutrition', 'social', 'mindfulness'
-  difficulty: varchar("difficulty").notNull(), // 'easy', 'medium', 'hard'
-  pointReward: integer("point_reward").notNull(),
-  requirements: jsonb("requirements").notNull(), // Completion criteria
-  isActive: boolean("is_active").default(true),
-  validFrom: timestamp("valid_from"),
-  validUntil: timestamp("valid_until"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const achievements = pgTable("achievements", {
-  id: varchar("id").primaryKey(),
-  title: varchar("title").notNull(),
-  description: text("description").notNull(),
-  icon: varchar("icon").notNull(),
-  category: varchar("category").notNull(),
-  tier: varchar("tier").notNull(), // 'bronze', 'silver', 'gold', 'platinum'
-  pointValue: integer("point_value").notNull(),
-  requirements: jsonb("requirements").notNull(),
-  isSecret: boolean("is_secret").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const userChallenges = pgTable("user_challenges", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  challengeId: varchar("challenge_id").notNull().references(() => challenges.id),
-  status: varchar("status").notNull(), // 'active', 'completed', 'failed', 'skipped'
-  progress: jsonb("progress").default({}),
-  startedAt: timestamp("started_at").defaultNow(),
-  completedAt: timestamp("completed_at"),
-  pointsEarned: integer("points_earned").default(0),
-}, (table) => [
-  index("idx_user_challenges_user").on(table.userId),
-  index("idx_user_challenges_status").on(table.status),
-]);
-
-export const userAchievements = pgTable("user_achievements", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  achievementId: varchar("achievement_id").notNull().references(() => achievements.id),
-  unlockedAt: timestamp("unlocked_at").defaultNow(),
-  pointsEarned: integer("points_earned").notNull(),
-}, (table) => [
-  index("idx_user_achievements_user").on(table.userId),
-]);
-
-export const leaderboards = pgTable("leaderboards", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  period: varchar("period").notNull(), // 'daily', 'weekly', 'monthly', 'all_time'
-  category: varchar("category").notNull(), // 'points', 'challenges', 'streak'
-  score: integer("score").notNull(),
-  rank: integer("rank"),
-  periodStart: timestamp("period_start").notNull(),
-  periodEnd: timestamp("period_end").notNull(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_leaderboards_period_category").on(table.period, table.category),
-  index("idx_leaderboards_rank").on(table.rank),
-]);
-
-export const challengeCreationLimits = pgTable("challenge_creation_limits", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  date: varchar("date").notNull(), // YYYY-MM-DD format
-  challengesCreated: integer("challenges_created").notNull().default(0),
-  lastCreatedAt: timestamp("last_created_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_creation_limits_user_date").on(table.userId, table.date),
-]);
-
-// Relations
-export const usersRelations = relations(users, ({ many }) => ({
-  aiCompanions: many(aiCompanions),
-  dailyLogs: many(dailyLogs),
-  communityPosts: many(communityPosts),
-  symptomPatterns: many(symptomPatterns),
-  symptomCorrelations: many(symptomCorrelations),
-  symptomWheelEntries: many(symptomWheelEntries),
-  chatMessages: many(chatMessages),
-  chatRoomMembers: many(chatRoomMembers),
-  createdChatRooms: many(chatRooms),
-  userChallenges: many(userChallenges),
-  userAchievements: many(userAchievements),
-  leaderboards: many(leaderboards),
-  conversationHistory: many(conversationHistory),
-  aiHealthInsights: many(aiHealthInsights),
-}));
-
-export const aiCompanionsRelations = relations(aiCompanions, ({ one, many }) => ({
-  user: one(users, {
-    fields: [aiCompanions.userId],
-    references: [users.id],
-  }),
-  conversationHistory: many(conversationHistory),
-  healthInsights: many(aiHealthInsights),
-}));
-
-export const conversationHistoryRelations = relations(conversationHistory, ({ one }) => ({
-  user: one(users, {
-    fields: [conversationHistory.userId],
-    references: [users.id],
-  }),
-  companion: one(aiCompanions, {
-    fields: [conversationHistory.companionId],
-    references: [aiCompanions.id],
-  }),
-}));
-
-export const aiHealthInsightsRelations = relations(aiHealthInsights, ({ one }) => ({
-  user: one(users, {
-    fields: [aiHealthInsights.userId],
-    references: [users.id],
-  }),
-  companion: one(aiCompanions, {
-    fields: [aiHealthInsights.companionId],
-    references: [aiCompanions.id],
-  }),
-}));
-
-export const dailyLogsRelations = relations(dailyLogs, ({ one }) => ({
-  user: one(users, {
-    fields: [dailyLogs.userId],
-    references: [users.id],
-  }),
-}));
-
-export const communityPostsRelations = relations(communityPosts, ({ one }) => ({
-  author: one(users, {
-    fields: [communityPosts.authorId],
-    references: [users.id],
-  }),
-}));
-
-export const symptomPatternsRelations = relations(symptomPatterns, ({ one }) => ({
-  user: one(users, {
-    fields: [symptomPatterns.userId],
-    references: [users.id],
-  }),
-}));
-
-export const symptomCorrelationsRelations = relations(symptomCorrelations, ({ one }) => ({
-  user: one(users, {
-    fields: [symptomCorrelations.userId],
-    references: [users.id],
-  }),
-}));
-
-export const chatRoomsRelations = relations(chatRooms, ({ one, many }) => ({
-  creator: one(users, {
-    fields: [chatRooms.createdBy],
-    references: [users.id],
-  }),
-  messages: many(chatMessages),
-  members: many(chatRoomMembers),
-}));
-
-export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
-  room: one(chatRooms, {
-    fields: [chatMessages.roomId],
-    references: [chatRooms.id],
-  }),
-  author: one(users, {
-    fields: [chatMessages.userId],
-    references: [users.id],
-  }),
-  replyTo: one(chatMessages, {
-    fields: [chatMessages.replyToId],
-    references: [chatMessages.id],
-  }),
-}));
-
-export const chatRoomMembersRelations = relations(chatRoomMembers, ({ one }) => ({
-  room: one(chatRooms, {
-    fields: [chatRoomMembers.roomId],
-    references: [chatRooms.id],
-  }),
-  user: one(users, {
-    fields: [chatRoomMembers.userId],
-    references: [users.id],
-  }),
-}));
-
-export const challengesRelations = relations(challenges, ({ many }) => ({
-  userChallenges: many(userChallenges),
-}));
-
-export const achievementsRelations = relations(achievements, ({ many }) => ({
-  userAchievements: many(userAchievements),
-}));
-
-export const userChallengesRelations = relations(userChallenges, ({ one }) => ({
-  user: one(users, {
-    fields: [userChallenges.userId],
-    references: [users.id],
-  }),
-  challenge: one(challenges, {
-    fields: [userChallenges.challengeId],
-    references: [challenges.id],
-  }),
-}));
-
-export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
-  user: one(users, {
-    fields: [userAchievements.userId],
-    references: [users.id],
-  }),
-  achievement: one(achievements, {
-    fields: [userAchievements.achievementId],
-    references: [achievements.id],
-  }),
-}));
-
-export const leaderboardsRelations = relations(leaderboards, ({ one }) => ({
-  user: one(users, {
-    fields: [leaderboards.userId],
-    references: [users.id],
-  }),
-}));
-
-export const challengeCreationLimitsRelations = relations(challengeCreationLimits, ({ one }) => ({
-  user: one(users, {
-    fields: [challengeCreationLimits.userId],
-    references: [users.id],
-  }),
-}));
-
-// Schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertAiCompanionSchema = createInsertSchema(aiCompanions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertDailyLogSchema = createInsertSchema(dailyLogs).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit({
-  id: true,
-  likes: true,
-  replies: true,
-  createdAt: true,
-});
-
-export const insertSymptomWheelEntrySchema = createInsertSchema(symptomWheelEntries).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertSymptomPatternSchema = createInsertSchema(symptomPatterns).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertSymptomCorrelationSchema = createInsertSchema(symptomCorrelations).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
-export type InsertAiCompanion = z.infer<typeof insertAiCompanionSchema>;
-export type AiCompanion = typeof aiCompanions.$inferSelect;
-export type InsertDailyLog = z.infer<typeof insertDailyLogSchema>;
-export type DailyLog = typeof dailyLogs.$inferSelect;
-export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
-export type CommunityPost = typeof communityPosts.$inferSelect;
-export type InsertSymptomPattern = z.infer<typeof insertSymptomPatternSchema>;
-export type SymptomPattern = typeof symptomPatterns.$inferSelect;
-export type InsertSymptomCorrelation = z.infer<typeof insertSymptomCorrelationSchema>;
-export type SymptomCorrelation = typeof symptomCorrelations.$inferSelect;
-
-export type InsertSymptomWheelEntry = z.infer<typeof insertSymptomWheelEntrySchema>;
-export type SymptomWheelEntry = typeof symptomWheelEntries.$inferSelect;
-
-// Enhanced AI companion types
-export const insertConversationHistorySchema = createInsertSchema(conversationHistory).omit({
-  id: true,
-  timestamp: true,
-});
-
-export const insertAiHealthInsightSchema = createInsertSchema(aiHealthInsights).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertConversationHistory = z.infer<typeof insertConversationHistorySchema>;
-export type ConversationHistory = typeof conversationHistory.$inferSelect;
-export type InsertAiHealthInsight = z.infer<typeof insertAiHealthInsightSchema>;
-export type AiHealthInsight = typeof aiHealthInsights.$inferSelect;
-
-export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
-  id: true,
-  createdAt: true,
-  lastActivity: true,
-});
-
-export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertChatRoomMemberSchema = createInsertSchema(chatRoomMembers).omit({
-  id: true,
-  joinedAt: true,
-  lastRead: true,
-});
-
-export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
-export type ChatRoom = typeof chatRooms.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatRoomMember = z.infer<typeof insertChatRoomMemberSchema>;
-export type ChatRoomMember = typeof chatRoomMembers.$inferSelect;
-
-// Gamification schema types
-export const insertChallengeSchema = createInsertSchema(challenges).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertAchievementSchema = createInsertSchema(achievements).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertUserChallengeSchema = createInsertSchema(userChallenges).omit({
-  id: true,
-  startedAt: true,
-  completedAt: true,
-});
-
-export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
-  id: true,
-  unlockedAt: true,
-});
-
-export const insertLeaderboardSchema = createInsertSchema(leaderboards).omit({
-  id: true,
-  updatedAt: true,
-});
-
-export type InsertChallenge = z.infer<typeof insertChallengeSchema>;
-export type Challenge = typeof challenges.$inferSelect;
-export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
-export type Achievement = typeof achievements.$inferSelect;
-export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
-export type UserChallenge = typeof userChallenges.$inferSelect;
-export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
-export type UserAchievement = typeof userAchievements.$inferSelect;
-export type InsertLeaderboard = z.infer<typeof insertLeaderboardSchema>;
-export type Leaderboard = typeof leaderboards.$inferSelect;
-
-export const insertChallengeCreationLimitSchema = createInsertSchema(challengeCreationLimits).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertChallengeCreationLimit = z.infer<typeof insertChallengeCreationLimitSchema>;
-export type ChallengeCreationLimit = typeof challengeCreationLimits.$inferSelect;
-
-// Environmental Trigger schema types
-export const insertEnvironmentalTriggerSchema = createInsertSchema(environmentalTriggers).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertEnvironmentalCorrelationSchema = createInsertSchema(environmentalCorrelations).omit({
-  id: true,
-  generatedAt: true,
-  lastUpdated: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertLocationHistorySchema = createInsertSchema(locationHistory).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type InsertEnvironmentalTrigger = z.infer<typeof insertEnvironmentalTriggerSchema>;
-export type EnvironmentalTrigger = typeof environmentalTriggers.$inferSelect;
-export type InsertEnvironmentalCorrelation = z.infer<typeof insertEnvironmentalCorrelationSchema>;
-export type EnvironmentalCorrelation = typeof environmentalCorrelations.$inferSelect;
-export type InsertLocationHistory = z.infer<typeof insertLocationHistorySchema>;
-export type LocationHistory = typeof locationHistory.$inferSelect;
-
-// Point Activities Tracking
-export const pointActivities = pgTable("point_activities", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  activityType: varchar("activity_type").notNull(), // 'symptom_log', 'food_log', 'chat_message', etc.
-  pointsEarned: integer("points_earned").notNull(),
-  description: text("description"),
-  metadata: jsonb("metadata"), // Additional activity details
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Daily Activity Summary for streak tracking
-export const dailyActivities = pgTable("daily_activities", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  date: varchar("date").notNull(), // YYYY-MM-DD format
-  activitiesCompleted: text("activities_completed").array(), // Track which activities were done
-  totalPoints: integer("total_points").default(0),
-  streakEligible: boolean("streak_eligible").default(false), // Did enough activities to count for streak
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Badge Definitions
-export const badgeDefinitions = pgTable("badge_definitions", {
-  id: varchar("id").primaryKey(),
-  name: varchar("name").notNull(),
-  description: text("description"),
-  iconUrl: varchar("icon_url"),
-  category: varchar("category"), // 'engagement', 'achievement', 'milestone', 'special'
-  tier: varchar("tier"), // 'bronze', 'silver', 'gold', 'platinum', 'diamond'
-  requirements: jsonb("requirements"), // Criteria to unlock badge
-  pointsReward: integer("points_reward").default(0),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// User Badge Unlocks
-export const userBadges = pgTable("user_badges", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  badgeId: varchar("badge_id").notNull().references(() => badgeDefinitions.id),
-  unlockedAt: timestamp("unlocked_at").defaultNow(),
-  progress: jsonb("progress"), // Current progress toward badge if partially unlocked
-});
-
-// Point activity schema
-export const insertPointActivitySchema = createInsertSchema(pointActivities).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertDailyActivitySchema = createInsertSchema(dailyActivities).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertBadgeDefinitionSchema = createInsertSchema(badgeDefinitions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
-  id: true,
-  unlockedAt: true,
-});
-
-export type InsertPointActivity = z.infer<typeof insertPointActivitySchema>;
-export type PointActivity = typeof pointActivities.$inferSelect;
-export type InsertDailyActivity = z.infer<typeof insertDailyActivitySchema>;
-export type DailyActivity = typeof dailyActivities.$inferSelect;
-export type InsertBadgeDefinition = z.infer<typeof insertBadgeDefinitionSchema>;
-export type BadgeDefinition = typeof badgeDefinitions.$inferSelect;
-export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
-export type UserBadge = typeof userBadges.$inferSelect;
-
-// Research Data Tables
-export const anonymizedHealthData = pgTable("anonymized_health_data", {
-  id: varchar("id").primaryKey(),
-  dataHash: varchar("data_hash").notNull().unique(), // Prevent duplicate submissions
-  contributionDate: timestamp("contribution_date").defaultNow(),
-  
-  // Anonymized demographic data
-  ageRange: varchar("age_range"), // "18-25", "26-35", "36-45", "46-55", "56-65", "65+"
-  genderCategory: varchar("gender_category"), // "male", "female", "other", "prefer-not-to-say"
-  locationRegion: varchar("location_region"), // City/State only, no specific address
-  diagnosisStatus: varchar("diagnosis_status"), // "diagnosed", "suspected", "undiagnosed"
-  
-  // Health metrics (aggregated/averaged)
-  symptomData: jsonb("symptom_data"), // Symptoms, frequencies, intensities
-  dietaryPatterns: jsonb("dietary_patterns"), // Food categories, allergies, preferences
-  sleepPatterns: jsonb("sleep_patterns"), // Average sleep quality, duration patterns
-  stressLevels: jsonb("stress_levels"), // Stress patterns and triggers
-  comorbidities: text("comorbidities").array(), // Other health conditions
-  exercisePatterns: jsonb("exercise_patterns"), // Activity levels and types
-  fluidIntake: jsonb("fluid_intake"), // Hydration patterns
-  allergenExposure: jsonb("allergen_exposure"), // Environmental and food allergens
-  
-  // Metadata
-  dataQualityScore: integer("data_quality_score").default(0), // 0-100 based on completeness
-  contributorType: varchar("contributor_type").default("individual"), // individual, researcher, clinic
-});
-
-export const communityHealthInsights = pgTable("community_health_insights", {
-  id: varchar("id").primaryKey(),
-  insightType: varchar("insight_type").notNull(), // "trend", "correlation", "pattern", "alert"
-  title: varchar("title").notNull(),
-  description: text("description").notNull(),
-  
-  // Insight data
-  dataPoints: jsonb("data_points"), // Statistical findings
-  affectedPopulation: jsonb("affected_population"), // Demographics of affected users
-  confidenceLevel: integer("confidence_level"), // 0-100 statistical confidence
-  sampleSize: integer("sample_size"), // Number of data points used
-  
-  // Metadata
-  generatedAt: timestamp("generated_at").defaultNow(),
-  validUntil: timestamp("valid_until"), // When insight expires
-  priority: varchar("priority").default("medium"), // low, medium, high, critical
-  category: varchar("category").notNull(), // symptoms, diet, sleep, exercise, environment
-  
-  // Access control
-  accessLevel: varchar("access_level").default("contributor"), // public, contributor, researcher
-  isActive: boolean("is_active").default(true),
-});
-
-export const researchContributions = pgTable("research_contributions", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  contributionType: varchar("contribution_type").notNull(), // "data", "survey", "feedback", "validation"
-  
-  // Contribution tracking
-  dataSubmissionCount: integer("data_submission_count").default(0),
-  lastContributionDate: timestamp("last_contribution_date"),
-  totalDataPoints: integer("total_data_points").default(0),
-  qualityScore: integer("quality_score").default(0), // Average quality of contributions
-  
-  // Rewards and recognition
-  contributorBadges: text("contributor_badges").array(),
-  insightsUnlocked: integer("insights_unlocked").default(0),
-  communityImpactScore: integer("community_impact_score").default(0),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Schema validation
-export const insertAnonymizedHealthDataSchema = createInsertSchema(anonymizedHealthData).omit({
-  id: true,
-  contributionDate: true,
-});
-
-export const insertCommunityHealthInsightSchema = createInsertSchema(communityHealthInsights).omit({
-  id: true,
-  generatedAt: true,
-});
-
-export const insertResearchContributionSchema = createInsertSchema(researchContributions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-// Types
-export type InsertAnonymizedHealthData = z.infer<typeof insertAnonymizedHealthDataSchema>;
-export type AnonymizedHealthData = typeof anonymizedHealthData.$inferSelect;
-export type InsertCommunityHealthInsight = z.infer<typeof insertCommunityHealthInsightSchema>;
-export type CommunityHealthInsight = typeof communityHealthInsights.$inferSelect;
-export type InsertResearchContribution = z.infer<typeof insertResearchContributionSchema>;
-export type ResearchContribution = typeof researchContributions.$inferSelect;
-
-// Research data relations
-export const researchContributionsRelations = relations(researchContributions, ({ one }) => ({
-  user: one(users, {
-    fields: [researchContributions.userId],
-    references: [users.id],
-  }),
-}));
+// Firebase Firestore Schema Types
+// This file defines the data models for Firebase Firestore collections
+
+export interface User {
+  id: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  onboardingCompleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  profile?: UserProfile;
+  totalPoints: number;
+  currentStreak: number;
+  tier: string;
+}
+
+export interface UserProfile {
+  age?: number;
+  diagnosisDate?: Date;
+  severity?: 'mild' | 'moderate' | 'severe';
+  primarySymptoms: string[];
+  triggers: string[];
+  medications: string[];
+  allergies: string[];
+  goals: string[];
+  privacySettings: {
+    shareData: boolean;
+    visibleToSupport: boolean;
+    anonymousContribution: boolean;
+  };
+}
+
+export interface DailyLog {
+  id: string;
+  userId: string;
+  date: Date;
+  symptoms: SymptomEntry[];
+  foodItems: FoodEntry[];
+  environmentalFactors: EnvironmentalEntry[];
+  mood: number; // 1-10 scale
+  energy: number; // 1-10 scale
+  sleepHours?: number;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface SymptomEntry {
+  type: string;
+  severity: number; // 1-10 scale
+  location?: string;
+  duration?: string;
+  triggers?: string[];
+  notes?: string;
+}
+
+export interface FoodEntry {
+  name: string;
+  category: string;
+  portion: string;
+  time: Date;
+  reaction?: string;
+  severity?: number;
+}
+
+export interface EnvironmentalEntry {
+  factor: string;
+  value: string | number;
+  unit?: string;
+}
+
+export interface AiCompanion {
+  id: string;
+  userId: string;
+  name: string;
+  personality: LunaPersonality;
+  imageUrl: string;
+  description: string;
+  communicationStyle: string;
+  focusAreas: string[];
+  greeting: string;
+  createdAt: Date;
+}
+
+export interface LunaPersonality {
+  tone: 'warm' | 'professional' | 'playful' | 'gentle' | 'energetic';
+  style: 'supportive' | 'analytical' | 'motivational' | 'empathetic' | 'practical';
+  personality: 'nurturing' | 'scientific' | 'encouraging' | 'calm' | 'enthusiastic';
+  appearance: {
+    hairColor: 'blonde' | 'brown' | 'black' | 'red' | 'silver' | 'blue';
+    eyeColor: 'blue' | 'brown' | 'green' | 'hazel' | 'purple' | 'amber';
+    style: 'professional' | 'casual' | 'artistic' | 'futuristic' | 'natural';
+    outfit: 'lab_coat' | 'casual_wear' | 'business_attire' | 'artistic_clothing' | 'nature_inspired';
+    environment: 'medical_office' | 'cozy_room' | 'garden' | 'tech_space' | 'peaceful_sanctuary';
+  };
+}
+
+export interface ConversationHistory {
+  id: string;
+  companionId: string;
+  userId: string;
+  messages: ConversationMessage[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  metadata?: any;
+}
+
+export interface CommunityPost {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  likes: number;
+  replies: number;
+  isAnonymous: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CommunityReply {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  likes: number;
+  isAnonymous: boolean;
+  createdAt: Date;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  type: 'daily' | 'weekly' | 'personal' | 'milestone';
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  points: number;
+  requirements: any;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  participantCount: number;
+  createdAt: Date;
+}
+
+export interface UserChallenge {
+  id: string;
+  userId: string;
+  challengeId: string;
+  status: 'active' | 'completed' | 'failed' | 'skipped';
+  progress: number;
+  startedAt: Date;
+  completedAt?: Date;
+  evidence?: any;
+  pointsEarned: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  icon: string;
+  points: number;
+  requirements: any;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface UserAchievement {
+  id: string;
+  userId: string;
+  achievementId: string;
+  unlockedAt: Date;
+  progress: number;
+  isCompleted: boolean;
+}
+
+export interface PointActivity {
+  id: string;
+  userId: string;
+  type: string;
+  points: number;
+  description: string;
+  metadata?: any;
+  createdAt: Date;
+}
+
+export interface UserBadge {
+  id: string;
+  userId: string;
+  badgeId: string;
+  title: string;
+  description: string;
+  icon: string;
+  awardedAt: Date;
+  progress?: number;
+}
+
+export interface ChatRoom {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'public' | 'private' | 'support';
+  createdBy: string;
+  memberCount: number;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  userId: string;
+  content: string;
+  type: 'text' | 'image' | 'system';
+  isAnonymous: boolean;
+  createdAt: Date;
+}
+
+export interface ChatRoomMember {
+  id: string;
+  roomId: string;
+  userId: string;
+  role: 'member' | 'moderator' | 'admin';
+  joinedAt: Date;
+  lastSeenAt?: Date;
+}
+
+export interface SymptomPattern {
+  id: string;
+  userId: string;
+  patternType: string;
+  symptoms: string[];
+  triggers: string[];
+  frequency: string;
+  severity: number;
+  timePattern: string;
+  confidence: number;
+  detectedAt: Date;
+}
+
+export interface SymptomCorrelation {
+  id: string;
+  userId: string;
+  symptom1: string;
+  symptom2: string;
+  correlationStrength: number;
+  frequency: number;
+  timeDelay?: number;
+  confidence: number;
+  detectedAt: Date;
+}
+
+export interface AiHealthInsight {
+  id: string;
+  userId: string;
+  type: 'pattern' | 'recommendation' | 'warning' | 'progress';
+  title: string;
+  content: string;
+  data: any;
+  confidence: number;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export interface SymptomWheelEntry {
+  id: string;
+  userId: string;
+  date: Date;
+  symptoms: {
+    category: string;
+    severity: number;
+    location?: string;
+  }[];
+  overallSeverity: number;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface Leaderboard {
+  id: string;
+  userId: string;
+  period: 'daily' | 'weekly' | 'monthly' | 'all-time';
+  category: 'points' | 'streak' | 'challenges' | 'community';
+  rank: number;
+  score: number;
+  updatedAt: Date;
+}
+
+// Type helpers for creating and updating documents
+export type InsertUser = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertDailyLog = Omit<DailyLog, 'id' | 'createdAt'>;
+export type InsertAiCompanion = Omit<AiCompanion, 'id' | 'createdAt'>;
+export type InsertConversationHistory = Omit<ConversationHistory, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertCommunityPost = Omit<CommunityPost, 'id' | 'likes' | 'replies' | 'createdAt' | 'updatedAt'>;
+export type InsertChallenge = Omit<Challenge, 'id' | 'participantCount' | 'createdAt'>;
+export type InsertUserChallenge = Omit<UserChallenge, 'id' | 'startedAt'>;
+export type InsertAchievement = Omit<Achievement, 'id' | 'createdAt'>;
+export type InsertUserAchievement = Omit<UserAchievement, 'id'>;
+export type InsertChatRoom = Omit<ChatRoom, 'id' | 'memberCount' | 'createdAt'>;
+export type InsertChatMessage = Omit<ChatMessage, 'id' | 'createdAt'>;
+export type InsertChatRoomMember = Omit<ChatRoomMember, 'id'>;
+export type InsertSymptomPattern = Omit<SymptomPattern, 'id' | 'detectedAt'>;
+export type InsertSymptomCorrelation = Omit<SymptomCorrelation, 'id' | 'detectedAt'>;
+export type InsertAiHealthInsight = Omit<AiHealthInsight, 'id' | 'createdAt'>;
+export type InsertSymptomWheelEntry = Omit<SymptomWheelEntry, 'id' | 'createdAt'>;
+
+// Update types
+export type UpsertUser = Partial<InsertUser> & { id?: string };
