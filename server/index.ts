@@ -51,8 +51,8 @@ async function startServer() {
       res.status(status).json({ message });
     });
 
-    // Use PORT from environment variable (Cloud Run sets this to 8080)
-    const port = parseInt(process.env.PORT || "8080", 10);
+    // Use PORT from environment variable (default to 5000 for development)
+    const port = parseInt(process.env.PORT || "5000", 10);
     const host = process.env.HOST || "0.0.0.0";
 
     server.listen(port, host, () => {
