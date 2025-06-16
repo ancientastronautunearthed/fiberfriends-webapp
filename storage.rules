@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // User profile images - users can only upload their own profile images
+    match /users/{userId}/profile/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // AI companion images - users can only upload images for their own companions
+    match /companions/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Symptom documentation images - users can only upload their own symptom images
+    match /symptoms/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Community post images - authenticated users can upload, everyone can read
+    match /community/{postId}/{allPaths=**} {
+      allow read: if true; // Public read access for community images
+      allow write: if request.auth != null;
+    }
+    
+    // Chat images - users can upload, room members can read
+    match /chat/{roomId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

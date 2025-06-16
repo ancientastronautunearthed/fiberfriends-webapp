@@ -569,16 +569,29 @@ export const getCommunityHealthInsights = async () => {
 
 // Real-time listeners
 export const subscribeToConversation = (userId: string, companionId: string, callback: (messages: any[]) => void) => {
-  const q = query(
-    collection(db, "conversationHistory"),
-    where("userId", "==", userId),
-    where("companionId", "==", companionId),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
-  
-  return onSnapshot(q, (snapshot) => {
-    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
-    callback(messages);
-  });
+  if (!db) {
+    console.log('Database not available for real-time subscription');
+    return () => {}; // Return empty unsubscribe function
+  }
+
+  try {
+    const q = query(
+      collection(db, "conversationHistory"),
+      where("userId", "==", userId),
+      where("companionId", "==", companionId),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
+      callback(messages);
+    }, (error) => {
+      console.error('Real-time subscription error:', error);
+      callback([]); // Return empty array on error
+    });
+  } catch (error) {
+    console.error('Error setting up real-time subscription:', error);
+    return () => {}; // Return empty unsubscribe function
+  }
 };

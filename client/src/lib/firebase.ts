@@ -15,10 +15,12 @@ const getEnvVar = (key: string) => {
 
 const firebaseConfig = {
   apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
-  authDomain: `${getEnvVar('VITE_FIREBASE_PROJECT_ID')}.firebaseapp.com`,
+  authDomain: "fiber-friends.firebaseapp.com",
   projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID'),
-  storageBucket: `${getEnvVar('VITE_FIREBASE_PROJECT_ID')}.firebasestorage.app`,
+  storageBucket: "fiber-friends.firebasestorage.app",
+  messagingSenderId: "202818399028",
   appId: getEnvVar('VITE_FIREBASE_APP_ID'),
+  measurementId: "G-6E6V9BVQ0E"
 };
 
 // Initialize Firebase only if configuration is complete
@@ -32,11 +34,26 @@ const hasValidConfig = firebaseConfig.apiKey &&
                       firebaseConfig.appId &&
                       firebaseConfig.apiKey !== 'undefined';
 
-// Disable Firebase initialization completely to prevent authentication errors
-console.log('Firebase disabled, using test mode only');
-app = null;
-auth = null;
-db = null;
+if (hasValidConfig) {
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    if (app) {
+      auth = getAuth(app);
+      db = getFirestore(app);
+      console.log('Firebase initialized successfully');
+    }
+  } catch (error) {
+    console.error("Firebase initialization error:", error);
+    app = null;
+    auth = null;
+    db = null;
+  }
+} else {
+  console.log('Firebase config incomplete, check environment variables');
+  app = null;
+  auth = null;
+  db = null;
+}
 
 // Set up test mode if Firebase is not available
 if (!app && isBrowser) {
