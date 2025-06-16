@@ -111,7 +111,7 @@ export function useFirebaseAuth() {
   };
 
   const signIn = async () => {
-    if (!auth) {
+    if (!auth || !googleProvider) {
       console.log("Firebase auth not available, enabling test mode");
       const testUser = {
         id: 'test-user-123',
@@ -136,14 +136,16 @@ export function useFirebaseAuth() {
       console.log("Starting Google sign-in...");
       
       // Clear any existing popup blockers
-      googleProvider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      
-      const result = await signInWithPopup(auth, googleProvider!);
-      if (result.user) {
-        console.log("Sign-in successful:", result.user.email);
-        await handleUserLogin(result.user);
+      if (googleProvider) {
+        googleProvider.setCustomParameters({
+          prompt: 'select_account'
+        });
+        
+        const result = await signInWithPopup(auth, googleProvider);
+        if (result.user) {
+          console.log("Sign-in successful:", result.user.email);
+          await handleUserLogin(result.user);
+        }
       }
     } catch (error: any) {
       console.error("Sign-in error:", error);
@@ -174,11 +176,16 @@ export function useFirebaseAuth() {
         return;
       }
       
-      await firebaseSignOut(auth);
+      if (auth) {
+        await firebaseSignOut(auth);
+      }
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
       console.error("Error signing out:", error);
+      // Force logout regardless of Firebase error
+      setUser(null);
+      setIsAuthenticated(false);
     }
   };
 

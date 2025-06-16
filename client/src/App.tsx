@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useDailySymptomCheck } from "@/hooks/useDailySymptomCheck";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
 import LunaCreation from "@/pages/LunaCreation";
@@ -30,8 +31,10 @@ import Layout from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { user, isLoading, isAuthenticated } = useFirebaseAuth();
-  const { needsSymptomLog, isLoading: isCheckingSymptomLog } = useDailySymptomCheck();
+  const authData = useFirebaseAuth();
+  const { user, isLoading, isAuthenticated } = authData || { user: null, isLoading: true, isAuthenticated: false };
+  const symptomCheck = useDailySymptomCheck();
+  const { needsSymptomLog, isLoading: isCheckingSymptomLog } = symptomCheck || { needsSymptomLog: false, isLoading: true };
 
   if (isLoading || isCheckingSymptomLog) {
     return (
@@ -98,12 +101,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
