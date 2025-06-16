@@ -2,30 +2,58 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+// Check if we're in the browser environment
+const isBrowser = typeof window !== 'undefined';
+
+// Get environment variables safely
+const getEnvVar = (key: string) => {
+  if (isBrowser) {
+    return (import.meta as any).env?.[key];
+  }
+  return undefined;
 };
 
-// Initialize Firebase only if no apps exist
+const firebaseConfig = {
+  apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
+  authDomain: `${getEnvVar('VITE_FIREBASE_PROJECT_ID')}.firebaseapp.com`,
+  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: `${getEnvVar('VITE_FIREBASE_PROJECT_ID')}.firebasestorage.app`,
+  appId: getEnvVar('VITE_FIREBASE_APP_ID'),
+};
+
+// Initialize Firebase only if configuration is complete
 let app: any = null;
 let auth: any = null;
 let db: any = null;
 
-try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  if (app) {
-    auth = getAuth(app);
-    db = getFirestore(app);
+// Check if all required config values are present
+const hasValidConfig = firebaseConfig.apiKey && 
+                      firebaseConfig.projectId && 
+                      firebaseConfig.appId &&
+                      firebaseConfig.apiKey !== 'undefined';
+
+if (hasValidConfig) {
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    if (app) {
+      auth = getAuth(app);
+      db = getFirestore(app);
+      console.log('Firebase initialized successfully');
+    }
+  } catch (error) {
+    console.error("Firebase initialization error:", error);
+    app = null;
+    auth = null;
+    db = null;
   }
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-  // Set up test mode if Firebase fails
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('test-mode', 'true');
+} else {
+  console.log('Firebase config incomplete, using test mode');
+}
+
+// Set up test mode if Firebase is not available
+if (!app && isBrowser) {
+  localStorage.setItem('test-mode', 'true');
+  if (!localStorage.getItem('test-user')) {
     localStorage.setItem('test-user', JSON.stringify({
       id: 'test-user-123',
       email: 'test@example.com',
@@ -42,8 +70,13 @@ try {
 }
 
 export { auth, db };
-export const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('email');
-googleProvider.addScope('profile');
+
+// Only create GoogleAuthProvider if auth is available
+export const googleProvider = auth ? (() => {
+  const provider = new GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+  return provider;
+})() : null;
 
 export default app;

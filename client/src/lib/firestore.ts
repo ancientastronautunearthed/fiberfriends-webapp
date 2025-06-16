@@ -19,16 +19,45 @@ import { db } from "./firebase";
 
 // User Management
 export const createUser = async (userId: string, userData: any) => {
-  await setDoc(doc(db, "users", userId), {
-    ...userData,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
+  // Check if Firebase is available
+  if (!db) {
+    console.log('Firebase not available, using test mode');
+    const testUser = { id: userId, ...userData };
+    localStorage.setItem('test-user', JSON.stringify(testUser));
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, "users", userId), {
+      ...userData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error creating user in Firestore:', error);
+    // Fallback to test mode
+    const testUser = { id: userId, ...userData };
+    localStorage.setItem('test-user', JSON.stringify(testUser));
+    localStorage.setItem('test-mode', 'true');
+  }
 };
 
 export const getUser = async (userId: string) => {
-  const userDoc = await getDoc(doc(db, "users", userId));
-  return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null;
+  // Check if Firebase is available
+  if (!db) {
+    console.log('Firebase not available, checking test mode');
+    const testUser = localStorage.getItem('test-user');
+    return testUser ? JSON.parse(testUser) : null;
+  }
+
+  try {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null;
+  } catch (error) {
+    console.error('Error getting user from Firestore:', error);
+    // Return null instead of throwing to prevent unhandled rejections
+    return null;
+  }
 };
 
 export const updateUser = async (userId: string, updates: any) => {
@@ -76,7 +105,7 @@ export const checkDailySymptomLog = async (userId: string) => {
   const today = new Date().toISOString().split('T')[0];
   
   // Demo mode fallback
-  if (localStorage.getItem('test-mode') === 'true') {
+  if (localStorage.getItem('test-mode') === 'true' || !db) {
     const logKey = `dailySymptomLog_${userId}_${today}`;
     const existingLog = localStorage.getItem(logKey);
     return {
@@ -86,12 +115,22 @@ export const checkDailySymptomLog = async (userId: string) => {
     };
   }
   
-  const logDoc = await getDoc(doc(db, "dailySymptomLogs", `${userId}_${today}`));
-  return {
-    needsSymptomLog: !logDoc.exists(),
-    lastSubmission: logDoc.exists() ? today : null,
-    today
-  };
+  try {
+    const logDoc = await getDoc(doc(db, "dailySymptomLogs", `${userId}_${today}`));
+    return {
+      needsSymptomLog: !logDoc.exists(),
+      lastSubmission: logDoc.exists() ? today : null,
+      today
+    };
+  } catch (error) {
+    console.error('Error checking daily symptom log:', error);
+    // Return default state to prevent unhandled rejections
+    return {
+      needsSymptomLog: true,
+      lastSubmission: null,
+      today
+    };
+  }
 };
 
 // AI Companions
