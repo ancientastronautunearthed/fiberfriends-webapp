@@ -632,7 +632,8 @@ export class DatabaseStorage {
       achievementId,
       earnedAt: FieldValue.serverTimestamp(),
       isCompleted: true,
-    } as Omit<UserAchievement, 'id' | 'progress'>);
+      progress: 100,
+    });
 
     const doc = await docRef.get();
     return fromDoc<UserAchievement>(doc)!;

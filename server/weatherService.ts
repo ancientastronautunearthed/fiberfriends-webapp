@@ -223,7 +223,7 @@ export class WeatherService {
         throw new Error('User not found');
       }
 
-      const weather = await this.getCurrentWeather(user.location || 'New York');
+      const weather = await this.getCurrentWeather(user.profile?.location || 'New York');
       const isWorkDay = await this.isWorkDay(userId);
       
       let dayOffMessage;
