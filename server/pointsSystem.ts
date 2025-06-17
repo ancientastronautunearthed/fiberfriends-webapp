@@ -1,4 +1,4 @@
-// server/pointsSystem.ts
+\// server/pointsSystem.ts
 import { storage } from "./storage";
 import { v4 as uuidv4 } from "uuid";
 import { UserBadge } from "@shared/schema";
@@ -321,9 +321,12 @@ class PointsSystem {
 
     const recentActivities = await storage.getRecentPointActivities(userId, 10);
     const badges = await storage.getUserBadges(userId);
-    const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0];
-    const dailyActivity = await storage.getDailyActivity(userId, todayDateString);
+    
+    // FIX: Create a new Date object representing the start of today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const dailyActivity = await storage.getDailyActivity(userId, startOfToday);
+    
     const nextTierPoints = this.getNextTierThreshold(user.totalPoints);
 
     return {
@@ -347,13 +350,16 @@ class PointsSystem {
     const user = await storage.getUser(userId);
     if (!user) return 0;
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayDateString = yesterday.toISOString().split('T')[0];
+    // FIX: Create a new Date object representing the start of yesterday
+    const startOfYesterday = new Date();
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    startOfYesterday.setHours(0, 0, 0, 0);
+    const yesterdayActivity = await storage.getDailyActivity(userId, startOfYesterday);
     
-    const yesterdayActivity = await storage.getDailyActivity(userId, yesterdayDateString);
-    const todayDateString = new Date().toISOString().split('T')[0];
-    const todayActivity = await storage.getDailyActivity(userId, todayDateString);
+    // FIX: Create a new Date object representing the start of today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayActivity = await storage.getDailyActivity(userId, startOfToday);
 
     let newStreakDays = user.streakDays || 0;
 
