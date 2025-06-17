@@ -1,0 +1,103 @@
+[debug] [2025-06-17T06:40:27.761Z] ----------------------------------------------------------------------
+[debug] [2025-06-17T06:40:27.764Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\cmill\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-06-17T06:40:27.764Z] CLI Version:   14.7.0
+[debug] [2025-06-17T06:40:27.765Z] Platform:      win32
+[debug] [2025-06-17T06:40:27.765Z] Node Version:  v20.19.0
+[debug] [2025-06-17T06:40:27.765Z] Time:          Mon Jun 16 2025 23:40:27 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-06-17T06:40:27.765Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-06-17T06:40:28.062Z] Object "/apphosting" in "firebase.json" is missing required property: {"missingProperty":"backendId"}
+[debug] [2025-06-17T06:40:28.062Z] Field "/apphosting" in "firebase.json" is possibly invalid: must be array
+[debug] [2025-06-17T06:40:28.063Z] Field "/apphosting" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-06-17T06:40:28.067Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-06-17T06:40:28.068Z] > authorizing via signed-in user (ancientastronautsunearthed@gmail.com)
+[debug] [2025-06-17T06:40:28.068Z] [iam] checking project fiber-friends for permissions ["firebase.projects.get","firebasehosting.sites.update",null]
+[debug] [2025-06-17T06:40:28.070Z] Checked if tokens are valid: false, expires at: 1750142894256
+[debug] [2025-06-17T06:40:28.070Z] Checked if tokens are valid: false, expires at: 1750142894256
+[debug] [2025-06-17T06:40:28.070Z] > refreshing access token with scopes: []
+[debug] [2025-06-17T06:40:28.072Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-06-17T06:40:28.073Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-06-17T06:40:28.352Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-06-17T06:40:28.352Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-06-17T06:40:28.367Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions [none]
+[debug] [2025-06-17T06:40:28.367Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:28.367Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update",null]}
+[debug] [2025-06-17T06:40:28.725Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions 200
+[debug] [2025-06-17T06:40:28.725Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-06-17T06:40:28.726Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project fiber-friends:
+
+  
+[debug] [2025-06-17T06:40:28.728Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:28.728Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:28.729Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends [none]
+[debug] [2025-06-17T06:40:29.224Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends 200
+[debug] [2025-06-17T06:40:29.224Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/fiber-friends {"projectId":"fiber-friends","projectNumber":"202818399028","displayName":"Fiber Friends","name":"projects/fiber-friends","resources":{"hostingSite":"fiber-friends-9b614"},"state":"ACTIVE","etag":"1_4e0cc8dc-bd85-49b8-a19e-26e53872ced2"}
+[info] 
+[info] === Deploying to 'fiber-friends'...
+[info] 
+[info] i  deploying hosting, apphosting 
+[debug] [2025-06-17T06:40:29.237Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:29.237Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:29.238Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/fiber-friends-9b614/versions [none]
+[debug] [2025-06-17T06:40:29.238Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/fiber-friends-9b614/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2025-06-17T06:40:30.625Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/fiber-friends-9b614/versions 200
+[debug] [2025-06-17T06:40:30.626Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/fiber-friends-9b614/versions {"name":"projects/202818399028/sites/fiber-friends-9b614/versions/0c5ab7beab9eb40e","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2025-06-17T06:40:30.629Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:30.629Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:30.629Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-06-17T06:40:30.630Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.167Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-06-17T06:40:31.167Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.168Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.169Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.169Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.170Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.170Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.170Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.171Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.171Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.172Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.172Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.172Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.172Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.173Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/developerconnect.googleapis.com [none]
+[debug] [2025-06-17T06:40:31.173Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/developerconnect.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.174Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/cloudbuild.googleapis.com [none]
+[debug] [2025-06-17T06:40:31.174Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/cloudbuild.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.177Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/secretmanager.googleapis.com [none]
+[debug] [2025-06-17T06:40:31.178Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/secretmanager.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.181Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/run.googleapis.com [none]
+[debug] [2025-06-17T06:40:31.181Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/run.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.185Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/artifactregistry.googleapis.com [none]
+[debug] [2025-06-17T06:40:31.186Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/artifactregistry.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.189Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/iam.googleapis.com [none]
+[debug] [2025-06-17T06:40:31.189Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/iam.googleapis.com x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.389Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/developerconnect.googleapis.com 200
+[debug] [2025-06-17T06:40:31.389Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/developerconnect.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.629Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/secretmanager.googleapis.com 200
+[debug] [2025-06-17T06:40:31.629Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/secretmanager.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.651Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/run.googleapis.com 200
+[debug] [2025-06-17T06:40:31.651Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/run.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.652Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/iam.googleapis.com 200
+[debug] [2025-06-17T06:40:31.652Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/iam.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.654Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/cloudbuild.googleapis.com 200
+[debug] [2025-06-17T06:40:31.654Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/cloudbuild.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.655Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/artifactregistry.googleapis.com 200
+[debug] [2025-06-17T06:40:31.655Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fiber-friends/services/artifactregistry.googleapis.com [omitted]
+[debug] [2025-06-17T06:40:31.656Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.656Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:31.656Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/fiber-friends/serviceAccounts/firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-06-17T06:40:31.656Z] >>> [apiv2][(partial)header] POST https://iam.googleapis.com/v1/projects/fiber-friends/serviceAccounts/firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com:testIamPermissions x-goog-quota-user=projects/fiber-friends
+[debug] [2025-06-17T06:40:31.656Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/fiber-friends/serviceAccounts/firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-06-17T06:40:32.098Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/fiber-friends/serviceAccounts/firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com:testIamPermissions 200
+[debug] [2025-06-17T06:40:32.098Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/fiber-friends/serviceAccounts/firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-06-17T06:40:32.099Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:32.099Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:32.099Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:getIamPolicy [none]
+[debug] [2025-06-17T06:40:32.354Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:getIamPolicy 200
+[debug] [2025-06-17T06:40:32.354Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fiber-friends:getIamPolicy {"version":1,"etag":"BwY3oMz9Vg0=","bindings":[{"role":"roles/artifactregistry.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-artifactregistry.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:202818399028@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.serviceAgent","members":["serviceAccount:service-202818399028@gcf-admin-robot.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-202818399028@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-202818399028@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:202818399028-compute@developer.gserviceaccount.com","serviceAccount:202818399028@cloudservices.gserviceaccount.com","serviceAccount:fiber-friends@appspot.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-202818399028@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com"]},{"role":"roles/firebasemods.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-firebasemods.iam.gserviceaccount.com"]},{"role":"roles/firebaserules.system","members":["serviceAccount:service-202818399028@firebase-rules.iam.gserviceaccount.com"]},{"role":"roles/firebasestorage.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-firebasestorage.iam.gserviceaccount.com"]},{"role":"roles/firestore.serviceAgent","members":["serviceAccount:service-202818399028@gcp-sa-firestore.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:ancientastronautsunearthed@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-202818399028@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.admin_withcond_ec9f2f5148e14f869a79","members":["serviceAccount:service-202818399028@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/storage.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com"]}]}
+[debug] [2025-06-17T06:40:32.355Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:32.355Z] Checked if tokens are valid: true, expires at: 1750146027352
+[debug] [2025-06-17T06:40:32.356Z] >>> [apiv2][query] GET https://firebaseapphosting.googleapis.com/v1beta/projects/fiber-friends/locations/-/backends 
+[debug] [2025-06-17T06:40:32.928Z] <<< [apiv2][status] GET https://firebaseapphosting.googleapis.com/v1beta/projects/fiber-friends/locations/-/backends 200
+[debug] [2025-06-17T06:40:32.929Z] <<< [apiv2][body] GET https://firebaseapphosting.googleapis.com/v1beta/projects/fiber-friends/locations/-/backends {"backends":[{"name":"projects/fiber-friends/locations/us-central1/backends/fiberfriends-backend","createTime":"2025-06-11T01:02:39.400658758Z","updateTime":"2025-06-11T01:02:39.628348Z","labels":{"deployment-tool":"cli-firebase"},"uri":"fiberfriends-backend--fiber-friends.us-central1.hosted.app","uid":"bd483540-9a87-420a-b0c5-c3371122a861","etag":"xAYE4olsD0uhB6F3Pn7vfhitV_hlK_ntECaz31QcDZY","reconciling":false,"servingLocality":"GLOBAL_ACCESS","serviceAccount":"firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com","appId":"1:202818399028:web:301e867f2f400518cfd361"},{"name":"projects/fiber-friends/locations/us-central1/backends/fiberfriends-webapp","createTime":"2025-06-15T19:07:38.232267502Z","updateTime":"2025-06-15T19:07:39.974634Z","uri":"fiberfriends-webapp--fiber-friends.us-central1.hosted.app","managedResources":[{"runService":{"service":"projects/202818399028/locations/us-central1/services/fiberfriends-webapp"}}],"codebase":{"repository":"projects/fiber-friends/locations/us-central1/connections/apphosting-github-conn-8oixhi8/gitRepositoryLinks/ancientastronautunearthed-fiberfriends-webapp","rootDirectory":"/"},"uid":"c5fcedcc-8d7a-464a-8eed-d95a8657a00b","etag":"09EBd1uKW61CiA7nBtWk4s3sYvLaEODh8qKVab78hgU","reconciling":false,"servingLocality":"GLOBAL_ACCESS","serviceAccount":"firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com","appId":"1:202818399028:web:0d4ebb9001ab1198cfd361"},{"name":"projects/fiber-friends/locations/us-central1/backends/studio","createTime":"2025-06-02T23:54:13.698727208Z","updateTime":"2025-06-06T21:17:21.601595Z","uri":"studio--fiber-friends.us-central1.hosted.app","managedResources":[{"runService":{"service":"projects/202818399028/locations/us-central1/services/studio"}}],"displayName":"Studio","uid":"c90179c7-a71a-4873-9e28-1359d078ea35","etag":"q_nk6zNjEy2CORiTtQcHm232qpLxO7vgCROTZWa7OpM","reconciling":false,"servingLocality":"GLOBAL_ACCESS","serviceAccount":"firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com","appId":"1:202818399028:web:225a88b017a6b584cfd361"},{"name":"projects/fiber-friends/locations/us-central1/backends/fiberfriends-app","createTime":"2025-06-11T02:44:23.175071206Z","updateTime":"2025-06-12T12:26:22.209915Z","uri":"fiberfriends-app--fiber-friends.us-central1.hosted.app","managedResources":[{"runService":{"service":"projects/202818399028/locations/us-central1/services/fiberfriends-app"}}],"codebase":{"repository":"projects/fiber-friends/locations/us-central1/connections/apphosting-github-conn-8oixhi8/gitRepositoryLinks/ancientastronautunearthed-fiberfriends-app","rootDirectory":"/"},"uid":"bfdbc66a-f3c4-4028-9d63-0914ad8e6f4d","etag":"Bm_EgPVQf25JU5Wgn7BoIXh_e1Wwxg-SoIal1lM7EGM","reconciling":false,"servingLocality":"GLOBAL_ACCESS","serviceAccount":"firebase-app-hosting-compute@fiber-friends.iam.gserviceaccount.com","appId":"1:202818399028:web:271267fd5cfe98e4cfd361"}]}

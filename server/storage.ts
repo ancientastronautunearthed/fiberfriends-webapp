@@ -110,7 +110,7 @@ export class DatabaseStorage {
 
   // --- AI Companion operations ---
   async getAiCompanion(userId: string): Promise<AiCompanion | undefined> {
-    const snapshot = await adminDb.collection('aiCompanions')
+    const snapshot = await adminDb.collection('AiCompanions')
       .where('userId', '==', userId)
       .limit(1)
       .get();
@@ -120,7 +120,7 @@ export class DatabaseStorage {
   }
 
   async createAiCompanion(companion: InsertAiCompanion): Promise<AiCompanion> {
-    const docRef = await adminDb.collection('aiCompanions').add({
+    const docRef = await adminDb.collection('AiCompanions').add({
       ...companion,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -553,7 +553,7 @@ export class DatabaseStorage {
   }
 
   async getAchievements(category?: string): Promise<Achievement[]> {
-    let query = adminDb.collection('achievements');
+    let query: FirebaseFirestore.Query = adminDb.collection('achievements');
     
     if (category) {
       query = query.where('category', '==', category);

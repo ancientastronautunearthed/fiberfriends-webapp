@@ -10,28 +10,18 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   profile?: UserProfile;
-  
+
   // Points and gamification properties
-  points: number; // Current points balance
-  totalPoints: number; // All-time total points earned
-  currentTier: string; // Current tier (NEWCOMER, EXPLORER, etc.)
-  nextTierPoints?: number; // Points needed for next tier
-  
-  // Streak tracking
-  streakDays: number; // Current streak in days (was currentStreak)
-  longestStreak?: number; // Longest streak achieved
-  
-  // Additional properties
-  tier: string; // Legacy field, same as currentTier
-  currentStreak: number; // Legacy field, same as streakDays
-  location?: string; // User's location for weather service
-  level?: number; // User level for gamification
-  experiencePoints?: number; // XP for leveling system
-  nextLevelXP?: number; // XP needed for next level
+  totalPoints: number;
+  currentTier: string; // e.g., 'NEWCOMER', 'EXPLORER'
+  streakDays: number;
+  longestStreak?: number;
+  level?: number;
 }
 
 export interface UserProfile {
   age?: number;
+  location?: string; // For weather service
   diagnosisDate?: Date;
   severity?: 'mild' | 'moderate' | 'severe';
   primarySymptoms: string[];
@@ -44,13 +34,6 @@ export interface UserProfile {
     visibleToSupport: boolean;
     anonymousContribution: boolean;
   };
-  // Additional profile fields
-  completionRate?: number; // Profile completion percentage
-  engagementScore?: number; // User engagement score
-  currentLevel?: number; // Current level in the app
-  streakCount?: number; // Another streak tracking field
-  preferredCategories?: string[]; // Preferred content categories
-  adaptedDifficulty?: string; // Adapted difficulty level
 }
 
 export interface DailyLog {
@@ -177,7 +160,6 @@ export interface UserChallenge {
   id: string;
   userId: string;
   challengeId: string;
-  challenge?: Challenge; // Reference to the challenge details
   status: 'active' | 'completed' | 'failed' | 'skipped';
   progress: number;
   startedAt: Date;
@@ -203,10 +185,9 @@ export interface UserAchievement {
   id: string;
   userId: string;
   achievementId: string;
-  unlockedAt: Date;
+  earnedAt: Date;
   progress: number;
   isCompleted: boolean;
-  pointsEarned?: number; // Points earned from this achievement
 }
 
 export interface PointActivity {
@@ -214,31 +195,20 @@ export interface PointActivity {
   userId: string;
   type: string;
   points: number;
-  pointsEarned?: number; // Alternative field name
   description: string;
   metadata?: any;
   createdAt: Date;
-  timestamp?: Date; // Alternative timestamp field
-  bonus?: boolean; // If this was a bonus activity
 }
 
 export interface UserBadge {
   id: string;
   userId: string;
   badgeId: string;
-  title: string;
-  name?: string; // Alternative to title
+  name: string;
   description: string;
   icon: string;
-  iconUrl?: string; // URL for custom icons
-  awardedAt: Date;
-  unlockedAt?: Date; // Alternative to awardedAt
-  earnedAt?: Date; // Another alternative
+  earnedAt: Date;
   progress?: number;
-  rarity?: string; // Badge rarity
-  tier?: string; // Badge tier (bronze, silver, gold, platinum)
-  pointsReward?: number; // Points given for earning this badge
-  target?: number; // Target for progress-based badges
 }
 
 export interface ChatRoom {
@@ -281,7 +251,7 @@ export interface SymptomPattern {
   severity: number;
   timePattern: string;
   confidence: number;
-  detectedAt: Date;
+  createdAt: Date;
 }
 
 export interface SymptomCorrelation {
@@ -289,13 +259,11 @@ export interface SymptomCorrelation {
   userId: string;
   symptom1: string;
   symptom2: string;
-  primarySymptom?: string; // Alternative field name
-  correlatedSymptom?: string; // Alternative field name
   correlationStrength: number;
   frequency: number;
   timeDelay?: number;
   confidence: number;
-  detectedAt: Date;
+  createdAt: Date;
 }
 
 export interface AiHealthInsight {
@@ -343,12 +311,12 @@ export type InsertCommunityPost = Omit<CommunityPost, 'id' | 'likes' | 'replies'
 export type InsertChallenge = Omit<Challenge, 'id' | 'participantCount' | 'createdAt'>;
 export type InsertUserChallenge = Omit<UserChallenge, 'id' | 'startedAt'>;
 export type InsertAchievement = Omit<Achievement, 'id' | 'createdAt'>;
-export type InsertUserAchievement = Omit<UserAchievement, 'id'>;
+export type InsertUserAchievement = Omit<UserAchievement, 'id' | 'earnedAt'>;
 export type InsertChatRoom = Omit<ChatRoom, 'id' | 'memberCount' | 'createdAt'>;
 export type InsertChatMessage = Omit<ChatMessage, 'id' | 'createdAt'>;
-export type InsertChatRoomMember = Omit<ChatRoomMember, 'id'>;
-export type InsertSymptomPattern = Omit<SymptomPattern, 'id' | 'detectedAt'>;
-export type InsertSymptomCorrelation = Omit<SymptomCorrelation, 'id' | 'detectedAt'>;
+export type InsertChatRoomMember = Omit<ChatRoomMember, 'id' | 'joinedAt'>;
+export type InsertSymptomPattern = Omit<SymptomPattern, 'id' | 'createdAt'>;
+export type InsertSymptomCorrelation = Omit<SymptomCorrelation, 'id' | 'createdAt'>;
 export type InsertAiHealthInsight = Omit<AiHealthInsight, 'id' | 'createdAt'>;
 export type InsertSymptomWheelEntry = Omit<SymptomWheelEntry, 'id' | 'createdAt'>;
 
