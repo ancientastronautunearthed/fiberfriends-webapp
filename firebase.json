@@ -21,9 +21,31 @@
       }
     ]
   },
-  "apphosting": {
-    "source": ".",
-    "backend": "fiberfriends-webapp",
-    "region": "us-central1"
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "ui": {
+      "enabled": true
+    },
+    "storage": {
+      "port": 9199
+    }
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "dataconnect": {
+    "source": "dataconnect"
   }
 }
