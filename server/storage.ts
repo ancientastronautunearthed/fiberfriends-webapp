@@ -137,6 +137,17 @@ export class DatabaseStorage {
     return fromDoc<DailyLog>(doc)!;
   }
 
+  // FIXED: Added the missing updateDailyLog method
+  async updateDailyLog(id: string, updates: Partial<DailyLog>): Promise<DailyLog> {
+    const logRef = adminDb.collection('dailyLogs').doc(id);
+    await logRef.update({
+      ...updates,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const doc = await logRef.get();
+    return fromDoc<DailyLog>(doc)!;
+  }
+
   // --- Community Post operations ---
   async getCommunityPosts(category?: string): Promise<CommunityPost[]> {
     let query = adminDb.collection('communityPosts').orderBy('createdAt', 'desc');
