@@ -76,6 +76,16 @@ const getInsightTypeIcon = (type: string) => {
   }
 };
 
+// Type guard to validate insight type
+function isValidInsightType(type: string): type is CommunityInsight['insightType'] {
+  return ['trend', 'correlation', 'pattern', 'alert'].includes(type);
+}
+
+// Type guard to validate priority
+function isValidPriority(priority: string): priority is CommunityInsight['priority'] {
+  return ['low', 'medium', 'high', 'critical'].includes(priority);
+}
+
 export default function CommunityInsights() {
   const { user } = useFirebaseAuth();
   const [contributionStatus, setContributionStatus] = useState<ResearchContributionStatus | null>(null);
@@ -100,11 +110,19 @@ export default function CommunityInsights() {
         if (status.hasInsightsAccess) {
           setInsightsLoading(true);
           const communityInsights = await getCommunityHealthInsights();
-          setInsights(communityInsights);
+          
+          // Validate and transform the insights data
+          const validatedInsights: CommunityInsight[] = communityInsights.map((insight: any) => ({
+            ...insight,
+            insightType: isValidInsightType(insight.insightType) ? insight.insightType : 'pattern',
+            priority: isValidPriority(insight.priority) ? insight.priority : 'medium'
+          }));
+          
+          setInsights(validatedInsights);
         }
       } catch (err) {
-        console.error("Error loading community insights:", err);
-        setError("Failed to load community insights");
+        console.error('Error loading community insights:', err);
+        setError('Failed to load insights');
       } finally {
         setStatusLoading(false);
         setInsightsLoading(false);
@@ -112,17 +130,18 @@ export default function CommunityInsights() {
     };
 
     loadData();
-  }, [user]);
+  }, [user?.id]);
 
-  if (statusLoading) {
+  if (statusLoading || insightsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded-lg w-1/3"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-24 bg-gray-200 rounded"></div>
               ))}
             </div>
           </div>
@@ -135,18 +154,25 @@ export default function CommunityInsights() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center py-12">
-            <Shield className="h-16 w-16 text-blue-600 mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Community Health Insights
-            </h1>
-            <div className="bg-white rounded-lg p-8 shadow-lg max-w-2xl mx-auto">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Contribute to Unlock Insights
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center mb-8">
+              <Shield className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Community Health Insights
+              </h1>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Join our research initiative to access aggregated community health insights 
+                and contribute to advancing Morgellons understanding.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 rounded-lg p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Why Contribute to Research?
               </h2>
-              <p className="text-gray-600 mb-6">
-                Access to community health insights requires contributing your anonymized health data 
-                to help advance Morgellons research and support the community.
+              <p className="text-gray-700 mb-4">
+                By anonymously sharing your health data, you help researchers identify patterns 
+                and trends that could lead to better treatments and understanding of Morgellons.
               </p>
               
               <div className="space-y-4 mb-6">
@@ -260,129 +286,108 @@ export default function CommunityInsights() {
               <div className="text-2xl font-bold text-purple-600">
                 {contributionStatus?.qualityScore || 0}%
               </div>
-              <Progress value={contributionStatus?.qualityScore || 0} className="mt-2" />
+              <Progress 
+                value={contributionStatus?.qualityScore || 0} 
+                className="mt-2 h-2"
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Impact Score</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Community Impact</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
                 {contributionStatus?.communityImpactScore || 0}
               </div>
-              <p className="text-xs text-gray-500">Community benefit</p>
+              <p className="text-xs text-gray-500">Impact score</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Insights */}
-        <Tabs defaultValue={categories[0]} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            {categories.map((category) => (
-              <TabsTrigger 
-                key={category} 
-                value={category}
-                className="capitalize flex items-center space-x-2"
-              >
+        {/* Insights Tabs */}
+        <Tabs defaultValue={categories[0]} className="space-y-4">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 w-full">
+            {categories.map(category => (
+              <TabsTrigger key={category} value={category} className="capitalize">
                 {getInsightIcon(category)}
-                <span>{category}</span>
+                <span className="ml-2">{category}</span>
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {categories.map((category) => (
+          {categories.map(category => (
             <TabsContent key={category} value={category} className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {insightsByCategory[category].map((insight) => (
-                  <Card key={insight.id} className={`border-l-4 ${getPriorityColor(insight.priority)}`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-2">
-                          {getInsightTypeIcon(insight.insightType)}
-                          <CardTitle className="text-lg">{insight.title}</CardTitle>
-                        </div>
-                        <Badge variant={insight.priority === 'critical' ? 'destructive' : 'secondary'}>
-                          {insight.priority}
-                        </Badge>
+              {insightsByCategory[category].map(insight => (
+                <Card key={insight.id} className={`border-l-4 ${getPriorityColor(insight.priority)}`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="flex items-center space-x-2">
+                        {getInsightTypeIcon(insight.insightType)}
+                        <span>{insight.title}</span>
+                      </CardTitle>
+                      <Badge 
+                        variant={insight.priority === 'critical' || insight.priority === 'high' ? 
+                          'destructive' : 'secondary'}>
+                        {insight.priority}
+                      </Badge>
+                    </div>
+                    <CardDescription className="flex items-center space-x-4 text-sm">
+                      <span className="flex items-center space-x-1">
+                        <Users className="h-4 w-4" />
+                        <span>{insight.sampleSize} contributors</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Activity className="h-4 w-4" />
+                        <span>{insight.confidenceLevel}% confidence</span>
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 mb-4">{insight.description}</p>
+                    
+                    {/* Data visualization for specific insights */}
+                    {insight.dataPoints && (
+                      <div className="space-y-3">
+                        {insight.dataPoints.average_reduction && (
+                          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <span className="text-sm font-medium">Symptom Reduction</span>
+                            <span className="text-xl font-bold text-green-600">
+                              {insight.dataPoints.average_reduction}%
+                            </span>
+                          </div>
+                        )}
+                        
+                        {insight.dataPoints.improvement_percentage && (
+                          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <span className="text-sm font-medium">Improvement</span>
+                            <span className="text-xl font-bold text-blue-600">
+                              {insight.dataPoints.improvement_percentage}%
+                            </span>
+                          </div>
+                        )}
+                        
+                        {insight.dataPoints.symptom_increase && (
+                          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                            <span className="text-sm font-medium">Symptom Increase</span>
+                            <span className="text-xl font-bold text-orange-600">
+                              {insight.dataPoints.symptom_increase}%
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <CardDescription className="flex items-center space-x-4 text-sm">
-                        <span className="flex items-center space-x-1">
-                          <Users className="h-4 w-4" />
-                          <span>{insight.sampleSize} contributors</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Activity className="h-4 w-4" />
-                          <span>{insight.confidenceLevel}% confidence</span>
-                        </span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700 mb-4">{insight.description}</p>
-                      
-                      {/* Data visualization for specific insights */}
-                      {insight.dataPoints && (
-                        <div className="space-y-3">
-                          {insight.dataPoints.average_reduction && (
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                              <span className="text-sm font-medium">Symptom Reduction</span>
-                              <span className="text-xl font-bold text-green-600">
-                                {insight.dataPoints.average_reduction}%
-                              </span>
-                            </div>
-                          )}
-                          
-                          {insight.dataPoints.improvement_percentage && (
-                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                              <span className="text-sm font-medium">Improvement</span>
-                              <span className="text-xl font-bold text-blue-600">
-                                {insight.dataPoints.improvement_percentage}%
-                              </span>
-                            </div>
-                          )}
-                          
-                          {insight.dataPoints.symptom_increase && (
-                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                              <span className="text-sm font-medium">Symptom Increase</span>
-                              <span className="text-xl font-bold text-orange-600">
-                                {insight.dataPoints.symptom_increase}%
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Generated {new Date(insight.generatedAt).toLocaleDateString()}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {insight.insightType}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    )}
+                    
+                    <div className="mt-4 text-xs text-gray-500">
+                      Generated: {new Date(insight.generatedAt).toLocaleDateString()}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </TabsContent>
           ))}
         </Tabs>
-
-        {insights.length === 0 && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                No Insights Available Yet
-              </h3>
-              <p className="text-gray-600">
-                Community insights are generated as more data becomes available. 
-                Keep contributing to help generate valuable insights for everyone.
-              </p>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

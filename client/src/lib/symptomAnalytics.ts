@@ -46,73 +46,101 @@ export function calculateCorrelation(symptom1Data: SymptomData[], symptom2Data: 
   return denominator === 0 ? 0 : numerator / denominator;
 }
 
-// Detect cyclical patterns in symptom data
+// Detect cyclical patterns (e.g., weekly, monthly) in symptom data
 export function detectCyclicalPatterns(symptomData: SymptomData[]): Array<{
   period: number;
   confidence: number;
   description: string;
 }> {
-  if (symptomData.length < 14) return [];
+  if (symptomData.length < 14) return []; // Need at least 2 weeks of data
 
   const patterns: Array<{ period: number; confidence: number; description: string }> = [];
   
-  // Check for weekly patterns (7 days)
-  const weeklyCorrelation = calculateWeeklyPattern(symptomData);
-  if (weeklyCorrelation > 0.1) {
+  // Check for weekly patterns (7-day cycle)
+  const weeklyConfidence = calculateCyclicalConfidence(symptomData, 7);
+  if (weeklyConfidence > 60) {
     patterns.push({
       period: 7,
-      confidence: Math.round(weeklyCorrelation * 100),
-      description: "Weekly pattern detected - symptoms tend to follow a 7-day cycle"
+      confidence: weeklyConfidence,
+      description: "Weekly pattern detected - symptoms may be influenced by work/weekend cycles"
     });
   }
 
-  // Check for monthly patterns (28-30 days)
-  const monthlyCorrelation = calculateMonthlyPattern(symptomData);
-  if (monthlyCorrelation > 0.1) {
-    patterns.push({
-      period: 28,
-      confidence: Math.round(monthlyCorrelation * 100),
-      description: "Monthly pattern detected - symptoms show cyclical behavior over 4 weeks"
-    });
+  // Check for monthly patterns (28-30 day cycle)
+  if (symptomData.length >= 56) { // Need at least 2 months
+    const monthlyConfidence = calculateCyclicalConfidence(symptomData, 28);
+    if (monthlyConfidence > 60) {
+      patterns.push({
+        period: 28,
+        confidence: monthlyConfidence,
+        description: "Monthly pattern detected - may be related to hormonal or environmental cycles"
+      });
+    }
   }
 
   return patterns;
 }
 
-function calculateWeeklyPattern(data: SymptomData[]): number {
-  const dayOfWeekSeverities: number[][] = Array(7).fill(null).map(() => []);
+// Calculate confidence score for a specific cycle period
+function calculateCyclicalConfidence(data: SymptomData[], period: number): number {
+  const sortedData = [...data].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   
-  data.forEach(d => {
-    const dayOfWeek = d.timestamp.getDay();
-    dayOfWeekSeverities[dayOfWeek].push(d.severity);
+  // Group data by position in cycle
+  const cycleGroups: Map<number, number[]> = new Map();
+  
+  sortedData.forEach((item, index) => {
+    const cyclePosition = index % period;
+    if (!cycleGroups.has(cyclePosition)) {
+      cycleGroups.set(cyclePosition, []);
+    }
+    cycleGroups.get(cyclePosition)!.push(item.severity);
   });
 
-  // Calculate variance across days of week
-  const dayAverages = dayOfWeekSeverities.map(severities => 
-    severities.length > 0 ? severities.reduce((sum, s) => sum + s, 0) / severities.length : 0
-  );
-
-  const overallAverage = dayAverages.reduce((sum, avg) => sum + avg, 0) / 7;
-  const variance = dayAverages.reduce((sum, avg) => sum + Math.pow(avg - overallAverage, 2), 0) / 7;
-
-  return Math.min(variance / 10, 1); // Normalize to 0-1 scale
-}
-
-function calculateMonthlyPattern(data: SymptomData[]): number {
-  if (data.length < 60) return 0; // Need at least 2 months of data
-
-  const weekOfMonthSeverities: number[][] = Array(4).fill(null).map(() => []);
-  
-  data.forEach(d => {
-    const weekOfMonth = Math.floor((d.timestamp.getDate() - 1) / 7);
-    if (weekOfMonth < 4) {
-      weekOfMonthSeverities[weekOfMonth].push(d.severity);
+  // Calculate variance within each cycle position
+  const variances: number[] = [];
+  cycleGroups.forEach((severities) => {
+    if (severities.length > 1) {
+      const mean = severities.reduce((sum, s) => sum + s, 0) / severities.length;
+      const variance = severities.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / severities.length;
+      variances.push(variance);
     }
   });
 
-  const weekAverages = weekOfMonthSeverities.map(severities => 
-    severities.length > 0 ? severities.reduce((sum, s) => sum + s, 0) / severities.length : 0
-  );
+  // Lower variance = higher confidence in pattern
+  const avgVariance = variances.reduce((sum, v) => sum + v, 0) / variances.length;
+  const confidence = Math.max(0, 100 - (avgVariance * 10));
+  
+  return Math.round(confidence);
+}
+
+// Analyze patterns for a specific symptom over the past 4 weeks
+export function analyzeSymptomConsistency(symptomData: SymptomData[]): number {
+  if (symptomData.length < 28) return 0;
+
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+  const recentData = symptomData.filter(d => d.timestamp >= fourWeeksAgo);
+  
+  // Group by week
+  const weekGroups: Map<number, number[]> = new Map();
+  
+  recentData.forEach(item => {
+    const weekNum = Math.floor((new Date().getTime() - item.timestamp.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    if (!weekGroups.has(weekNum)) {
+      weekGroups.set(weekNum, []);
+    }
+    weekGroups.get(weekNum)!.push(item.severity);
+  });
+
+  // Calculate weekly averages
+  const weekAverages: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    const severities = weekGroups.get(i) || [];
+    weekAverages.push(
+      severities.length > 0 ? severities.reduce((sum, s) => sum + s, 0) / severities.length : 0
+    );
+  }
 
   const overallAverage = weekAverages.reduce((sum, avg) => sum + avg, 0) / 4;
   const variance = weekAverages.reduce((sum, avg) => sum + Math.pow(avg - overallAverage, 2), 0) / 4;
@@ -273,7 +301,12 @@ export async function generatePatternInsights(
   correlations.filter(c => Math.abs(c.correlationStrength) > 50).forEach(correlation => {
     const strength = Math.abs(correlation.correlationStrength);
     const relationship = correlation.correlationStrength > 0 ? "often occur together" : "tend to be inversely related";
-    insights.push(`${correlation.primarySymptom} and ${correlation.correlatedSymptom} ${relationship} (${strength}% correlation strength).`);
+    
+    // Use the correct property names based on what's available
+    const symptom1 = (correlation as any).primarySymptom || correlation.symptom1;
+    const symptom2 = (correlation as any).correlatedSymptom || correlation.symptom2;
+    
+    insights.push(`${symptom1} and ${symptom2} ${relationship} (${strength}% correlation strength).`);
   });
 
   return insights;

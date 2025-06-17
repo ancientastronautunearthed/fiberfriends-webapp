@@ -13,6 +13,27 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, User, Heart, MessageCircle, Share, Brain, Trophy, Flame, Star, Award, TrendingUp, Clock, Eye, ThumbsUp, Bookmark, Flag, X } from "lucide-react";
 
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  authorId: string;
+  authorName: string;
+  authorLevel: string;
+  authorBadges: string[];
+  likes: number;
+  replies: number;
+  views: number;
+  shares: number;
+  bookmarks: number;
+  trending: boolean;
+  quality: string;
+  aiAnalysis?: string;
+  createdAt: string;
+  timeToRead: string;
+}
+
 export default function CommunityForum() {
   const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
@@ -27,8 +48,8 @@ export default function CommunityForum() {
     content: "",
     category: "support",
   });
-  const [likedPosts, setLikedPosts] = useState(new Set());
-  const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -45,9 +66,13 @@ export default function CommunityForum() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: posts, isLoading: postsLoading } = useQuery({
+  const { data: posts = [], isLoading: postsLoading } = useQuery({
     queryKey: ["/api/community-posts", selectedCategory],
     enabled: isAuthenticated,
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/community-posts");
+      return response.json();
+    }
   });
 
   const createPost = useMutation({
@@ -73,68 +98,27 @@ export default function CommunityForum() {
         setTimeout(() => {
           window.location.href = "/api/login";
         }, 500);
-        return;
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create post. Please try again.",
+          variant: "destructive",
+        });
       }
-      toast({
-        title: "Error",
-        description: "Failed to create post. Please try again.",
-        variant: "destructive",
-      });
     },
   });
 
-  const categories = [
-    { value: "", label: "All Posts" },
-    { value: "story", label: "Success Stories" },
-    { value: "success_tactic", label: "Treatment Tips" },
-    { value: "support", label: "Support" },
-    { value: "question", label: "Questions" },
-  ];
-
-  const getCategoryBadge = (category: string) => {
-    const categoryMap = {
-      story: { label: "Success Story", className: "bg-green-100 text-green-700" },
-      success_tactic: { label: "Treatment Tip", className: "bg-blue-100 text-blue-700" },
-      support: { label: "Support", className: "bg-purple-100 text-purple-700" },
-      question: { label: "Question", className: "bg-yellow-100 text-yellow-700" },
-    };
-    
-    const config = categoryMap[category as keyof typeof categoryMap] || { label: category, className: "bg-gray-100 text-gray-700" };
-    return <Badge className={config.className}>{config.label}</Badge>;
-  };
-
-  const handleCreatePost = () => {
-    if (!newPost.title.trim() || !newPost.content.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in both title and content.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    createPost.mutate(newPost);
-  };
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Enhanced posts with engagement metrics
-  const mockPosts = posts?.length ? posts : [
+  // Mock data for demonstration
+  const mockPosts: Post[] = Array.isArray(posts) && posts.length > 0 ? posts : [
     {
-      id: 1,
-      title: "3 Months of Progress: Diet Changes That Helped",
-      content: "I wanted to share my experience with dietary modifications over the past 3 months. After eliminating processed foods and focusing on anti-inflammatory foods, I've noticed significant improvements in my symptoms...",
-      category: "story",
-      authorId: "anonymous_1",
+      id: "1",
+      title: "Discovered DMSO really helps with the itching!",
+      content: "I've been dealing with terrible itching for months and finally tried DMSO gel. Within days, the itching reduced by about 60%! Has anyone else tried this? I'm using a 70% concentration...",
+      category: "success_tactic",
+      authorId: "user_1",
       authorName: "Sarah M.",
-      authorLevel: "Supporter",
-      authorBadges: ["Helper", "Streak 30"],
+      authorLevel: "Explorer",
+      authorBadges: ["Helpful Member", "30-Day Streak"],
       likes: 24,
       replies: 8,
       views: 156,
@@ -142,34 +126,34 @@ export default function CommunityForum() {
       bookmarks: 12,
       trending: true,
       quality: "high",
-      aiAnalysis: "This post discusses evidence-based dietary approaches. The anti-inflammatory diet mentioned has shown benefits in similar conditions. Consider consulting with healthcare providers before major dietary changes.",
+      aiAnalysis: "DMSO has anti-inflammatory properties that may help with certain skin conditions. Always consult with a healthcare provider before trying new treatments.",
       createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
       timeToRead: "2 min read",
     },
     {
-      id: 2,
-      title: "Looking for Sleep Quality Tips",
-      content: "Has anyone found effective natural methods to improve sleep quality? I've been struggling with restless nights and it's affecting my overall symptom management...",
-      category: "question",
+      id: "2",
+      title: "Need support: Family doesn't understand",
+      content: "I'm struggling with family members who think I'm making this up. They don't understand the constant fatigue and skin sensations. How do you deal with unsupportive family?",
+      category: "support",
       authorId: "anonymous_2",
-      authorName: "Mike R.",
-      authorLevel: "Community Member",
-      authorBadges: ["New Member"],
-      likes: 12,
-      replies: 15,
+      authorName: "Anonymous",
+      authorLevel: "Newcomer",
+      authorBadges: ["First Post"],
+      likes: 15,
+      replies: 12,
       views: 89,
       shares: 1,
-      bookmarks: 8,
+      bookmarks: 5,
       trending: false,
-      quality: "medium",
-      aiAnalysis: "Sleep quality is crucial for symptom management. Common helpful approaches include maintaining consistent sleep schedules, creating dark environments, and considering magnesium supplementation under medical guidance.",
+      quality: "normal",
+      aiAnalysis: "Many chronic conditions face skepticism. Building a support network and educating loved ones with medical information can help improve understanding.",
       createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      timeToRead: "1 min read",
+      timeToRead: "3 min read",
     },
     {
-      id: 3,
-      title: "Weekly Victory: First Symptom-Free Day in Months!",
-      content: "I wanted to celebrate with everyone here - yesterday was my first completely symptom-free day in over 4 months! It might not seem like much, but for me it's huge...",
+      id: "3",
+      title: "3 months symptom-free!",
+      content: "I can't believe I'm writing this, but I've been symptom-free for 3 months now! It's been a long journey of diet changes, stress management, and finding the right treatments. It might not seem like much, but for me it's huge...",
       category: "story",
       authorId: "anonymous_3",
       authorName: "Alex T.",
@@ -189,7 +173,7 @@ export default function CommunityForum() {
   ];
 
   // Interaction handlers
-  const handleLike = (postId) => {
+  const handleLike = (postId: string) => {
     const newLikedPosts = new Set(likedPosts);
     if (newLikedPosts.has(postId)) {
       newLikedPosts.delete(postId);
@@ -204,7 +188,7 @@ export default function CommunityForum() {
     });
   };
 
-  const handleBookmark = (postId) => {
+  const handleBookmark = (postId: string) => {
     const newBookmarkedPosts = new Set(bookmarkedPosts);
     if (newBookmarkedPosts.has(postId)) {
       newBookmarkedPosts.delete(postId);
@@ -221,7 +205,7 @@ export default function CommunityForum() {
 
   // Sort posts based on selected sorting method
   const sortedPosts = [...(selectedCategory 
-    ? mockPosts.filter(post => post.category === selectedCategory)
+    ? mockPosts.filter((post: Post) => post.category === selectedCategory)
     : mockPosts)].sort((a, b) => {
     switch (sortBy) {
       case "trending":
@@ -237,6 +221,21 @@ export default function CommunityForum() {
     }
   });
 
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case "support":
+        return <Badge className="bg-blue-100 text-blue-800">Support</Badge>;
+      case "question":
+        return <Badge className="bg-purple-100 text-purple-800">Question</Badge>;
+      case "story":
+        return <Badge className="bg-green-100 text-green-800">Success Story</Badge>;
+      case "success_tactic":
+        return <Badge className="bg-amber-100 text-amber-800">Treatment Tip</Badge>;
+      default:
+        return <Badge>General</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Engagement Tips Banner */}
@@ -250,73 +249,74 @@ export default function CommunityForum() {
               <div>
                 <h3 className="font-semibold text-blue-900">Build Your Community Reputation!</h3>
                 <p className="text-sm text-blue-800 mt-1">
-                  Share your progress, help others with questions, and earn badges. Active community members unlock special recognition and features.
+                  Share your progress, help others with questions, and earn badges. Quality contributions earn more points!
                 </p>
-                <div className="flex gap-4 mt-2 text-xs text-blue-700">
-                  <span className="flex items-center gap-1">
-                    <Star className="w-3 h-3" />
-                    Get likes to earn Helper badge
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Flame className="w-3 h-3" />
-                    Post daily for streak badges
-                  </span>
-                </div>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <button 
               onClick={() => setShowEngagementTips(false)}
               className="text-blue-600 hover:text-blue-800"
             >
-              <X className="w-4 h-4" />
-            </Button>
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </Card>
       )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Community Forum</h2>
-          <p className="text-slate-600">Connect with others on similar health journeys</p>
-        </div>
+      {/* Create Post Button */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-slate-800">Community Forum</h1>
         <Dialog open={isCreatePostOpen} onOpenChange={setIsCreatePostOpen}>
           <DialogTrigger asChild>
-            <Button className="px-6 py-3">
-              <Plus className="w-4 h-4 mr-2" />
-              New Post
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Post
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Create New Post</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Input
-                placeholder="Post title..."
-                value={newPost.title}
-                onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-              />
-              <Select value={newPost.category} onValueChange={(value) => setNewPost(prev => ({ ...prev, category: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="support">Support</SelectItem>
-                  <SelectItem value="question">Question</SelectItem>
-                  <SelectItem value="story">Success Story</SelectItem>
-                  <SelectItem value="success_tactic">Treatment Tip</SelectItem>
-                </SelectContent>
-              </Select>
-              <Textarea
-                placeholder="Share your thoughts..."
-                value={newPost.content}
-                onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                className="h-32"
-              />
-              <div className="flex gap-2">
-                <Button onClick={handleCreatePost} disabled={createPost.isPending}>
+              <div>
+                <label className="text-sm font-medium">Category</label>
+                <Select
+                  value={newPost.category}
+                  onValueChange={(value) => setNewPost({ ...newPost, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="question">Question</SelectItem>
+                    <SelectItem value="story">Success Story</SelectItem>
+                    <SelectItem value="success_tactic">Treatment Tip</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Title</label>
+                <Input
+                  placeholder="Give your post a clear title..."
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Content</label>
+                <Textarea
+                  placeholder="Share your thoughts, questions, or experiences..."
+                  rows={6}
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => createPost.mutate(newPost)}
+                  disabled={!newPost.title || !newPost.content || createPost.isPending}
+                >
                   {createPost.isPending ? "Posting..." : "Post"}
                 </Button>
                 <Button variant="outline" onClick={() => setIsCreatePostOpen(false)}>
@@ -439,7 +439,7 @@ export default function CommunityForum() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {post.authorBadges.map((badge, index) => (
+                      {post.authorBadges.map((badge: string, index: number) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           {badge}
                         </Badge>

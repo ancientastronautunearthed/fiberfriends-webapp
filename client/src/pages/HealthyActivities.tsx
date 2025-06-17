@@ -73,11 +73,6 @@ const getCategoryColor = (category: string) => {
 export default function HealthyActivities() {
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: workStatus } = useQuery({
-    queryKey: ['/api/schedule/work-status'],
-    refetchInterval: 60000, // Refresh every minute
-  });
-
   const { 
     data: recommendations, 
     isLoading, 
@@ -161,9 +156,11 @@ export default function HealthyActivities() {
                 <Briefcase className="h-5 w-5 text-gray-500" />
                 <div>
                   <p className="font-medium text-gray-900">
-                    {workStatus?.isWorkDay ? 'Work Day' : 'Day Off'}
+                    {recommendations?.isWorkDay ? 'Work Day' : 'Day Off'}
                   </p>
-                  <p className="text-sm text-gray-600">{workStatus?.message}</p>
+                  <p className="text-sm text-gray-600">
+                    {recommendations?.isWorkDay ? 'Shorter activities recommended' : 'Perfect for longer activities'}
+                  </p>
                 </div>
               </div>
 
@@ -204,91 +201,54 @@ export default function HealthyActivities() {
             className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg transform transition-all hover:scale-105"
           >
             {refreshing ? (
-              <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+              <>
+                <RefreshCw className="mr-2 h-6 w-6 animate-spin" />
+                Refreshing...
+              </>
             ) : (
-              <Target className="h-5 w-5 mr-2" />
+              <>
+                <RefreshCw className="mr-2 h-6 w-6" />
+                Refresh Recommendations
+              </>
             )}
-            Get Healthy Activity Advice
           </Button>
-          <p className="text-sm text-gray-600 mt-2">
-            Based on your location, schedule, and current weather conditions
-          </p>
         </div>
 
-        {/* Weather Info */}
-        {recommendations?.weather && (
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-blue-600" />
-                Weather in {recommendations.weather.location}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {recommendations.weather.temperature}°F
-                  </p>
-                  <p className="text-sm text-gray-600">Temperature</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {recommendations.weather.humidity}%
-                  </p>
-                  <p className="text-sm text-gray-600">Humidity</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {recommendations.weather.windSpeed} mph
-                  </p>
-                  <p className="text-sm text-gray-600">Wind Speed</p>
-                </div>
-                <div className="text-center flex flex-col items-center">
-                  {getWeatherIcon(recommendations.weather.condition)}
-                  <p className="text-sm text-gray-600 mt-1 capitalize">
-                    {recommendations.weather.description}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Activity Recommendations */}
+        {/* Activities Grid */}
         {recommendations?.activities && recommendations.activities.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Activity className="h-6 w-6 text-green-600" />
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Target className="h-6 w-6 text-green-600" />
               Recommended Activities
+              <span className="text-sm font-normal text-gray-600 ml-2">
+                ({recommendations.weatherMessage})
+              </span>
             </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {recommendations.activities.map((activity) => (
-                <Card key={activity.id} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+                <Card key={activity.id} className="bg-white/90 backdrop-blur-sm border-0 shadow-md hover:shadow-xl transition-all transform hover:scale-[1.02]">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg text-gray-900">{activity.name}</CardTitle>
+                      <div className="flex items-center gap-2">
                         {getCategoryIcon(activity.category)}
-                        {activity.name}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(activity.category)}`}>
-                        {activity.category}
-                      </span>
-                    </CardTitle>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(activity.category)}`}>
+                          {activity.category}
+                        </span>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-gray-700">{activity.description}</p>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
-                        <Timer className="h-4 w-4" />
-                        {activity.duration}
+                        <Timer className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">{activity.duration}</span>
                       </div>
                       {activity.morgellonsSpecific && (
-                        <span className="px-2 py-1 rounded border border-purple-300 text-xs text-purple-700">
-                          Morgellons-Specific
-                        </span>
+                        <span className="text-purple-600 font-medium">Morgellons-Specific</span>
                       )}
                     </div>
 
@@ -297,9 +257,9 @@ export default function HealthyActivities() {
                     <div className="space-y-3">
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Health Benefits:</h4>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {activity.healthBenefits.map((benefit, index) => (
-                            <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                            <span key={index} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
                               {benefit}
                             </span>
                           ))}

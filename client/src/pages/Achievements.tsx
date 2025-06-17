@@ -13,21 +13,34 @@ export default function Achievements() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all achievements
-  const { data: achievements, isLoading: achievementsLoading } = useQuery({
-    queryKey: ["/api/achievements"],
-    queryParams: selectedCategory !== "all" ? { category: selectedCategory } : {}
+  // Fetch all achievements with category filter
+  const { data: achievements = [], isLoading: achievementsLoading } = useQuery({
+    queryKey: ["/api/achievements", selectedCategory],
+    queryFn: async () => {
+      const url = selectedCategory !== "all" 
+        ? `/api/achievements?category=${selectedCategory}`
+        : "/api/achievements";
+      const response = await apiRequest("GET", url);
+      return response.json();
+    }
   });
 
   // Fetch user's achievements
-  const { data: userAchievements, isLoading: userAchievementsLoading } = useQuery({
-    queryKey: ["/api/user-achievements"]
+  const { data: userAchievements = [], isLoading: userAchievementsLoading } = useQuery({
+    queryKey: ["/api/user-achievements"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/user-achievements");
+      return response.json();
+    }
   });
 
   // Fetch leaderboard
-  const { data: leaderboard } = useQuery({
-    queryKey: ["/api/leaderboard"],
-    queryParams: { period: "all_time", category: "points", limit: "10" }
+  const { data: leaderboard = [], isLoading: leaderboardLoading } = useQuery({
+    queryKey: ["/api/leaderboard", "all_time", "points"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/leaderboard?period=all_time&category=points&limit=10");
+      return response.json();
+    }
   });
 
   // Unlock achievement mutation
@@ -84,11 +97,11 @@ export default function Achievements() {
   };
 
   const isAchievementUnlocked = (achievementId: string) => {
-    return userAchievements?.some((ua: any) => ua.achievementId === achievementId);
+    return Array.isArray(userAchievements) && userAchievements.some((ua: any) => ua.achievementId === achievementId);
   };
 
   const getUserAchievement = (achievementId: string) => {
-    return userAchievements?.find((ua: any) => ua.achievementId === achievementId);
+    return Array.isArray(userAchievements) ? userAchievements.find((ua: any) => ua.achievementId === achievementId) : undefined;
   };
 
   const categories = [
@@ -110,57 +123,71 @@ export default function Achievements() {
     );
   }
 
-  const totalAchievements = achievements?.length || 0;
-  const unlockedAchievements = userAchievements?.length || 0;
-  const totalPoints = userAchievements?.reduce((sum: number, ua: any) => sum + (ua.pointsEarned || 0), 0) || 0;
+  const totalAchievements = Array.isArray(achievements) ? achievements.length : 0;
+  const unlockedAchievements = Array.isArray(userAchievements) ? userAchievements.length : 0;
+  const totalPoints = Array.isArray(userAchievements) 
+    ? userAchievements.reduce((sum: number, ua: any) => sum + (ua.pointsEarned || 0), 0) 
+    : 0;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Trophy className="h-8 w-8 text-yellow-500" />
-            Achievements
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Track your wellness journey and unlock meaningful milestones
-          </p>
-        </div>
-        
-        <div className="flex gap-4 text-center">
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-yellow-500">{unlockedAchievements}</div>
-            <div className="text-sm text-muted-foreground">Unlocked</div>
-          </div>
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-blue-500">{totalPoints}</div>
-            <div className="text-sm text-muted-foreground">Total Points</div>
-          </div>
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-green-500">
-              {totalAchievements > 0 ? Math.round((unlockedAchievements / totalAchievements) * 100) : 0}%
-            </div>
-            <div className="text-sm text-muted-foreground">Complete</div>
-          </div>
-        </div>
+    <div className="container mx-auto px-4 py-8 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Achievements & Rewards
+        </h1>
+        <p className="text-muted-foreground">Unlock achievements and earn rewards for your wellness journey</p>
       </div>
 
-      <Tabs value="achievements" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="achievements">My Achievements</TabsTrigger>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Points</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalPoints}</div>
+            <p className="text-xs text-muted-foreground">From achievements</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Unlocked</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{unlockedAchievements}/{totalAchievements}</div>
+            <p className="text-xs text-muted-foreground">Achievements</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalAchievements > 0 ? Math.round((unlockedAchievements / totalAchievements) * 100) : 0}%</div>
+            <p className="text-xs text-muted-foreground">Complete</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <Tabs defaultValue="achievements" className="space-y-4">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+          <TabsTrigger value="achievements">Achievements</TabsTrigger>
           <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="achievements" className="space-y-6">
+        {/* Achievements Tab */}
+        <TabsContent value="achievements" className="space-y-4">
           {/* Category Filter */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             {categories.map((category) => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category.id)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1"
               >
                 {category.icon}
                 {category.name}
@@ -169,41 +196,29 @@ export default function Achievements() {
           </div>
 
           {/* Achievements Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {achievements?.map((achievement: any) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.isArray(achievements) && achievements.map((achievement: any) => {
               const isUnlocked = isAchievementUnlocked(achievement.id);
               const userAchievement = getUserAchievement(achievement.id);
-              
+              const tierColor = getTierColor(achievement.tier || 'default');
+
               return (
                 <Card 
                   key={achievement.id} 
-                  className={`transition-all duration-200 ${
-                    isUnlocked 
-                      ? `${getTierColor(achievement.tier)} shadow-lg` 
-                      : 'opacity-75 hover:opacity-90'
-                  }`}
+                  className={`${tierColor} ${!isUnlocked ? 'opacity-75' : ''} hover:shadow-lg transition-all duration-200`}
                 >
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {isUnlocked ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <Lock className="h-5 w-5 text-muted-foreground" />
-                        )}
-                        {getTierIcon(achievement.tier)}
-                      </div>
-                      <div className="flex items-center gap-2">
+                        {getTierIcon(achievement.tier || 'default')}
                         {getCategoryIcon(achievement.category)}
-                        <Badge variant="secondary" className="capitalize">
-                          {achievement.category}
-                        </Badge>
                       </div>
+                      {isUnlocked && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                     </div>
-                    <CardTitle className={`text-lg ${!isUnlocked ? 'text-muted-foreground' : ''}`}>
+                    <CardTitle className="text-lg">
                       {achievement.title}
                     </CardTitle>
-                    <CardDescription className={!isUnlocked ? 'text-muted-foreground' : ''}>
+                    <CardDescription className={isUnlocked ? '' : 'text-muted-foreground'}>
                       {achievement.description}
                     </CardDescription>
                   </CardHeader>
@@ -211,7 +226,7 @@ export default function Achievements() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Gift className="h-4 w-4 text-yellow-500" />
-                        <span className="font-semibold">{achievement.pointValue} points</span>
+                        <span className="font-semibold">{achievement.points || 0} points</span>
                       </div>
                       {isUnlocked ? (
                         <Badge variant="default" className="bg-green-500">
@@ -246,7 +261,7 @@ export default function Achievements() {
             })}
           </div>
 
-          {(!achievements || achievements.length === 0) && (
+          {(!Array.isArray(achievements) || achievements.length === 0) && (
             <Card>
               <CardContent className="text-center py-8">
                 <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -259,52 +274,43 @@ export default function Achievements() {
           )}
         </TabsContent>
 
-        <TabsContent value="leaderboard" className="space-y-6">
+        {/* Leaderboard Tab */}
+        <TabsContent value="leaderboard" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-yellow-500" />
-                Points Leaderboard
-              </CardTitle>
-              <CardDescription>
-                Top community members by total points earned
-              </CardDescription>
+              <CardTitle>Top Performers</CardTitle>
+              <CardDescription>All-time points leaders</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {leaderboard?.map((entry: any, index: number) => (
-                  <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                {Array.isArray(leaderboard) && leaderboard.map((entry: any, index: number) => (
+                  <div key={entry.userId} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
                         index === 0 ? 'bg-yellow-500 text-white' :
                         index === 1 ? 'bg-gray-400 text-white' :
                         index === 2 ? 'bg-amber-600 text-white' :
-                        'bg-muted text-muted-foreground'
+                        'bg-muted-foreground/20'
                       }`}>
                         {index + 1}
                       </div>
                       <div>
-                        <div className="font-semibold">User {entry.userId.slice(-6)}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Rank #{entry.rank || index + 1}
-                        </div>
+                        <p className="font-medium">{entry.displayName || 'Anonymous'}</p>
+                        <p className="text-sm text-muted-foreground">Level {entry.level || 1}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-lg">{entry.score}</div>
-                      <div className="text-sm text-muted-foreground">points</div>
+                      <p className="font-bold">{entry.score || 0}</p>
+                      <p className="text-sm text-muted-foreground">points</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {(!leaderboard || leaderboard.length === 0) && (
+              {(!Array.isArray(leaderboard) || leaderboard.length === 0) && (
                 <div className="text-center py-8">
-                  <Crown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Leaderboard Data</h3>
-                  <p className="text-muted-foreground">
-                    Complete challenges to appear on the leaderboard.
-                  </p>
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No leaderboard data available yet</p>
                 </div>
               )}
             </CardContent>

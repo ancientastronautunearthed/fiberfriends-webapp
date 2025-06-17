@@ -4,7 +4,6 @@ import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
-import { fileURLToPath } from 'url';
 
 const viteLogger = createLogger();
 
@@ -19,22 +18,21 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const createViteConfig = async () => {
-  const react = (await import("@vitejs/plugin-react")).default;
-  return {
-    plugins: [react()],
+export async function setupVite(app: Express, server: Server) {
+  const viteConfig = {
+    plugins: [
+      (await import("@vitejs/plugin-react")).default()
+    ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "..", "client", "src"),
-        "@shared": path.resolve(__dirname, "..", "shared"),
-        "@assets": path.resolve(__dirname, "..", "attached_assets"),
+        "@": path.resolve(process.cwd(), "client", "src"),
+        "@shared": path.resolve(process.cwd(), "shared"),
+        "@assets": path.resolve(process.cwd(), "attached_assets"),
       },
     },
-    root: path.resolve(__dirname, "..", "client"),
+    root: path.resolve(process.cwd(), "client"),
     build: {
-      outDir: path.resolve(__dirname, "..", "dist/public"),
+      outDir: path.resolve(process.cwd(), "dist/public"),
       emptyOutDir: true,
     },
     server: {
@@ -43,14 +41,6 @@ const createViteConfig = async () => {
         deny: ["**/.*"],
       },
     },
-  };
-};
-
-export async function setupVite(app: Express, server: Server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: "all",
   };
 
   const vite = await createViteServer({
@@ -63,7 +53,10 @@ export async function setupVite(app: Express, server: Server) {
         process.exit(1);
       },
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: true,
+      hmr: { server }
+    },
     appType: "custom",
   });
 
@@ -72,56 +65,32 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
-      // Use process.cwd() for reliable path resolution
       const clientTemplate = path.resolve(
         process.cwd(),
         "client",
-        "index.html"
+        "index.html",
       );
 
-      if (!fs.existsSync(clientTemplate)) {
-        log(`Template not found: ${clientTemplate}`, "vite");
-        return next();
-      }
-
-      let template = fs.readFileSync(clientTemplate, "utf-8");
-      template = await vite.transformIndexHtml(url, template);
-
-      const nonce = nanoid();
+      let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
-        /(<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>)/gi,
-        `$1`.replace(/(<script\b)/, `$1 nonce="${nonce}"`)
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid()}"`,
       );
-
-      res.status(200).set({ 
-        "Content-Type": "text/html",
-        "Content-Security-Policy": `script-src 'nonce-${nonce}' 'unsafe-eval';`
-      }).end(template);
+      const page = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
-      if (e instanceof Error) {
-        vite.ssrFixStacktrace(e);
-        log(`Error transforming HTML: ${e.message}`, "vite");
-        res.status(500).end(e.message);
-      }
+      vite.ssrFixStacktrace(e as Error);
+      next(e);
     }
   });
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "dist/public");
-  
-  if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-    
-    app.get("*", (req, res) => {
-      const indexPath = path.join(distPath, "index.html");
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).send("Not Found");
-      }
-    });
-  } else {
-    log("Built files not found. Please run 'npm run build' first.", "static");
+  const distPath = path.resolve(process.cwd(), "dist/public");
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first.`,
+    );
   }
+  app.use(express.static(distPath));
 }

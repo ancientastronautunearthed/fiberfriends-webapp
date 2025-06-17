@@ -3,23 +3,6 @@
 import { adminDb } from "./db";
 import * as admin from 'firebase-admin';
 import {
-  users,
-  aiCompanions,
-  conversationHistory,
-  aiHealthInsights,
-  dailyLogs,
-  communityPosts,
-  symptomPatterns,
-  symptomCorrelations,
-  symptomWheelEntries,
-  chatRooms,
-  chatMessages,
-  chatRoomMembers,
-  challenges,
-  achievements,
-  userChallenges,
-  userAchievements,
-  leaderboards,
   type User,
   type UpsertUser,
   type AiCompanion,
@@ -104,11 +87,11 @@ export class DatabaseStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const userRef = adminDb.collection('users').doc(userData.id);
+    const userRef = adminDb.collection('users').doc(userData.id!);
     const now = FieldValue.serverTimestamp();
     await userRef.set({
       ...userData,
-      createdAt: userData.createdAt || now,
+      createdAt: now,
       updatedAt: now,
     }, { merge: true });
     const userDoc = await userRef.get();
@@ -125,13 +108,13 @@ export class DatabaseStorage {
     return fromDoc<User>(userDoc)!;
   }
 
-  async completeOnboarding(id: string, profileData: any): Promise<User> {
-    return this.updateUser(id, { ...profileData, onboardingCompleted: true });
-  }
-
   // --- AI Companion operations ---
   async getAiCompanion(userId: string): Promise<AiCompanion | undefined> {
-    const snapshot = await adminDb.collection('aiCompanions').where('userId', '==', userId).limit(1).get();
+    const snapshot = await adminDb.collection('aiCompanions')
+      .where('userId', '==', userId)
+      .limit(1)
+      .get();
+    
     if (snapshot.empty) return undefined;
     return fromDoc<AiCompanion>(snapshot.docs[0]);
   }
@@ -144,366 +127,380 @@ export class DatabaseStorage {
     const doc = await docRef.get();
     return fromDoc<AiCompanion>(doc)!;
   }
-    
-  // --- Daily Log operations ---
-  async createDailyLog(log: InsertDailyLog): Promise<DailyLog> {
-    const docRef = await adminDb.collection('dailyLogs').add({
-      ...log,
-      date: new Date(log.date),
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<DailyLog>(doc)!;
-  }
 
+  // --- Daily Log operations ---
   async getDailyLogs(userId: string): Promise<DailyLog[]> {
     const snapshot = await adminDb.collection('dailyLogs')
       .where('userId', '==', userId)
       .orderBy('date', 'desc')
       .limit(30)
       .get();
+    
     return snapshot.docs.map(doc => fromDoc<DailyLog>(doc)!);
   }
 
+  async createDailyLog(log: InsertDailyLog): Promise<DailyLog> {
+    const docRef = await adminDb.collection('dailyLogs').add({
+      ...log,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    const doc = await docRef.get();
+    return fromDoc<DailyLog>(doc)!;
+  }
+
   // --- Community Post operations ---
+  async getCommunityPosts(category?: string): Promise<CommunityPost[]> {
+    let query = adminDb.collection('communityPosts').orderBy('createdAt', 'desc');
+    
+    if (category) {
+      query = query.where('category', '==', category);
+    }
+    
+    const snapshot = await query.limit(50).get();
+    return snapshot.docs.map(doc => fromDoc<CommunityPost>(doc)!);
+  }
+
   async createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
     const docRef = await adminDb.collection('communityPosts').add({
       ...post,
       likes: 0,
       replies: 0,
       createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<CommunityPost>(doc)!;
-  }
-
-  async getCommunityPosts(category?: string): Promise<CommunityPost[]> {
-    let query: FirebaseFirestore.Query = adminDb.collection('communityPosts');
-    if (category) {
-      query = query.where('category', '==', category);
-    }
-    const snapshot = await query.orderBy('createdAt', 'desc').limit(50).get();
-    return snapshot.docs.map(doc => fromDoc<CommunityPost>(doc)!);
   }
 
   async updateCommunityPost(id: string, updates: Partial<CommunityPost>): Promise<CommunityPost> {
     const postRef = adminDb.collection('communityPosts').doc(id);
-    await postRef.update(updates);
+    await postRef.update({
+      ...updates,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     const doc = await postRef.get();
     return fromDoc<CommunityPost>(doc)!;
   }
 
-  // --- Points System operations ---
-  async createPointActivity(activity: {
-    userId: string;
-    points: number;
-    type: string;
-    description: string;
-    metadata?: any;
-  }): Promise<PointActivity> {
-    const docRef = await adminDb.collection('pointActivities').add({
-      ...activity,
-      timestamp: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<PointActivity>(doc)!;
+  // --- Dashboard stats ---
+  async getDashboardStats(userId: string): Promise<any> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [logsSnapshot, entriesSnapshot] = await Promise.all([
+      adminDb.collection('dailyLogs')
+        .where('userId', '==', userId)
+        .where('date', '>=', thirtyDaysAgo)
+        .get(),
+      adminDb.collection('symptomWheelEntries')
+        .where('userId', '==', userId)
+        .where('date', '>=', thirtyDaysAgo)
+        .get()
+    ]);
+
+    return {
+      totalLogs: logsSnapshot.size,
+      totalEntries: entriesSnapshot.size,
+      currentStreak: await this.calculateStreak(userId),
+      lastLogDate: logsSnapshot.empty ? null : logsSnapshot.docs[0].data().date
+    };
   }
 
-  async getPointActivitiesByType(userId: string, type: string): Promise<PointActivity[]> {
-    const snapshot = await adminDb.collection('pointActivities')
+  private async calculateStreak(userId: string): Promise<number> {
+    const snapshot = await adminDb.collection('dailyLogs')
       .where('userId', '==', userId)
-      .where('type', '==', type)
-      .orderBy('timestamp', 'desc')
+      .orderBy('date', 'desc')
+      .limit(365)
       .get();
-    return snapshot.docs.map(doc => fromDoc<PointActivity>(doc)!);
-  }
 
-  async getRecentPointActivities(userId: string, limit: number = 10): Promise<PointActivity[]> {
-    const snapshot = await adminDb.collection('pointActivities')
-      .where('userId', '==', userId)
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
-      .get();
-    return snapshot.docs.map(doc => fromDoc<PointActivity>(doc)!);
-  }
+    if (snapshot.empty) return 0;
 
-  async getActivityCount(userId: string, type: string): Promise<number> {
-    const snapshot = await adminDb.collection('pointActivities')
-      .where('userId', '==', userId)
-      .where('type', '==', type)
-      .get();
-    return snapshot.size;
-  }
+    let streak = 0;
+    let lastDate: Date | null = null;
 
-  // --- Daily Activity operations ---
-  async getDailyActivity(userId: string, date: Date): Promise<DailyActivity | undefined> {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    for (const doc of snapshot.docs) {
+      const currentDate = doc.data().date.toDate();
+      
+      if (!lastDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        if (currentDate.getTime() === today.getTime() || 
+            currentDate.getTime() === today.getTime() - 86400000) {
+          streak = 1;
+          lastDate = currentDate;
+        } else {
+          break;
+        }
+      } else {
+        const dayDiff = (lastDate.getTime() - currentDate.getTime()) / 86400000;
+        if (dayDiff === 1) {
+          streak++;
+          lastDate = currentDate;
+        } else {
+          break;
+        }
+      }
+    }
 
-    const snapshot = await adminDb.collection('dailyActivities')
-      .where('userId', '==', userId)
-      .where('date', '>=', startOfDay)
-      .where('date', '<=', endOfDay)
-      .limit(1)
-      .get();
-    
-    if (snapshot.empty) return undefined;
-    return fromDoc<DailyActivity>(snapshot.docs[0]);
-  }
-
-  async createDailyActivity(activity: {
-    userId: string;
-    date: Date;
-    activities: any[];
-    totalPoints: number;
-  }): Promise<DailyActivity> {
-    const docRef = await adminDb.collection('dailyActivities').add(activity);
-    const doc = await docRef.get();
-    return fromDoc<DailyActivity>(doc)!;
-  }
-
-  async updateDailyActivity(id: string, updates: Partial<DailyActivity>): Promise<DailyActivity> {
-    const docRef = adminDb.collection('dailyActivities').doc(id);
-    await docRef.update(updates);
-    const doc = await docRef.get();
-    return fromDoc<DailyActivity>(doc)!;
-  }
-
-  // --- Badge operations ---
-  async createUserBadge(badge: {
-    userId: string;
-    badgeId: string;
-    progress?: number;
-  }): Promise<UserBadge> {
-    const docRef = await adminDb.collection('userBadges').add({
-      ...badge,
-      awardedAt: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<UserBadge>(doc)!;
-  }
-
-  async hasUserBadge(userId: string, badgeId: string): Promise<boolean> {
-    const snapshot = await adminDb.collection('userBadges')
-      .where('userId', '==', userId)
-      .where('badgeId', '==', badgeId)
-      .limit(1)
-      .get();
-    return !snapshot.empty;
-  }
-
-  async getUserBadges(userId: string): Promise<UserBadge[]> {
-    const snapshot = await adminDb.collection('userBadges')
-      .where('userId', '==', userId)
-      .orderBy('awardedAt', 'desc')
-      .get();
-    return snapshot.docs.map(doc => fromDoc<UserBadge>(doc)!);
-  }
-
-  // --- Community Stats operations ---
-  async getCommunityLikesReceived(userId: string): Promise<number> {
-    const snapshot = await adminDb.collection('communityPosts')
-      .where('authorId', '==', userId)
-      .get();
-    
-    let totalLikes = 0;
-    snapshot.docs.forEach(doc => {
-      const post = doc.data();
-      totalLikes += post.likes || 0;
-    });
-    
-    return totalLikes;
-  }
-
-  // --- Conversation History operations ---
-  async createConversationHistory(history: InsertConversationHistory): Promise<ConversationHistory> {
-    const docRef = await adminDb.collection('conversationHistory').add({
-      ...history,
-      timestamp: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<ConversationHistory>(doc)!;
-  }
-
-  async getConversationHistory(companionId: string): Promise<ConversationHistory[]> {
-    const snapshot = await adminDb.collection('conversationHistory')
-      .where('companionId', '==', companionId)
-      .orderBy('timestamp', 'desc')
-      .limit(50)
-      .get();
-    return snapshot.docs.map(doc => fromDoc<ConversationHistory>(doc)!);
-  }
-
-  // --- Health Insights operations ---
-  async createAiHealthInsight(insight: InsertAiHealthInsight): Promise<AiHealthInsight> {
-    const docRef = await adminDb.collection('aiHealthInsights').add({
-      ...insight,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<AiHealthInsight>(doc)!;
-  }
-
-  async getAiHealthInsights(userId: string): Promise<AiHealthInsight[]> {
-    const snapshot = await adminDb.collection('aiHealthInsights')
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .limit(10)
-      .get();
-    return snapshot.docs.map(doc => fromDoc<AiHealthInsight>(doc)!);
+    return streak;
   }
 
   // --- Symptom Pattern operations ---
+  async getSymptomPatterns(userId: string): Promise<SymptomPattern[]> {
+    const snapshot = await adminDb.collection('symptomPatterns')
+      .where('userId', '==', userId)
+      .orderBy('detectedAt', 'desc')
+      .get();
+    
+    return snapshot.docs.map(doc => fromDoc<SymptomPattern>(doc)!);
+  }
+
   async createSymptomPattern(pattern: InsertSymptomPattern): Promise<SymptomPattern> {
     const docRef = await adminDb.collection('symptomPatterns').add({
       ...pattern,
-      createdAt: FieldValue.serverTimestamp(),
+      detectedAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<SymptomPattern>(doc)!;
   }
 
-  async getSymptomPatterns(userId: string): Promise<SymptomPattern[]> {
-    const snapshot = await adminDb.collection('symptomPatterns')
+  // --- Symptom Correlation operations ---
+  async getSymptomCorrelations(userId: string): Promise<SymptomCorrelation[]> {
+    const snapshot = await adminDb.collection('symptomCorrelations')
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
+      .orderBy('correlationStrength', 'desc')
       .get();
-    return snapshot.docs.map(doc => fromDoc<SymptomPattern>(doc)!);
+    
+    return snapshot.docs.map(doc => fromDoc<SymptomCorrelation>(doc)!);
   }
 
-  // --- Symptom Correlation operations ---
   async createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation> {
     const docRef = await adminDb.collection('symptomCorrelations').add({
       ...correlation,
-      createdAt: FieldValue.serverTimestamp(),
+      detectedAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<SymptomCorrelation>(doc)!;
   }
 
-  async getSymptomCorrelations(userId: string): Promise<SymptomCorrelation[]> {
-    const snapshot = await adminDb.collection('symptomCorrelations')
+  // --- Symptom Wheel operations ---
+  async getSymptomWheelEntries(userId: string, limit = 10): Promise<SymptomWheelEntry[]> {
+    const snapshot = await adminDb.collection('symptomWheelEntries')
       .where('userId', '==', userId)
+      .orderBy('date', 'desc')
+      .limit(limit)
       .get();
-    return snapshot.docs.map(doc => fromDoc<SymptomCorrelation>(doc)!);
+    
+    return snapshot.docs.map(doc => fromDoc<SymptomWheelEntry>(doc)!);
   }
 
-  // --- Symptom Wheel operations ---
   async createSymptomWheelEntry(entry: InsertSymptomWheelEntry): Promise<SymptomWheelEntry> {
     const docRef = await adminDb.collection('symptomWheelEntries').add({
       ...entry,
-      recordedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<SymptomWheelEntry>(doc)!;
   }
 
-  async getSymptomWheelEntries(userId: string): Promise<SymptomWheelEntry[]> {
+  async getSymptomWheelAnalytics(userId: string): Promise<any> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const snapshot = await adminDb.collection('symptomWheelEntries')
       .where('userId', '==', userId)
-      .orderBy('recordedAt', 'desc')
-      .limit(30)
+      .where('date', '>=', thirtyDaysAgo)
       .get();
-    return snapshot.docs.map(doc => fromDoc<SymptomWheelEntry>(doc)!);
+
+    if (snapshot.empty) {
+      return {
+        totalEntries: 0,
+        averageIntensity: 0,
+        mostCommonSymptoms: [],
+        intensityTrend: 'stable'
+      };
+    }
+
+    const entries = snapshot.docs.map(doc => doc.data());
+    const symptomCounts = new Map<string, number>();
+    let totalIntensity = 0;
+    let entryCount = 0;
+
+    entries.forEach(entry => {
+      entry.symptoms.forEach((symptom: any) => {
+        const key = `${symptom.category}-${symptom.location || 'general'}`;
+        symptomCounts.set(key, (symptomCounts.get(key) || 0) + 1);
+        totalIntensity += symptom.severity;
+        entryCount++;
+      });
+    });
+
+    const mostCommonSymptoms = Array.from(symptomCounts.entries())
+      .map(([key, count]) => {
+        const [category, location] = key.split('-');
+        return { category, location, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      totalEntries: snapshot.size,
+      averageIntensity: entryCount > 0 ? (totalIntensity / entryCount).toFixed(1) : 0,
+      mostCommonSymptoms,
+      intensityTrend: this.calculateTrend(entries)
+    };
+  }
+
+  private calculateTrend(entries: any[]): string {
+    if (entries.length < 2) return 'stable';
+    
+    const sortedEntries = entries.sort((a, b) => 
+      a.date.toDate().getTime() - b.date.toDate().getTime()
+    );
+    
+    const firstHalf = sortedEntries.slice(0, Math.floor(entries.length / 2));
+    const secondHalf = sortedEntries.slice(Math.floor(entries.length / 2));
+    
+    const avgFirst = this.calculateAverageIntensity(firstHalf);
+    const avgSecond = this.calculateAverageIntensity(secondHalf);
+    
+    if (avgSecond > avgFirst * 1.1) return 'increasing';
+    if (avgSecond < avgFirst * 0.9) return 'decreasing';
+    return 'stable';
+  }
+
+  private calculateAverageIntensity(entries: any[]): number {
+    let total = 0;
+    let count = 0;
+    
+    entries.forEach(entry => {
+      entry.symptoms.forEach((symptom: any) => {
+        total += symptom.severity;
+        count++;
+      });
+    });
+    
+    return count > 0 ? total / count : 0;
   }
 
   // --- Chat operations ---
+  async getChatRooms(): Promise<ChatRoom[]> {
+    const snapshot = await adminDb.collection('chatRooms')
+      .where('isActive', '==', true)
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    return snapshot.docs.map(doc => fromDoc<ChatRoom>(doc)!);
+  }
+
+  async getChatRoom(roomId: string): Promise<ChatRoom | undefined> {
+    const doc = await adminDb.collection('chatRooms').doc(roomId).get();
+    return fromDoc<ChatRoom>(doc);
+  }
+
   async createChatRoom(room: InsertChatRoom): Promise<ChatRoom> {
     const docRef = await adminDb.collection('chatRooms').add({
       ...room,
+      memberCount: 0,
       createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<ChatRoom>(doc)!;
   }
 
-  async getChatRoom(id: string): Promise<ChatRoom | undefined> {
-    const doc = await adminDb.collection('chatRooms').doc(id).get();
-    return fromDoc<ChatRoom>(doc);
-  }
-
-  async getUserChatRooms(userId: string): Promise<ChatRoom[]> {
-    const memberSnapshot = await adminDb.collection('chatRoomMembers')
-      .where('userId', '==', userId)
+  async getChatMessages(roomId: string, limit = 50): Promise<ChatMessage[]> {
+    const snapshot = await adminDb.collection('chatMessages')
+      .where('roomId', '==', roomId)
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
       .get();
     
-    const roomIds = memberSnapshot.docs.map(doc => doc.data().roomId);
-    if (roomIds.length === 0) return [];
-    
-    const roomSnapshot = await adminDb.collection('chatRooms')
-      .where(admin.firestore.FieldPath.documentId(), 'in', roomIds)
-      .get();
-    
-    return roomSnapshot.docs.map(doc => fromDoc<ChatRoom>(doc)!);
+    return snapshot.docs.map(doc => fromDoc<ChatMessage>(doc)!).reverse();
   }
 
   async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
     const docRef = await adminDb.collection('chatMessages').add({
       ...message,
-      timestamp: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<ChatMessage>(doc)!;
   }
 
-  async getChatMessages(roomId: string): Promise<ChatMessage[]> {
-    const snapshot = await adminDb.collection('chatMessages')
+  async isRoomMember(roomId: string, userId: string): Promise<boolean> {
+    const snapshot = await adminDb.collection('chatRoomMembers')
       .where('roomId', '==', roomId)
-      .orderBy('timestamp', 'asc')
+      .where('userId', '==', userId)
+      .limit(1)
       .get();
-    return snapshot.docs.map(doc => fromDoc<ChatMessage>(doc)!);
+    
+    return !snapshot.empty;
   }
 
-  async addChatRoomMember(member: InsertChatRoomMember): Promise<ChatRoomMember> {
+  async joinRoom(roomId: string, userId: string): Promise<ChatRoomMember> {
     const docRef = await adminDb.collection('chatRoomMembers').add({
-      ...member,
+      roomId,
+      userId,
+      role: 'member',
       joinedAt: FieldValue.serverTimestamp(),
     });
+    
+    // Update room member count
+    await adminDb.collection('chatRooms').doc(roomId).update({
+      memberCount: FieldValue.increment(1)
+    });
+    
     const doc = await docRef.get();
     return fromDoc<ChatRoomMember>(doc)!;
   }
 
-  async getChatRoomMembers(roomId: string): Promise<ChatRoomMember[]> {
-    const snapshot = await adminDb.collection('chatRoomMembers')
-      .where('roomId', '==', roomId)
-      .get();
-    return snapshot.docs.map(doc => fromDoc<ChatRoomMember>(doc)!);
+  // --- Gamification operations ---
+  async getChallenges(type?: string, isActive = true): Promise<Challenge[]> {
+    let query = adminDb.collection('challenges')
+      .where('isActive', '==', isActive);
+    
+    if (type) {
+      query = query.where('type', '==', type);
+    }
+    
+    const snapshot = await query.orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => fromDoc<Challenge>(doc)!);
   }
 
-  // --- Challenge operations ---
+  async getChallenge(id: string): Promise<Challenge | undefined> {
+    const doc = await adminDb.collection('challenges').doc(id).get();
+    return fromDoc<Challenge>(doc);
+  }
+
   async createChallenge(challenge: InsertChallenge): Promise<Challenge> {
     const docRef = await adminDb.collection('challenges').add({
       ...challenge,
+      participantCount: 0,
       createdAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<Challenge>(doc)!;
   }
 
-  async getActiveChallenge(): Promise<Challenge | undefined> {
-    const now = new Date();
-    const snapshot = await adminDb.collection('challenges')
-      .where('startDate', '<=', now)
-      .where('endDate', '>=', now)
-      .where('isActive', '==', true)
-      .limit(1)
-      .get();
-    
-    if (snapshot.empty) return undefined;
-    return fromDoc<Challenge>(snapshot.docs[0]);
+  async updateChallenge(id: string, updates: Partial<Challenge>): Promise<Challenge> {
+    const challengeRef = adminDb.collection('challenges').doc(id);
+    await challengeRef.update(updates);
+    const doc = await challengeRef.get();
+    return fromDoc<Challenge>(doc)!;
   }
 
-  async createUserChallenge(userChallenge: InsertUserChallenge): Promise<UserChallenge> {
-    const docRef = await adminDb.collection('userChallenges').add({
-      ...userChallenge,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<UserChallenge>(doc)!;
+  async getUserChallenges(userId: string, status?: string): Promise<UserChallenge[]> {
+    let query = adminDb.collection('userChallenges')
+      .where('userId', '==', userId);
+    
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+    
+    const snapshot = await query.orderBy('startedAt', 'desc').get();
+    return snapshot.docs.map(doc => fromDoc<UserChallenge>(doc)!);
   }
 
   async getUserChallenge(userId: string, challengeId: string): Promise<UserChallenge | undefined> {
@@ -517,17 +514,60 @@ export class DatabaseStorage {
     return fromDoc<UserChallenge>(snapshot.docs[0]);
   }
 
-  async updateUserChallenge(id: string, updates: Partial<UserChallenge>): Promise<UserChallenge> {
-    const docRef = adminDb.collection('userChallenges').doc(id);
-    await docRef.update({
-      ...updates,
-      updatedAt: FieldValue.serverTimestamp(),
+  async assignChallengeToUser(userChallenge: InsertUserChallenge): Promise<UserChallenge> {
+    const docRef = await adminDb.collection('userChallenges').add({
+      ...userChallenge,
+      startedAt: FieldValue.serverTimestamp(),
     });
+    
+    // Update challenge participant count
+    await adminDb.collection('challenges').doc(userChallenge.challengeId).update({
+      participantCount: FieldValue.increment(1)
+    });
+    
     const doc = await docRef.get();
     return fromDoc<UserChallenge>(doc)!;
   }
 
-  // --- Achievement operations ---
+  async updateUserChallengeProgress(id: string, progress: any, status?: string): Promise<UserChallenge> {
+    const updates: any = { progress };
+    if (status) {
+      updates.status = status;
+    }
+    
+    const challengeRef = adminDb.collection('userChallenges').doc(id);
+    await challengeRef.update(updates);
+    const doc = await challengeRef.get();
+    return fromDoc<UserChallenge>(doc)!;
+  }
+
+  async completeUserChallenge(id: string, pointsEarned: number): Promise<UserChallenge> {
+    const challengeRef = adminDb.collection('userChallenges').doc(id);
+    await challengeRef.update({
+      status: 'completed',
+      completedAt: FieldValue.serverTimestamp(),
+      pointsEarned,
+    });
+    const doc = await challengeRef.get();
+    return fromDoc<UserChallenge>(doc)!;
+  }
+
+  async getAchievements(category?: string): Promise<Achievement[]> {
+    let query = adminDb.collection('achievements');
+    
+    if (category) {
+      query = query.where('category', '==', category);
+    }
+    
+    const snapshot = await query.orderBy('rarity').orderBy('title').get();
+    return snapshot.docs.map(doc => fromDoc<Achievement>(doc)!);
+  }
+
+  async getAchievement(id: string): Promise<Achievement | undefined> {
+    const doc = await adminDb.collection('achievements').doc(id).get();
+    return fromDoc<Achievement>(doc);
+  }
+
   async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
     const docRef = await adminDb.collection('achievements').add({
       ...achievement,
@@ -537,128 +577,196 @@ export class DatabaseStorage {
     return fromDoc<Achievement>(doc)!;
   }
 
-  async getAchievements(): Promise<Achievement[]> {
-    const snapshot = await adminDb.collection('achievements').get();
-    return snapshot.docs.map(doc => fromDoc<Achievement>(doc)!);
-  }
-
-  async createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement> {
-    const docRef = await adminDb.collection('userAchievements').add({
-      ...userAchievement,
-      unlockedAt: FieldValue.serverTimestamp(),
-    });
-    const doc = await docRef.get();
-    return fromDoc<UserAchievement>(doc)!;
-  }
-
   async getUserAchievements(userId: string): Promise<UserAchievement[]> {
     const snapshot = await adminDb.collection('userAchievements')
       .where('userId', '==', userId)
+      .orderBy('unlockedAt', 'desc')
       .get();
+    
     return snapshot.docs.map(doc => fromDoc<UserAchievement>(doc)!);
   }
 
-  // --- Leaderboard operations ---
-  async updateLeaderboard(entry: {
-    userId: string;
-    period: string;
-    points: number;
-    rank?: number;
-  }): Promise<Leaderboard> {
-    const docRef = adminDb.collection('leaderboards').doc(`${entry.userId}_${entry.period}`);
-    await docRef.set({
-      ...entry,
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-    const doc = await docRef.get();
-    return fromDoc<Leaderboard>(doc)!;
-  }
-
-  async getLeaderboard(period: string, limit: number = 10): Promise<Leaderboard[]> {
-    const snapshot = await adminDb.collection('leaderboards')
-      .where('period', '==', period)
-      .orderBy('points', 'desc')
-      .limit(limit)
-      .get();
-    return snapshot.docs.map(doc => fromDoc<Leaderboard>(doc)!);
-  }
-
-  // Missing methods for routes.ts
-  async getChallenges(type?: string, isActive?: boolean): Promise<Challenge[]> {
-    let query: FirebaseFirestore.Query = adminDb.collection('challenges');
-    
-    if (type) {
-      query = query.where('type', '==', type);
-    }
-    if (isActive !== undefined) {
-      query = query.where('isActive', '==', isActive);
-    }
-    
-    const snapshot = await query.orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => fromDoc<Challenge>(doc)!);
-  }
-
-  async getUserChallenges(userId: string, status?: string): Promise<UserChallenge[]> {
-    let query: FirebaseFirestore.Query = adminDb.collection('userChallenges')
-      .where('userId', '==', userId);
-    
-    if (status) {
-      query = query.where('status', '==', status);
-    }
-    
-    const snapshot = await query.orderBy('startedAt', 'desc').get();
-    return snapshot.docs.map(doc => fromDoc<UserChallenge>(doc)!);
-  }
-
-  async getUserRank(userId: string, period: string, category: string): Promise<number> {
-    const snapshot = await adminDb.collection('leaderboards')
-      .where('period', '==', period)
-      .where('category', '==', category)
-      .orderBy('points', 'desc')
-      .get();
-    
-    const userIndex = snapshot.docs.findIndex(doc => doc.data().userId === userId);
-    return userIndex === -1 ? 0 : userIndex + 1;
-  }
-
-  async unlockAchievement(userId: string, achievementId: string): Promise<any> {
-    const achievement = await adminDb.collection('achievements').doc(achievementId).get();
-    if (!achievement.exists) {
+  async unlockAchievement(userId: string, achievementId: string): Promise<UserAchievement> {
+    const achievement = await this.getAchievement(achievementId);
+    if (!achievement) {
       throw new Error('Achievement not found');
     }
 
-    const achievementData = achievement.data();
-    const userAchievement = {
+    const docRef = await adminDb.collection('userAchievements').add({
       userId,
       achievementId,
-      pointsEarned: achievementData?.pointValue || 0,
       unlockedAt: FieldValue.serverTimestamp(),
-    };
+      progress: 100,
+      isCompleted: true,
+    });
 
-    const docRef = await adminDb.collection('userAchievements').add(userAchievement);
     const doc = await docRef.get();
     return fromDoc<UserAchievement>(doc)!;
   }
 
+  async getLeaderboard(period: string, category: string, limit = 10): Promise<Leaderboard[]> {
+    const snapshot = await adminDb.collection('leaderboards')
+      .where('period', '==', period)
+      .where('category', '==', category)
+      .orderBy('score', 'desc')
+      .limit(limit)
+      .get();
+    
+    return snapshot.docs.map(doc => fromDoc<Leaderboard>(doc)!);
+  }
+
+  async updateUserLeaderboard(userId: string, period: string, category: string, score: number): Promise<void> {
+    const leaderboardId = `${userId}_${period}_${category}`;
+    await adminDb.collection('leaderboards').doc(leaderboardId).set({
+      userId,
+      period,
+      category,
+      score,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
+
+  async getUserRank(userId: string, period: string, category: string): Promise<number> {
+    const userScore = await adminDb.collection('leaderboards')
+      .where('userId', '==', userId)
+      .where('period', '==', period)
+      .where('category', '==', category)
+      .limit(1)
+      .get();
+    
+    if (userScore.empty) return -1;
+    
+    const score = userScore.docs[0].data().score;
+    
+    const higherScores = await adminDb.collection('leaderboards')
+      .where('period', '==', period)
+      .where('category', '==', category)
+      .where('score', '>', score)
+      .get();
+    
+    return higherScores.size + 1;
+  }
+
+  // --- Point System operations ---
   async updateUserPoints(userId: string, points: number): Promise<User> {
     const userRef = adminDb.collection('users').doc(userId);
-    await userRef.update({ points });
+    await userRef.update({
+      totalPoints: FieldValue.increment(points),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     const doc = await userRef.get();
     return fromDoc<User>(doc)!;
   }
 
-  async getAvailableBadges(userId: string): Promise<any[]> {
-    const userBadges = await this.getUserBadges(userId);
-    const unlockedBadgeIds = userBadges.map(ub => ub.badgeId);
-    
-    const allBadgesSnapshot = await adminDb.collection('badgeDefinitions')
-      .where('isActive', '==', true)
+  async recordPointActivity(activity: Omit<PointActivity, 'id'>): Promise<void> {
+    await adminDb.collection('pointActivities').add({
+      ...activity,
+      timestamp: FieldValue.serverTimestamp(),
+    });
+  }
+
+  async getPointActivitiesByType(userId: string, type: string): Promise<PointActivity[]> {
+    const snapshot = await adminDb.collection('pointActivities')
+      .where('userId', '==', userId)
+      .where('type', '==', type)
+      .orderBy('timestamp', 'desc')
       .get();
     
-    return allBadgesSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(badge => !unlockedBadgeIds.includes(badge.id));
+    return snapshot.docs.map(doc => fromDoc<PointActivity>(doc)!);
+  }
+
+  async getUserBadges(userId: string): Promise<UserBadge[]> {
+    const snapshot = await adminDb.collection('userBadges')
+      .where('userId', '==', userId)
+      .orderBy('awardedAt', 'desc')
+      .get();
+    
+    return snapshot.docs.map(doc => fromDoc<UserBadge>(doc)!);
+  }
+
+  async awardBadge(userId: string, badge: Omit<UserBadge, 'id' | 'userId'>): Promise<void> {
+    await adminDb.collection('userBadges').add({
+      ...badge,
+      userId,
+      awardedAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  async getDailyActivity(userId: string, date: Date): Promise<DailyActivity | undefined> {
+    const dateStr = date.toISOString().split('T')[0];
+    const doc = await adminDb.collection('dailyActivities').doc(`${userId}_${dateStr}`).get();
+    return fromDoc<DailyActivity>(doc);
+  }
+
+  async updateDailyActivity(userId: string, date: Date, activity: any, points: number): Promise<void> {
+    const dateStr = date.toISOString().split('T')[0];
+    const docId = `${userId}_${dateStr}`;
+    
+    await adminDb.collection('dailyActivities').doc(docId).set({
+      userId,
+      date,
+      activities: FieldValue.arrayUnion(activity),
+      totalPoints: FieldValue.increment(points),
+    }, { merge: true });
+  }
+
+  // --- AI Health Insights operations ---
+  async getAiHealthInsights(userId: string, isRead?: boolean): Promise<AiHealthInsight[]> {
+    let query = adminDb.collection('aiHealthInsights')
+      .where('userId', '==', userId);
+    
+    if (isRead !== undefined) {
+      query = query.where('isRead', '==', isRead);
+    }
+    
+    const snapshot = await query.orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => fromDoc<AiHealthInsight>(doc)!);
+  }
+
+  async createAiHealthInsight(insight: InsertAiHealthInsight): Promise<AiHealthInsight> {
+    const docRef = await adminDb.collection('aiHealthInsights').add({
+      ...insight,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    const doc = await docRef.get();
+    return fromDoc<AiHealthInsight>(doc)!;
+  }
+
+  async markInsightAsRead(id: string): Promise<void> {
+    await adminDb.collection('aiHealthInsights').doc(id).update({
+      isRead: true,
+    });
+  }
+
+  // --- Conversation History operations ---
+  async getConversationHistory(companionId: string, userId: string): Promise<ConversationHistory | undefined> {
+    const snapshot = await adminDb.collection('conversationHistory')
+      .where('companionId', '==', companionId)
+      .where('userId', '==', userId)
+      .limit(1)
+      .get();
+    
+    if (snapshot.empty) return undefined;
+    return fromDoc<ConversationHistory>(snapshot.docs[0]);
+  }
+
+  async createConversationHistory(history: InsertConversationHistory): Promise<ConversationHistory> {
+    const docRef = await adminDb.collection('conversationHistory').add({
+      ...history,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const doc = await docRef.get();
+    return fromDoc<ConversationHistory>(doc)!;
+  }
+
+  async updateConversationHistory(id: string, messages: any[]): Promise<void> {
+    await adminDb.collection('conversationHistory').doc(id).update({
+      messages,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
   }
 }
 
+// Export a singleton instance
 export const storage = new DatabaseStorage();
