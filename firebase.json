@@ -1,30 +1,29 @@
 {
-  "hosting": [
-    {
-      "public": "dist/public",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "/api/**",
-          "function": "api"
-        },
-        {
-          "source": "/ws/**",
-          "function": "api"
-        },
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ]
-    }
-  ],
-  "functions": {
-    "source": "server",
-    "runtime": "nodejs20"
+  "hosting": {
+    "public": "dist/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "apphosting": "fiberfriends-webapp"
+      },
+      {
+        "source": "/ws/**",
+        "apphosting": "fiberfriends-webapp"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "apphosting": {
+    "source": ".",
+    "backend": "fiberfriends-webapp",
+    "region": "us-central1"
   }
 }
