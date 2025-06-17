@@ -67,5 +67,29 @@
     "ui": {
       "enabled": true
     }
-  }
+  },
+  "apphosting": [
+    {
+      "backendId": "fiberfriends-webapp",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    },
+    {
+      "backendId": "fiberfriends-webapp",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    }
+  ]
 }
