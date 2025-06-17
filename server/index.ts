@@ -2,7 +2,7 @@
 
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic, log } from "./vite.firebase";
 import { registerRoutes } from "./routes";
 
 const app = express();

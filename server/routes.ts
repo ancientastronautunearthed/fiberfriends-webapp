@@ -35,23 +35,12 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
         user = await storage.upsertUser({
           id: 'dev-user-123',
           email: 'dev@example.com',
-          firstName: 'Dev',
-          lastName: 'User',
-          profileImageUrl: null,
-          points: 150,
-          trophyCase: ['early_adopter'],
-          height: null,
-          weight: null,
-          age: null,
-          gender: null,
-          location: null,
-          diagnosisStatus: null,
-          misdiagnoses: null,
-          diagnosisTimeline: null,
-          hasFibers: null,
-          otherDiseases: null,
-          habits: null,
+          displayName: 'Dev User',
+          photoURL: undefined,
           onboardingCompleted: false,
+          totalPoints: 150,
+          currentStreak: 0,
+          tier: 'bronze',
         });
       }
       
@@ -102,7 +91,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       
       // Generate AI insight if symptom log
       if (logData.logType === 'symptoms') {
- await generateSymptomInsight(logData.data);
+        await generateSymptomInsight(logData.data);
       }
       
       res.json({ log });

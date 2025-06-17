@@ -21,38 +21,36 @@ export function log(message: string, source = "express") {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const viteConfig = {
-  plugins: [
-    {
-      name: "@vitejs/plugin-react",
-      ...((await import("@vitejs/plugin-react")).default())
-    }
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "..", "client", "src"),
-      "@shared": path.resolve(__dirname, "..", "shared"),
-      "@assets": path.resolve(__dirname, "..", "attached_assets"),
+const createViteConfig = async () => {
+  const react = (await import("@vitejs/plugin-react")).default;
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "..", "client", "src"),
+        "@shared": path.resolve(__dirname, "..", "shared"),
+        "@assets": path.resolve(__dirname, "..", "attached_assets"),
+      },
     },
-  },
-  root: path.resolve(__dirname, "..", "client"),
-  build: {
-    outDir: path.resolve(__dirname, "..", "dist/public"),
-    emptyOutDir: true,
-  },
-  server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
+    root: path.resolve(__dirname, "..", "client"),
+    build: {
+      outDir: path.resolve(__dirname, "..", "dist/public"),
+      emptyOutDir: true,
     },
-  },
+    server: {
+      fs: {
+        strict: true,
+        deny: ["**/.*"],
+      },
+    },
+  };
 };
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true,
+    allowedHosts: "all",
   };
 
   const vite = await createViteServer({
