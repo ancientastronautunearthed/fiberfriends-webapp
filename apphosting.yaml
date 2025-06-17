@@ -1,39 +1,25 @@
-# Specifies the version of the App Hosting manifest.
+# apphosting.yaml
+
 specVersion: v1alpha1
-
-# Specifies the runtime for the backend from your package.json.
 runtime: nodejs22
-
-# Specifies the command to start your server using your package.json script.
 run: npm run start
-
-# Specifies the build commands for your backend.
 build:
   run: |
     npm install
     npm run build
-
-# Sets runtime settings for the backend.
 runConfig:
   minInstances: 0
-
-# Sets environment variables.
-# IMPORTANT: Your secret keys have been removed for security.
-# You MUST create secrets in Google Secret Manager and reference them here.
 env:
   - variable: NODE_ENV
     value: "production"
-
-  # Example of referencing a secret from Secret Manager
-  # - variable: VITE_GEMINI_API_KEY
-  #   secret: GEMINI_API_KEY # The name of your secret in Secret Manager
-
-  # Example for the Firebase Private Key
-  # - variable: FIREBASE_PRIVATE_KEY
-  #   secret: FIREBASE_PRIVATE_KEY
-
-  # The rest of your non-secret variables
+  # Non-secret variables can stay as they are
   - variable: FIREBASE_PROJECT_ID
     value: "fiber-friends"
   - variable: FIREBASE_CLIENT_EMAIL
     value: "firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com"
+    
+  # --- Reference your new secrets ---
+  - variable: VITE_GEMINI_API_KEY
+    secret: VITE_GEMINI_API_KEY
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_PRIVATE_KEY
