@@ -3,7 +3,18 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
-import { InsertDailyLog, InsertCommunityPost, InsertAiCompanion, InsertChatRoom, InsertChallenge, InsertUserChallenge, InsertSymptomWheelEntry, InsertConversationHistory, InsertAiHealthInsight } from "@shared/schema";
+import { 
+  InsertDailyLog, 
+  InsertCommunityPost, 
+  InsertAiCompanion, 
+  InsertChatRoom, 
+  InsertChallenge, 
+  InsertUserChallenge, 
+  InsertSymptomWheelEntry, 
+  InsertConversationHistory, 
+  InsertAiHealthInsight,
+  ConversationMessage
+} from "@shared/schema";
 import {
   generateNutritionalAnalysis,
   generateSymptomInsight,
@@ -94,8 +105,8 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       } else if (req.body.logType === 'food') {
           const user = await storage.getUser(userId);
           const nutritionalAnalysis = await generateNutritionalAnalysis(req.body.data.foodDescription, req.body.data.mealType, user?.profile);
-          await storage.updateDailyLog(log.id, { nutritionalAnalysis });
-          res.json({ log, nutritionalAnalysis });
+          const updatedLog = await storage.updateDailyLog(log.id, { nutritionalAnalysis });
+          res.json({ log: updatedLog, nutritionalAnalysis });
           return;
       }
 
@@ -195,8 +206,8 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       const response = await generateAICompanionResponse(message, history?.messages || []);
       
       const newMessages = [
-          { role: 'user', content: message, timestamp: new Date() },
-          { role: 'assistant', content: response, timestamp: new Date() }
+          { role: 'user' as const, content: message, timestamp: new Date() },
+          { role: 'assistant' as const, content: response, timestamp: new Date() }
       ];
 
       if (history) {
@@ -205,7 +216,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
           await storage.createConversationHistory({
               userId,
               companionId: companion.id,
-              messages: newMessages,
+              messages: newMessages as ConversationMessage[],
           });
       }
       

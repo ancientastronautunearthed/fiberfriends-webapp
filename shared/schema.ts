@@ -1,6 +1,8 @@
 // Firebase Firestore Schema Types
 // This file defines the data models for Firebase Firestore collections
 
+import { FieldValue } from 'firebase-admin/firestore';
+
 export interface User {
   id: string;
   email: string;
@@ -48,6 +50,7 @@ export interface DailyLog {
   sleepHours?: number;
   notes?: string;
   createdAt: Date;
+  nutritionalAnalysis?: any; // Added for food log analysis
 }
 
 export interface SymptomEntry {
@@ -128,6 +131,7 @@ export interface CommunityPost {
   isAnonymous: boolean;
   createdAt: Date;
   updatedAt: Date;
+  aiAnalysis?: string; // Corrected: Added this field
 }
 
 export interface CommunityReply {
@@ -207,7 +211,7 @@ export interface UserBadge {
   name: string;
   description: string;
   icon: string;
-  earnedAt: Date;
+  awardedAt: Date; // Corrected: Renamed from earnedAt to awardedAt for consistency
   progress?: number;
 }
 
@@ -319,6 +323,8 @@ export type InsertSymptomPattern = Omit<SymptomPattern, 'id' | 'createdAt'>;
 export type InsertSymptomCorrelation = Omit<SymptomCorrelation, 'id' | 'createdAt'>;
 export type InsertAiHealthInsight = Omit<AiHealthInsight, 'id' | 'createdAt'>;
 export type InsertSymptomWheelEntry = Omit<SymptomWheelEntry, 'id' | 'createdAt'>;
+export type InsertPointActivity = Omit<PointActivity, 'id' | 'createdAt'>; // Corrected: Added this type
+export type InsertUserBadge = Omit<UserBadge, 'id' | 'awardedAt'>; // Corrected: Added this type and use awardedAt
 
 // Update types
 export type UpsertUser = Partial<InsertUser> & { id?: string };
