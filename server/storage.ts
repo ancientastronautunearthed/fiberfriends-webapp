@@ -36,6 +36,8 @@ import {
   type UserAchievement,
   type InsertUserAchievement,
   type Leaderboard,
+  type UserBadge,
+  type PointActivity,
 } from "@shared/schema";
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -43,7 +45,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 const fromDoc = <T extends { id: string }>(doc: FirebaseFirestore.DocumentSnapshot): T | undefined => {
   if (!doc.exists) return undefined;
   
-  const data = doc.data();
+  const data = doc.data() as any;
   // Convert Firestore Timestamps to JS Date objects for consistency
   for (const key in data) {
     if (data[key] instanceof admin.firestore.Timestamp) {
@@ -53,23 +55,6 @@ const fromDoc = <T extends { id: string }>(doc: FirebaseFirestore.DocumentSnapsh
   
   return { id: doc.id, ...data } as T;
 };
-
-export interface PointActivity {
-  id: string;
-  userId: string;
-  points: number;
-  type: string;
-  description: string;
-  timestamp: Date;
-}
-
-export interface UserBadge {
-  id: string;
-  userId: string;
-  badgeId: string;
-  awardedAt: Date;
-  progress?: number;
-}
 
 export interface DailyActivity {
   id: string;
@@ -106,6 +91,10 @@ export class DatabaseStorage {
     });
     const userDoc = await userRef.get();
     return fromDoc<User>(userDoc)!;
+  }
+
+  async completeOnboarding(userId: string, profileData: any): Promise<User> {
+    return this.updateUser(userId, { ...profileData, onboardingCompleted: true });
   }
 
   // --- AI Companion operations ---
@@ -251,7 +240,7 @@ export class DatabaseStorage {
   async getSymptomPatterns(userId: string): Promise<SymptomPattern[]> {
     const snapshot = await adminDb.collection('symptomPatterns')
       .where('userId', '==', userId)
-      .orderBy('detectedAt', 'desc')
+      .orderBy('createdAt', 'desc')
       .get();
     
     return snapshot.docs.map(doc => fromDoc<SymptomPattern>(doc)!);
@@ -260,7 +249,7 @@ export class DatabaseStorage {
   async createSymptomPattern(pattern: InsertSymptomPattern): Promise<SymptomPattern> {
     const docRef = await adminDb.collection('symptomPatterns').add({
       ...pattern,
-      detectedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<SymptomPattern>(doc)!;
@@ -279,7 +268,7 @@ export class DatabaseStorage {
   async createSymptomCorrelation(correlation: InsertSymptomCorrelation): Promise<SymptomCorrelation> {
     const docRef = await adminDb.collection('symptomCorrelations').add({
       ...correlation,
-      detectedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     const doc = await docRef.get();
     return fromDoc<SymptomCorrelation>(doc)!;
@@ -457,6 +446,19 @@ export class DatabaseStorage {
   }
 
   // --- Gamification operations ---
+  async getActiveChallenge(): Promise<Challenge | undefined> {
+    const snapshot = await adminDb.collection('challenges')
+        .where('isActive', '==', true)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+
+    if (snapshot.empty) {
+        return undefined;
+    }
+    return fromDoc<Challenge>(snapshot.docs[0]);
+  }
+  
   async getChallenges(type?: string, isActive = true): Promise<Challenge[]> {
     let query = adminDb.collection('challenges')
       .where('isActive', '==', isActive);
@@ -514,6 +516,18 @@ export class DatabaseStorage {
     return fromDoc<UserChallenge>(snapshot.docs[0]);
   }
 
+  async createUserChallenge(userChallenge: InsertUserChallenge): Promise<UserChallenge> {
+      const docRef = await adminDb.collection('userChallenges').add({
+          ...userChallenge,
+          startedAt: FieldValue.serverTimestamp(),
+      });
+      await adminDb.collection('challenges').doc(userChallenge.challengeId).update({
+          participantCount: FieldValue.increment(1)
+      });
+      const doc = await docRef.get();
+      return fromDoc<UserChallenge>(doc)!;
+  }
+
   async assignChallengeToUser(userChallenge: InsertUserChallenge): Promise<UserChallenge> {
     const docRef = await adminDb.collection('userChallenges').add({
       ...userChallenge,
@@ -527,6 +541,16 @@ export class DatabaseStorage {
     
     const doc = await docRef.get();
     return fromDoc<UserChallenge>(doc)!;
+  }
+  
+  async updateUserChallenge(id: string, updates: Partial<UserChallenge>): Promise<UserChallenge> {
+      const challengeRef = adminDb.collection('userChallenges').doc(id);
+      await challengeRef.update({
+          ...updates,
+          updatedAt: FieldValue.serverTimestamp()
+      });
+      const doc = await challengeRef.get();
+      return fromDoc<UserChallenge>(doc)!;
   }
 
   async updateUserChallengeProgress(id: string, progress: any, status?: string): Promise<UserChallenge> {
@@ -580,7 +604,7 @@ export class DatabaseStorage {
   async getUserAchievements(userId: string): Promise<UserAchievement[]> {
     const snapshot = await adminDb.collection('userAchievements')
       .where('userId', '==', userId)
-      .orderBy('unlockedAt', 'desc')
+      .orderBy('earnedAt', 'desc')
       .get();
     
     return snapshot.docs.map(doc => fromDoc<UserAchievement>(doc)!);
@@ -595,10 +619,9 @@ export class DatabaseStorage {
     const docRef = await adminDb.collection('userAchievements').add({
       userId,
       achievementId,
-      unlockedAt: FieldValue.serverTimestamp(),
-      progress: 100,
+      earnedAt: FieldValue.serverTimestamp(),
       isCompleted: true,
-    });
+    } as Omit<UserAchievement, 'id' | 'progress'>);
 
     const doc = await docRef.get();
     return fromDoc<UserAchievement>(doc)!;
@@ -658,6 +681,15 @@ export class DatabaseStorage {
     return fromDoc<User>(doc)!;
   }
 
+  async createPointActivity(activity: Omit<PointActivity, 'id' | 'timestamp'>): Promise<PointActivity> {
+      const docRef = await adminDb.collection('pointActivities').add({
+          ...activity,
+          timestamp: FieldValue.serverTimestamp(),
+      });
+      const doc = await docRef.get();
+      return fromDoc<PointActivity>(doc)!;
+  }
+  
   async recordPointActivity(activity: Omit<PointActivity, 'id'>): Promise<void> {
     await adminDb.collection('pointActivities').add({
       ...activity,
@@ -674,17 +706,52 @@ export class DatabaseStorage {
     
     return snapshot.docs.map(doc => fromDoc<PointActivity>(doc)!);
   }
+  
+  async getRecentPointActivities(userId: string, limitCount: number): Promise<PointActivity[]> {
+      const snapshot = await adminDb.collection('pointActivities')
+          .where('userId', '==', userId)
+          .orderBy('timestamp', 'desc')
+          .limit(limitCount)
+          .get();
+      return snapshot.docs.map(doc => fromDoc<PointActivity>(doc)!);
+  }
+  
+  async getActivityCount(userId: string, activityType: string): Promise<number> {
+      const snapshot = await adminDb.collection('pointActivities')
+          .where('userId', '==', userId)
+          .where('type', '==', activityType)
+          .get();
+      return snapshot.size;
+  }
 
   async getUserBadges(userId: string): Promise<UserBadge[]> {
     const snapshot = await adminDb.collection('userBadges')
       .where('userId', '==', userId)
-      .orderBy('awardedAt', 'desc')
+      .orderBy('earnedAt', 'desc')
       .get();
     
     return snapshot.docs.map(doc => fromDoc<UserBadge>(doc)!);
   }
+  
+  async hasUserBadge(userId: string, badgeId: string): Promise<boolean> {
+      const snapshot = await adminDb.collection('userBadges')
+          .where('userId', '==', userId)
+          .where('badgeId', '==', badgeId)
+          .limit(1)
+          .get();
+      return !snapshot.empty;
+  }
 
-  async awardBadge(userId: string, badge: Omit<UserBadge, 'id' | 'userId'>): Promise<void> {
+  async createUserBadge(userBadge: Omit<UserBadge, 'id' | 'awardedAt'>): Promise<UserBadge> {
+      const docRef = await adminDb.collection('userBadges').add({
+          ...userBadge,
+          awardedAt: FieldValue.serverTimestamp(),
+      });
+      const doc = await docRef.get();
+      return fromDoc<UserBadge>(doc)!;
+  }
+
+  async awardBadge(userId: string, badge: Omit<UserBadge, 'id' | 'userId'|'awardedAt'>): Promise<void> {
     await adminDb.collection('userBadges').add({
       ...badge,
       userId,
@@ -697,18 +764,25 @@ export class DatabaseStorage {
     const doc = await adminDb.collection('dailyActivities').doc(`${userId}_${dateStr}`).get();
     return fromDoc<DailyActivity>(doc);
   }
-
-  async updateDailyActivity(userId: string, date: Date, activity: any, points: number): Promise<void> {
-    const dateStr = date.toISOString().split('T')[0];
-    const docId = `${userId}_${dateStr}`;
-    
-    await adminDb.collection('dailyActivities').doc(docId).set({
-      userId,
-      date,
-      activities: FieldValue.arrayUnion(activity),
-      totalPoints: FieldValue.increment(points),
-    }, { merge: true });
+  
+  async createDailyActivity(activity: Omit<DailyActivity, 'id'>): Promise<DailyActivity> {
+      const dateStr = (activity.date as Date).toISOString().split('T')[0];
+      const docRef = adminDb.collection('dailyActivities').doc(`${activity.userId}_${dateStr}`);
+      await docRef.set({
+          ...activity,
+          createdAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      const doc = await docRef.get();
+      return fromDoc<DailyActivity>(doc)!;
   }
+
+  async updateDailyActivity(id: string, updates: Partial<DailyActivity>): Promise<void> {
+      await adminDb.collection('dailyActivities').doc(id).update({
+          ...updates,
+          updatedAt: FieldValue.serverTimestamp(),
+      });
+  }
+
 
   // --- AI Health Insights operations ---
   async getAiHealthInsights(userId: string, isRead?: boolean): Promise<AiHealthInsight[]> {
@@ -762,7 +836,7 @@ export class DatabaseStorage {
 
   async updateConversationHistory(id: string, messages: any[]): Promise<void> {
     await adminDb.collection('conversationHistory').doc(id).update({
-      messages,
+      messages: FieldValue.arrayUnion(...messages),
       updatedAt: FieldValue.serverTimestamp(),
     });
   }

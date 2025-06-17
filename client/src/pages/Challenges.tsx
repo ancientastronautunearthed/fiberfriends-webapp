@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -19,14 +19,29 @@ export default function Challenges() {
   const queryClient = useQueryClient();
 
   // Fetch available challenges
-  const { data: challenges = [], isLoading: challengesLoading } = useQuery({
-    queryKey: ["/api/challenges"]
+  const { data: challengesData, isLoading: challengesLoading } = useQuery({
+    queryKey: ["/api/challenges"],
+    queryFn: () => apiRequest("GET", "/api/challenges/active").then(res => res.json()),
   });
+  const challenges = challengesData?.challenges || [];
 
   // Fetch user's challenges
-  const { data: userChallenges = [], isLoading: userChallengesLoading } = useQuery({
-    queryKey: ["/api/user-challenges"]
+  const { data: userChallengesData, isLoading: userChallengesLoading } = useQuery({
+    queryKey: ["/api/user-challenges"],
+    queryFn: () => apiRequest("GET", "/api/challenges/user").then(res => res.json()),
   });
+  const userChallenges = userChallengesData?.userChallenges || [];
+
+  // Fetch all challenges to get details by ID (necessary for lookups)
+  const { data: allChallengesData, isLoading: allChallengesLoading } = useQuery({
+    queryKey: ["/api/challenges/all"],
+    queryFn: () => apiRequest("GET", "/api/challenges?type=all").then(res => res.json()),
+  });
+  const challengeDetailsMap = useMemo(() => {
+    if (!allChallengesData?.challenges) return new Map();
+    return new Map(allChallengesData.challenges.map((c: any) => [c.id, c]));
+  }, [allChallengesData]);
+
 
   // Generate new challenge mutation
   const generateChallengeMutation = useMutation({
@@ -142,7 +157,7 @@ export default function Challenges() {
     }
   };
 
-  if (challengesLoading || userChallengesLoading) {
+  if (challengesLoading || userChallengesLoading || allChallengesLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="h-screen flex items-center justify-center">
@@ -258,7 +273,6 @@ export default function Challenges() {
 
         <TabsContent value="active" className="space-y-4">
           {activeTracker ? (
-            // Show interactive tracker interface
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Interactive Challenge Tracker</h2>
@@ -268,76 +282,80 @@ export default function Challenges() {
               </div>
               {(() => {
                 const userChallenge = userChallenges?.find((uc: any) => uc.id === activeTracker);
-                if (!userChallenge?.challenge) return null;
+                const challengeDetails = challengeDetailsMap.get(userChallenge?.challengeId);
+                if (!challengeDetails) return null;
                 
                 return (
                   <ChallengeTracker
-                    challenge={userChallenge.challenge}
+                    challenge={challengeDetails}
                     userChallengeId={userChallenge.id}
                   />
                 );
               })()}
             </div>
           ) : (
-            // Show list of active challenges
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {userChallenges?.filter((uc: any) => uc.status === 'active').map((userChallenge: any) => (
-                  <Card key={userChallenge.id} className="border-l-4 border-l-blue-500">
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        {getCategoryIcon(userChallenge.challenge?.category || 'health')}
-                        <Badge variant="secondary">Active</Badge>
-                      </div>
-                      <CardTitle className="text-lg">{userChallenge.challenge?.title || 'Challenge'}</CardTitle>
-                      <CardDescription>{userChallenge.challenge?.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Progress</span>
-                            <span>{userChallenge.progress?.completion_percentage || 0}%</span>
-                          </div>
-                          <Progress value={userChallenge.progress?.completion_percentage || 0} className="h-2" />
+                {userChallenges?.filter((uc: any) => uc.status === 'active').map((userChallenge: any) => {
+                  const challenge = challengeDetailsMap.get(userChallenge.challengeId);
+                  if (!challenge) return null;
+                  return (
+                    <Card key={userChallenge.id} className="border-l-4 border-l-blue-500">
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          {getCategoryIcon(challenge.category)}
+                          <Badge variant="secondary">Active</Badge>
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Gift className="h-4 w-4 text-yellow-500" />
-                            <span className="font-semibold">
-                              {userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0} points
-                            </span>
+                        <CardTitle className="text-lg">{challenge.title}</CardTitle>
+                        <CardDescription>{challenge.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex justify-between text-sm mb-2">
+                              <span>Progress</span>
+                              <span>{userChallenge.progress || 0}%</span>
+                            </div>
+                            <Progress value={userChallenge.progress || 0} className="h-2" />
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => dismissChallengeMutation.mutate(userChallenge.id)}
-                              size="sm"
-                              variant="outline"
-                              className="flex items-center gap-2"
-                              disabled={dismissChallengeMutation.isPending}
-                            >
-                              <X className="w-4 h-4" />
-                              Dismiss
-                            </Button>
-                            <Button
-                              onClick={() => setActiveTracker(userChallenge.id)}
-                              size="sm"
-                              className="flex items-center gap-2"
-                            >
-                              <Play className="w-4 h-4" />
-                              Start Tracker
-                            </Button>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Gift className="h-4 w-4 text-yellow-500" />
+                              <span className="font-semibold">
+                                {challenge.pointReward || challenge.points || 0} points
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => dismissChallengeMutation.mutate(userChallenge.id)}
+                                size="sm"
+                                variant="outline"
+                                className="flex items-center gap-2"
+                                disabled={dismissChallengeMutation.isPending}
+                              >
+                                <X className="w-4 h-4" />
+                                Dismiss
+                              </Button>
+                              <Button
+                                onClick={() => setActiveTracker(userChallenge.id)}
+                                size="sm"
+                                className="flex items-center gap-2"
+                              >
+                                <Play className="w-4 h-4" />
+                                Start Tracker
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground">
+                            Started: {new Date(userChallenge.startedAt).toLocaleDateString()}
                           </div>
                         </div>
-                        
-                        <div className="text-sm text-muted-foreground">
-                          Started: {new Date(userChallenge.startedAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
 
               {(!userChallenges || userChallenges.filter((uc: any) => uc.status === 'active').length === 0) && (
@@ -357,29 +375,33 @@ export default function Challenges() {
 
         <TabsContent value="completed" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {userChallenges?.filter((uc: any) => uc.status === 'completed').map((userChallenge: any) => (
-              <Card key={userChallenge.id} className="border-l-4 border-l-green-500">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-yellow-500" />
-                    <Badge variant="default" className="bg-green-500">Completed</Badge>
-                  </div>
-                  <CardTitle className="text-lg">{userChallenge.challenge?.title || 'Challenge'}</CardTitle>
-                  <CardDescription>{userChallenge.challenge?.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
+            {userChallenges?.filter((uc: any) => uc.status === 'completed').map((userChallenge: any) => {
+              const challenge = challengeDetailsMap.get(userChallenge.challengeId);
+              if (!challenge) return null;
+              return (
+                <Card key={userChallenge.id} className="border-l-4 border-l-green-500">
+                  <CardHeader>
                     <div className="flex items-center gap-2">
-                      <Gift className="h-4 w-4 text-yellow-500" />
-                      <span className="font-semibold">{userChallenge.pointsEarned} points earned</span>
+                      <Trophy className="h-4 w-4 text-yellow-500" />
+                      <Badge variant="default" className="bg-green-500">Completed</Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(userChallenge.completedAt).toLocaleDateString()}
+                    <CardTitle className="text-lg">{challenge.title}</CardTitle>
+                    <CardDescription>{challenge.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Gift className="h-4 w-4 text-yellow-500" />
+                        <span className="font-semibold">{userChallenge.pointsEarned} points earned</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(userChallenge.completedAt).toLocaleDateString()}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
           {(!userChallenges || userChallenges.filter((uc: any) => uc.status === 'completed').length === 0) && (

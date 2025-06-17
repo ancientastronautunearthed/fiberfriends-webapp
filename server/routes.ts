@@ -4,9 +4,9 @@ import { storage } from "./storage";
 import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
 import { InsertDailyLog, InsertCommunityPost, InsertAiCompanion, InsertChatRoom, InsertChallenge, InsertUserChallenge, InsertSymptomWheelEntry, InsertConversationHistory, InsertAiHealthInsight } from "@shared/schema";
-import { 
-  generateNutritionalAnalysis, 
-  generateSymptomInsight, 
+import {
+  generateNutritionalAnalysis,
+  generateSymptomInsight,
   generateCommunityPostAnalysis,
   generateAICompanionResponse,
   generateDailyChallenge,
@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
     try {
       const userId = req.user.claims.sub;
       let user = await storage.getUser(userId);
-      
+
       // Create dev user if doesn't exist
       if (!user && userId === 'dev-user-123') {
         user = await storage.upsertUser({
@@ -39,11 +39,11 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
           photoURL: undefined,
           onboardingCompleted: false,
           totalPoints: 150,
-          currentStreak: 0,
-          tier: 'bronze',
+          streakDays: 0,
+          currentTier: 'NEWCOMER',
         });
       }
-      
+
       res.json({ user });
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.put('/api/profile/complete-onboarding', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const updatedUser = await storage.completeOnboarding(userId, req.body);
+      const updatedUser = await storage.updateUser(userId, { ...req.body, onboardingCompleted: true });
       res.json({ user: updatedUser });
     } catch (error) {
       console.error("Error completing onboarding:", error);
@@ -81,19 +81,24 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       const logData = {
         ...req.body,
         userId,
+        date: new Date(req.body.date),
       };
-      
-      const log = await storage.createDailyLog(logData);
-      
-      // Award points for logging
-      const logType = logData.logType === 'food' ? 'FOOD_LOG_ENTRY' : 'SYMPTOM_LOG_ENTRY';
+
+      const log = await storage.createDailyLog(logData as InsertDailyLog);
+
+      const logType = req.body.logType === 'food' ? 'FOOD_LOG_ENTRY' : 'SYMPTOM_LOG_ENTRY';
       await pointsSystem.awardPoints(userId, logType);
-      
-      // Generate AI insight if symptom log
-      if (logData.logType === 'symptoms') {
-        await generateSymptomInsight(logData.data);
+
+      if (req.body.logType === 'symptoms') {
+        await generateSymptomInsight(req.body.data);
+      } else if (req.body.logType === 'food') {
+          const user = await storage.getUser(userId);
+          const nutritionalAnalysis = await generateNutritionalAnalysis(req.body.data.foodDescription, req.body.data.mealType, user?.profile);
+          await storage.updateDailyLog(log.id, { nutritionalAnalysis });
+          res.json({ log, nutritionalAnalysis });
+          return;
       }
-      
+
       res.json({ log });
     } catch (error) {
       console.error("Error creating daily log:", error);
@@ -116,18 +121,17 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.post('/api/community-posts', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const postData = {
+      const postData: InsertCommunityPost = {
         ...req.body,
         userId,
+        isAnonymous: req.body.isAnonymous || false,
       };
-      
+
       const post = await storage.createCommunityPost(postData);
-      
-      // Generate AI analysis
+
       const aiAnalysis = await generateCommunityPostAnalysis(postData.content, postData.category);
-      // AI analysis stored separately
+      await storage.updateCommunityPost(post.id, { aiAnalysis });
       
-      // Award points
       await pointsSystem.awardPoints(userId, 'COMMUNITY_POST_CREATE');
       
       res.json({ post: { ...post, aiAnalysis } });
@@ -152,7 +156,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.post('/api/companion/create', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const companionData = {
+      const companionData: InsertAiCompanion = {
         ...req.body,
         userId,
       };
@@ -179,27 +183,32 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.post('/api/companion/chat', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { message, companionId } = req.body;
+      const { message } = req.body;
       
       const companion = await storage.getAiCompanion(userId);
       if (!companion) {
         return res.status(404).json({ error: "No AI companion found" });
       }
+
+      const history = await storage.getConversationHistory(companion.id, userId);
       
-      const response = await generateAICompanionResponse(message, companion);
+      const response = await generateAICompanionResponse(message, history?.messages || []);
       
-      // Save conversation history
-      await storage.createConversationHistory({
-        userId,
-        companionId: companion.id,
-        messages: [{
-          role: 'user',
-          content: message,
-          timestamp: new Date()
-        }]
-      });
+      const newMessages = [
+          { role: 'user', content: message, timestamp: new Date() },
+          { role: 'assistant', content: response, timestamp: new Date() }
+      ];
+
+      if (history) {
+          await storage.updateConversationHistory(history.id, newMessages);
+      } else {
+          await storage.createConversationHistory({
+              userId,
+              companionId: companion.id,
+              messages: newMessages,
+          });
+      }
       
-      // Award points for interaction
       await pointsSystem.awardPoints(userId, 'AI_CONVERSATION_MESSAGE');
       
       res.json({ response });
@@ -213,14 +222,14 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.post('/api/symptom-wheel', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const entryData = {
+      const entryData: InsertSymptomWheelEntry = {
         ...req.body,
         userId,
+        date: new Date(req.body.date),
       };
       
       const entry = await storage.createSymptomWheelEntry(entryData);
       
-      // Award points
       await pointsSystem.awardPoints(userId, 'SYMPTOM_WHEEL_ENTRY');
       
       res.json({ entry });
@@ -292,13 +301,15 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       const userId = req.user.claims.sub;
       const { challengeId } = req.body;
       
-      const userChallenge = await storage.createUserChallenge({
+      const userChallengeData: InsertUserChallenge = {
         userId,
         challengeId,
         status: 'active',
         progress: 0,
         pointsEarned: 0,
-      });
+      };
+
+      const userChallenge = await storage.createUserChallenge(userChallengeData);
       
       res.json({ userChallenge });
     } catch (error) {
@@ -363,8 +374,8 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
 
   app.get('/api/leaderboard', async (req, res) => {
     try {
-      const { period = 'weekly' } = req.query;
-      const leaderboard = await storage.getLeaderboard(period as string);
+      const { period = 'weekly', category = 'points' } = req.query;
+      const leaderboard = await storage.getLeaderboard(period as string, category as string);
       res.json({ leaderboard });
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
@@ -427,5 +438,5 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   });
 
   // Set up WebSocket for chat
-  const chatServer = new SimpleChatServer(server);
+  new SimpleChatServer(server);
 }

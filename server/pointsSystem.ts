@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { v4 as uuidv4 } from "uuid";
+import { UserBadge } from "@shared/schema";
 
 // Point values for different activities
 export const POINT_VALUES = {
@@ -91,24 +92,6 @@ export const BADGES = {
   DATA_SCIENTIST: { id: 'data_scientist', name: 'Data Scientist', description: 'Analyzed 30 days of your data', icon: '📊' },
 };
 
-// Badge definitions for database
-const BADGE_DEFINITIONS = Object.values(BADGES).map(badge => ({
-  ...badge,
-  requirements: {
-    type: badge.id.includes('streak') ? 'daily_streak' : 
-          badge.id.includes('log') ? 'symptom_logs' : 
-          badge.id.includes('community') ? 'community_posts' : 
-          'achievement',
-    count: badge.id === 'first_log' ? 1 : 
-           badge.id === 'week_streak' ? 7 :
-           badge.id === 'month_streak' ? 30 :
-           badge.id === 'hundred_logs' ? 100 :
-           badge.id === 'community_contributor' ? 10 : 1,
-    days: badge.id.includes('streak') ? (badge.id === 'week_streak' ? 7 : 30) : undefined
-  },
-  pointsReward: 50
-}));
-
 class PointsSystem {
   // Check if it's the first time doing this activity
   private async isFirstTimeActivity(userId: string, activityType: string): Promise<boolean> {
@@ -128,29 +111,23 @@ class PointsSystem {
       return 0;
     }
 
-    // Check for special modifiers
     const user = await storage.getUser(userId);
     if (!user) return 0;
 
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
     
-    // Check if this is the first time doing this activity
-    const previousActivities = await storage.getPointActivitiesByType(userId, activityType);
-    const isFirstTime = previousActivities.length === 0;
+    const isFirstTime = await this.isFirstTimeActivity(userId, activityType);
 
-    // Calculate total points with bonuses
     let totalPoints = basePoints;
     if (isWeekend) totalPoints += POINT_VALUES.WEEKEND_BONUS;
     if (isFirstTime) totalPoints += POINT_VALUES.FIRST_TIME_BONUS;
     
-    // Award streak bonus if applicable
     if (user.streakDays && user.streakDays > 0) {
-      totalPoints += Math.min(user.streakDays * POINT_VALUES.DAILY_STREAK_BONUS, 100); // Cap at 100
+      totalPoints += Math.min(user.streakDays * POINT_VALUES.DAILY_STREAK_BONUS, 100);
     }
 
-    // Record the point activity
-    await storage.createPointActivity({
+    await storage.recordPointActivity({
       userId,
       points: totalPoints,
       type: activityType,
@@ -165,44 +142,33 @@ class PointsSystem {
       }
     });
 
-    // Update user points and check for tier changes
     await this.updateUserPoints(userId, totalPoints);
     
-    // Update daily activity tracking
-    await this.updateDailyActivity(userId, today, activityType, totalPoints);
+    await storage.updateDailyActivity(userId, today, { type: activityType, points: totalPoints }, totalPoints);
     
-    // Check for badge unlocks
     await this.checkBadgeUnlocks(userId, activityType, metadata);
     
     return totalPoints;
   }
 
-  // Update user's total points and tier
   private async updateUserPoints(userId: string, pointsToAdd: number): Promise<void> {
     const user = await storage.getUser(userId);
     if (!user) return;
 
     const newTotalPoints = (user.totalPoints || 0) + pointsToAdd;
-    const newCurrentPoints = (user.points || 0) + pointsToAdd;
     
-    // Determine new tier
     const newTier = this.calculateTier(newTotalPoints);
-    const nextTierPoints = this.getNextTierThreshold(newTotalPoints);
 
     await storage.updateUser(userId, {
-      points: newCurrentPoints,
       totalPoints: newTotalPoints,
       currentTier: newTier,
-      nextTierPoints: nextTierPoints - newTotalPoints, // Points needed for next tier
     });
 
-    // Check if tier changed and award tier badge
     if (user.currentTier !== newTier) {
       await this.awardTierBadge(userId, newTier);
     }
   }
 
-  // Calculate tier based on total points
   private calculateTier(totalPoints: number): string {
     for (const [tierName, tierData] of Object.entries(TIERS)) {
       if (totalPoints >= tierData.min && totalPoints <= tierData.max) {
@@ -212,13 +178,11 @@ class PointsSystem {
     return "NEWCOMER";
   }
 
-  // Get next tier threshold
   private getNextTierThreshold(currentPoints: number): number {
     const tierEntries = Object.entries(TIERS);
     for (let i = 0; i < tierEntries.length; i++) {
       const [, tierData] = tierEntries[i];
       if (currentPoints >= tierData.min && currentPoints <= tierData.max) {
-        // Return the minimum of the next tier, or current max if at highest tier
         const nextTier = tierEntries[i + 1];
         return nextTier ? nextTier[1].min : tierData.max;
       }
@@ -226,7 +190,6 @@ class PointsSystem {
     return TIERS.GUARDIAN.max;
   }
 
-  // Award tier badge
   private async awardTierBadge(userId: string, tier: string): Promise<void> {
     const tierBadgeMap: Record<string, string> = {
       EXPLORER: 'explorer_tier',
@@ -240,132 +203,79 @@ class PointsSystem {
       await this.awardBadge(userId, badgeId);
     }
   }
-
-  // Update daily activity tracking
-  private async updateDailyActivity(
-    userId: string,
-    date: Date,
-    activityType: string,
-    points: number
-  ): Promise<void> {
-    const existingActivity = await storage.getDailyActivity(userId, date);
-    
-    if (existingActivity) {
-      const activities = existingActivity.activities || [];
-      activities.push({
-        type: activityType,
-        points,
-        timestamp: new Date(),
-      });
-      
-      await storage.updateDailyActivity(existingActivity.id, {
-        activities,
-        totalPoints: existingActivity.totalPoints + points,
-      });
-    } else {
-      await storage.createDailyActivity({
-        userId,
-        date,
-        activities: [{
-          type: activityType,
-          points,
-          timestamp: new Date(),
-        }],
-        totalPoints: points,
-      });
-    }
-  }
-
-  // Check for badge unlocks based on activity
+  
   private async checkBadgeUnlocks(
     userId: string,
     activityType: string,
     metadata?: any
   ): Promise<void> {
-    // First time badges
     if (activityType === 'SYMPTOM_LOG_ENTRY' || activityType === 'FOOD_LOG_ENTRY') {
-      const totalLogs = await storage.getActivityCount(userId, 'SYMPTOM_LOG_ENTRY') +
-                       await storage.getActivityCount(userId, 'FOOD_LOG_ENTRY');
+      const totalLogs = (await storage.getActivityCount(userId, 'SYMPTOM_LOG_ENTRY')) +
+                       (await storage.getActivityCount(userId, 'FOOD_LOG_ENTRY'));
       
-      if (totalLogs === 1) {
-        await this.awardBadge(userId, 'first_log');
-      } else if (totalLogs === 100) {
-        await this.awardBadge(userId, 'hundred_logs');
-      }
+      if (totalLogs === 1) await this.awardBadge(userId, 'first_log');
+      else if (totalLogs === 100) await this.awardBadge(userId, 'hundred_logs');
     }
 
-    // Conversation badges
     if (activityType === 'AI_CONVERSATION_MESSAGE') {
-      const conversations = await storage.getActivityCount(userId, 'AI_CONVERSATION_MESSAGE');
-      if (conversations === 1) {
+      if ((await storage.getActivityCount(userId, 'AI_CONVERSATION_MESSAGE')) === 1) {
         await this.awardBadge(userId, 'conversation_starter');
       }
     }
 
-    // Community badges
     if (activityType === 'COMMUNITY_POST_CREATE') {
-      const posts = await storage.getActivityCount(userId, 'COMMUNITY_POST_CREATE');
-      if (posts === 10) {
+      if ((await storage.getActivityCount(userId, 'COMMUNITY_POST_CREATE')) === 10) {
         await this.awardBadge(userId, 'community_contributor');
       }
     }
 
-    // Challenge badges
     if (activityType === 'CHALLENGE_COMPLETE') {
       const challenges = await storage.getActivityCount(userId, 'CHALLENGE_COMPLETE');
-      if (challenges === 1) {
-        await this.awardBadge(userId, 'challenge_accepted');
-      } else if (challenges === 10) {
-        await this.awardBadge(userId, 'challenger');
-      }
+      if (challenges === 1) await this.awardBadge(userId, 'challenge_accepted');
+      else if (challenges === 10) await this.awardBadge(userId, 'challenger');
     }
 
-    // Time-based badges
     const hour = new Date().getHours();
-    if (hour < 6) {
-      await this.awardBadge(userId, 'early_bird');
-    } else if (hour >= 0 && hour < 4) {
-      await this.awardBadge(userId, 'night_owl');
-    }
+    if (hour < 6) await this.awardBadge(userId, 'early_bird');
+    else if (hour >= 0 && hour < 4) await this.awardBadge(userId, 'night_owl');
 
-    // Check for helpful reply badges
     if (activityType === 'HELPFUL_REPLY_RECEIVED') {
-      const helpfulReplies = await storage.getActivityCount(userId, 'HELPFUL_REPLY_RECEIVED');
-      if (helpfulReplies === 5) {
+      if ((await storage.getActivityCount(userId, 'HELPFUL_REPLY_RECEIVED')) === 5) {
         await this.awardBadge(userId, 'helper_bee');
       }
     }
 
-    // Pattern discovery badges
     if (activityType === 'PATTERN_DISCOVERY') {
-      const patterns = await storage.getActivityCount(userId, 'PATTERN_DISCOVERY');
-      if (patterns === 5) {
+      if ((await storage.getActivityCount(userId, 'PATTERN_DISCOVERY')) === 5) {
         await this.awardBadge(userId, 'pattern_detective');
       }
     }
   }
 
-  // Award a badge to a user
   private async awardBadge(userId: string, badgeId: string): Promise<void> {
-    // Check if user already has this badge
     const hasBadge = await storage.hasUserBadge(userId, badgeId);
     if (hasBadge) return;
 
-    await storage.createUserBadge({
-      userId,
-      badgeId,
-    });
+    const badgeInfo = BADGES[badgeId as keyof typeof BADGES];
+    if(!badgeInfo) return;
 
-    // Award points for earning a badge
-    await storage.createPointActivity({
+    const newBadge: Omit<UserBadge, 'id' | 'earnedAt'> = {
+        userId,
+        badgeId,
+        name: badgeInfo.name,
+        description: badgeInfo.description,
+        icon: badgeInfo.icon,
+    }
+    await storage.createUserBadge(newBadge);
+
+    await storage.recordPointActivity({
       userId,
       points: 25, // Badge unlock bonus
       type: 'BADGE_EARNED',
-      description: `Earned badge: ${BADGES[badgeId as keyof typeof BADGES]?.name || badgeId}`,
+      description: `Earned badge: ${badgeInfo.name}`,
     });
   }
 
-  // Get activity description
   private getActivityDescription(activityType: string, metadata?: any): string {
     const descriptions: Record<string, string> = {
       SYMPTOM_LOG_ENTRY: 'Logged symptom data',
@@ -403,7 +313,6 @@ class PointsSystem {
     return descriptions[activityType] || `Completed ${activityType}`;
   }
 
-  // Get user's points summary
   async getUserPointsSummary(userId: string): Promise<any> {
     const user = await storage.getUser(userId);
     if (!user) return null;
@@ -412,13 +321,13 @@ class PointsSystem {
     const badges = await storage.getUserBadges(userId);
     const today = new Date();
     const dailyActivity = await storage.getDailyActivity(userId, today);
+    const nextTierPoints = this.getNextTierThreshold(user.totalPoints);
 
     return {
-      currentPoints: user.points || 0,
       totalPoints: user.totalPoints || 0,
       currentTier: user.currentTier || 'NEWCOMER',
       tierInfo: TIERS[user.currentTier as keyof typeof TIERS] || TIERS.NEWCOMER,
-      nextTierPoints: user.nextTierPoints || TIERS.EXPLORER.min,
+      nextTierPoints: nextTierPoints - user.totalPoints,
       streakDays: user.streakDays || 0,
       todayPoints: dailyActivity?.totalPoints || 0,
       recentActivities,
@@ -431,7 +340,6 @@ class PointsSystem {
     };
   }
 
-  // Check and update streak
   async updateStreak(userId: string): Promise<number> {
     const user = await storage.getUser(userId);
     if (!user) return 0;
@@ -445,28 +353,21 @@ class PointsSystem {
     let newStreakDays = user.streakDays || 0;
 
     if (todayActivity && todayActivity.totalPoints > 0) {
-      // Already logged today, check if we need to increment streak
       if (yesterdayActivity && yesterdayActivity.totalPoints > 0) {
-        // Logged yesterday too, continue streak
         newStreakDays = (user.streakDays || 0) + 1;
       } else {
-        // Didn't log yesterday, reset streak to 1
         newStreakDays = 1;
       }
     } else {
-      // Haven't logged today yet
       if (!yesterdayActivity || yesterdayActivity.totalPoints === 0) {
-        // Didn't log yesterday either, reset streak
         newStreakDays = 0;
       }
     }
 
-    // Update streak in database
     await storage.updateUser(userId, {
       streakDays: newStreakDays,
     });
 
-    // Check for streak badges
     if (newStreakDays === 7) {
       await this.awardBadge(userId, 'week_streak');
     } else if (newStreakDays === 30) {
@@ -476,11 +377,9 @@ class PointsSystem {
     return newStreakDays;
   }
 
-  // Get leaderboard
   async getLeaderboard(period: 'daily' | 'weekly' | 'monthly' | 'all-time' = 'weekly'): Promise<any[]> {
-    // This would typically query a leaderboard collection
-    // For now, we'll return a simplified version
-    return [];
+    const leaderboardData = await storage.getLeaderboard(period, 'points');
+    return leaderboardData;
   }
 }
 
