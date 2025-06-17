@@ -7,15 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Brain, 
-  Target, 
-  TrendingUp, 
-  Clock, 
-  Star, 
-  Heart, 
-  Users, 
-  Zap, 
+import {
+  Brain,
+  Target,
+  TrendingUp,
+  Clock,
+  Star,
+  Heart,
+  Users,
+  Zap,
   Award,
   BarChart3,
   ThumbsUp,
@@ -25,21 +25,48 @@ import {
   Activity
 } from "lucide-react";
 
+// Define interfaces for type safety
+interface Recommendation {
+  challenge: {
+    recommendationId: string;
+    category: string;
+    title: string;
+    description: string;
+    points: number;
+  };
+  adaptedDifficulty: string;
+  confidenceScore: number;
+  estimatedCompletionTime: number;
+  personalizedMessage: string;
+  reasoning: string;
+}
+
+interface UserProfile {
+  completionRate: number;
+  engagementScore: number;
+  currentLevel: number;
+  streakCount: number;
+  preferredCategories: string[];
+  adaptedDifficulty: string;
+}
+
+
 export default function Recommendations() {
   const [selectedType, setSelectedType] = useState("all");
   const [feedbackData, setFeedbackData] = useState<{ [key: string]: any }>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch personalized recommendations
-  const { data: recommendations, isLoading: recommendationsLoading } = useQuery({
+  // Fetch personalized recommendations with proper typing and a default empty array
+  const { data: recommendations = [], isLoading: recommendationsLoading } = useQuery<Recommendation[]>({
     queryKey: ["/api/recommendations/challenges", selectedType],
-    enabled: true
+    queryFn: () => apiRequest("GET", `/api/recommendations?type=${selectedType}`).then(res => res.json()),
   });
 
-  // Fetch user health profile
-  const { data: userProfile } = useQuery({
-    queryKey: ["/api/recommendations/profile"]
+  // Fetch user health profile with proper typing
+  const { data: userProfile } = useQuery<UserProfile>({
+    queryKey: ["/api/recommendations/profile"],
+    queryFn: () => apiRequest("GET", "/api/profile/summary").then(res => res.json()),
   });
 
   // Submit feedback mutation
@@ -63,7 +90,7 @@ export default function Recommendations() {
       enjoyment: type === 'like' ? 5 : 2,
       completion: false
     };
-    
+
     submitFeedbackMutation.mutate({ challengeId, feedback });
     setFeedbackData({ ...feedbackData, [challengeId]: type });
   };
@@ -219,7 +246,7 @@ export default function Recommendations() {
 
               {/* Recommendations List */}
               <div className="space-y-4">
-                {recommendations?.map((rec: any) => (
+                {recommendations.map((rec) => (
                   <Card key={rec.challenge.recommendationId} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -229,8 +256,8 @@ export default function Recommendations() {
                             <Badge variant="secondary" className="capitalize">
                               {rec.challenge.category}
                             </Badge>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={`${getDifficultyColor(rec.adaptedDifficulty)} border-0`}
                             >
                               {rec.adaptedDifficulty}
@@ -239,7 +266,7 @@ export default function Recommendations() {
                           <CardTitle className="text-lg">{rec.challenge.title}</CardTitle>
                           <CardDescription>{rec.challenge.description}</CardDescription>
                         </div>
-                        
+
                         <div className="text-right space-y-1">
                           <div className={`text-sm font-medium ${getConfidenceColor(rec.confidenceScore)}`}>
                             {Math.round(rec.confidenceScore)}% match
@@ -250,7 +277,7 @@ export default function Recommendations() {
                         </div>
                       </div>
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-4">
                       {/* Personalized Message */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -311,8 +338,8 @@ export default function Recommendations() {
                           <span>Recommendation confidence</span>
                           <span>{Math.round(rec.confidenceScore)}%</span>
                         </div>
-                        <Progress 
-                          value={rec.confidenceScore} 
+                        <Progress
+                          value={rec.confidenceScore}
                           className="h-1 mt-1"
                         />
                       </div>
@@ -321,7 +348,7 @@ export default function Recommendations() {
                 ))}
               </div>
 
-              {(!recommendations || recommendations.length === 0) && (
+              {(recommendations.length === 0) && (
                 <Card>
                   <CardContent className="text-center py-8">
                     <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

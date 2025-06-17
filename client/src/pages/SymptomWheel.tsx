@@ -8,25 +8,46 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, TrendingDown, Minus, Calendar, BarChart3 } from "lucide-react";
 
+// Define interfaces for our data
+interface SymptomWheelEntry {
+  id: string;
+  totalSymptoms: number;
+  entryDate: string;
+  averageIntensity: number;
+  moodScore: number;
+  notes?: string;
+}
+
+interface SymptomAnalytics {
+  totalEntries?: number;
+  averageIntensity?: number;
+  averageMoodScore?: number;
+  intensityTrend?: 'increasing' | 'decreasing' | 'stable';
+  mostCommonSymptoms?: { symptom: string; count: number }[];
+}
+
+
 export default function SymptomWheel() {
   const [notes, setNotes] = useState("");
   const [wheelData, setWheelData] = useState<any>(null);
   const { toast } = useToast();
 
-  // Fetch symptom wheel entries
-  const { data: entries = [], isLoading: entriesLoading } = useQuery({
+  // Fetch symptom wheel entries with types and a query function
+  const { data: entries = [], isLoading: entriesLoading } = useQuery<SymptomWheelEntry[]>({
     queryKey: ["/api/symptom-wheel-entries"],
+    queryFn: () => apiRequest("GET", "/api/symptom-wheel").then(res => res.json()),
   });
 
-  // Fetch analytics data
-  const { data: analytics = {}, isLoading: analyticsLoading } = useQuery({
+  // Fetch analytics data with types and a query function
+  const { data: analytics = {}, isLoading: analyticsLoading } = useQuery<SymptomAnalytics>({
     queryKey: ["/api/symptom-wheel-analytics"],
+    queryFn: () => apiRequest("GET", "/api/symptom-wheel/analytics").then(res => res.json()),
   });
 
   // Save symptom wheel entry
   const saveEntryMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/symptom-wheel-entries", data);
+      return await apiRequest("POST", "/api/symptom-wheel", data);
     },
     onSuccess: () => {
       toast({
@@ -189,9 +210,9 @@ export default function SymptomWheel() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Trend</span>
                       <div className="flex items-center gap-1">
-                        {getTrendIcon(analytics.intensityTrend)}
+                        {getTrendIcon(analytics.intensityTrend || 'stable')}
                         <span className="text-sm font-medium">
-                          {getTrendText(analytics.intensityTrend)}
+                          {getTrendText(analytics.intensityTrend || 'stable')}
                         </span>
                       </div>
                     </div>
@@ -208,7 +229,7 @@ export default function SymptomWheel() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {analytics.mostCommonSymptoms.slice(0, 5).map((item: any, index: number) => (
+                    {analytics.mostCommonSymptoms.slice(0, 5).map((item, index) => (
                       <div key={index} className="flex items-center justify-between">
                         <span className="text-sm text-gray-600 capitalize">
                           {item.symptom.replace('_', ' ')}
@@ -242,7 +263,7 @@ export default function SymptomWheel() {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {entries.slice(0, 5).map((entry: any) => (
+                    {entries.slice(0, 5).map((entry) => (
                       <div key={entry.id} className="border rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-medium">
