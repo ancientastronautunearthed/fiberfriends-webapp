@@ -9,11 +9,11 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "apphosting": "fiberfriends-webapp"
+        "appHosting": "fiberfriends-webapp"
       },
       {
         "source": "/ws/**",
-        "apphosting": "fiberfriends-webapp"
+        "appHosting": "fiberfriends-webapp"
       },
       {
         "source": "**",
@@ -22,6 +22,7 @@
     ]
   },
   "apphosting": {
+    "backendId": "fiberfriends-webapp",
     "source": ".",
     "env": [
       { "variable": "NODE_ENV", "value": "production" }

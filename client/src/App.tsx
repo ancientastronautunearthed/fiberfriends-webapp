@@ -59,7 +59,7 @@ function Router() {
     return <Onboarding />;
   }
 
-  // Show daily symptom prompt for users who haven't logged symptoms today
+  // Show daily symptom prompt for users who have not logged symptoms today
   if (user && user.onboardingCompleted && needsSymptomLog) {
     return (
       <Switch>
@@ -71,31 +71,31 @@ function Router() {
 
   // Show main app for authenticated users with completed profiles who have logged symptoms today
   return (
-    <Switch>
       <Layout>
-        <Route path="/" component={AICompanion} />
-        <Route path="/ai-companion" component={AICompanion} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/tracking" component={SymptomTracker} />
-        <Route path="/symptom-wheel" component={SymptomWheel} />
-        <Route path="/patterns" component={SymptomPatterns} />
-        <Route path="/food" component={FoodLogger} />
-        <Route path="/community" component={CommunityForum} />
-        <Route path="/chat" component={SimplifiedChat} />
-        <Route path="/test-chat" component={TestChat} />
-        <Route path="/companion" component={AICompanion} />
-        <Route path="/challenges" component={Challenges} />
-        <Route path="/achievements" component={Achievements} />
-        <Route path="/recommendations" component={Recommendations} />
-        <Route path="/activities" component={HealthyActivities} />
-        <Route path="/environmental-triggers" component={EnvironmentalTriggers} />
-        <Route path="/community-insights" component={CommunityInsights} />
-        <Route path="/profile" component={UserProfile} />
-        <Route path="/test-luna" component={TestLuna} />
-        <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
+        <Switch>
+            <Route path="/" component={AICompanion} />
+            <Route path="/ai-companion" component={AICompanion} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/tracking" component={SymptomTracker} />
+            <Route path="/symptom-wheel" component={SymptomWheel} />
+            <Route path="/patterns" component={SymptomPatterns} />
+            <Route path="/food" component={FoodLogger} />
+            <Route path="/community" component={CommunityForum} />
+            <Route path="/chat" component={SimplifiedChat} />
+            <Route path="/test-chat" component={TestChat} />
+            <Route path="/companion" component={AICompanion} />
+            <Route path="/challenges" component={Challenges} />
+            <Route path="/achievements" component={Achievements} />
+            <Route path="/recommendations" component={Recommendations} />
+            <Route path="/activities" component={HealthyActivities} />
+            <Route path="/environmental-triggers" component={EnvironmentalTriggers} />
+            <Route path="/community-insights" component={CommunityInsights} />
+            <Route path="/profile" component={UserProfile} />
+            <Route path="/test-luna" component={TestLuna} />
+            <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
+            <Route component={NotFound} />
+        </Switch>
       </Layout>
-      <Route component={NotFound} />
-    </Switch>
   );
 }
 
