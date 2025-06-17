@@ -63,11 +63,10 @@ export default function AICompanion() {
   });
 
   // Load conversation history from Firebase
-  const { data: conversationHistory, isLoading: historyLoading } = useQuery<any[]>({
+  const { data: conversationHistory, isLoading: historyLoading } = useQuery({
     queryKey: ["conversation-history", user?.uid],
     queryFn: () => getConversationHistoryForUser(user?.uid),
-    enabled: isAuthenticated && !!user?.uid,
-    initialData: [],
+    enabled: isAuthenticated && !!user?.uid
   });
 
   // Initialize companion and conversation history
@@ -84,7 +83,7 @@ export default function AICompanion() {
         metadata: msg.metadata
       }));
       setMessages(formattedMessages);
-    } else if (!historyLoading && (!conversationHistory || conversationHistory.length === 0)) {
+    } else if (!historyLoading && !conversationHistory) {
       // Initialize with specialized Morgellons expertise welcome message
       setMessages([{
         id: 1,
