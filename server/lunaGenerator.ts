@@ -1,3 +1,4 @@
+// server/lunaGenerator.ts
 import { 
   generateNutritionalAnalysis, 
   generateSymptomInsight, 
@@ -128,7 +129,7 @@ export async function generateLunaPersonality(choices: LunaPersonality): Promise
     
     Format as JSON with keys: greeting, communicationStyle, focusAreas (array), description`;
     
-    const personalityResponse = await generateAICompanionResponse(personalityPrompt, [], choices);
+    const personalityResponse = await generateAICompanionResponse(personalityPrompt, { conversationHistory: [], context: choices });
     
     let personalityData;
     try {

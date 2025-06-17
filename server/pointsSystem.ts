@@ -1,3 +1,4 @@
+// server/pointsSystem.ts
 import { storage } from "./storage";
 import { v4 as uuidv4 } from "uuid";
 import { UserBadge } from "@shared/schema";
@@ -132,6 +133,7 @@ class PointsSystem {
       points: totalPoints,
       type: activityType,
       description: this.getActivityDescription(activityType, metadata),
+      createdAt: new Date(),
       metadata: {
         basePoints,
         bonuses: {
@@ -143,8 +145,6 @@ class PointsSystem {
     });
 
     await this.updateUserPoints(userId, totalPoints);
-    
-    await storage.updateDailyActivity(userId, today, { type: activityType, points: totalPoints }, totalPoints);
     
     await this.checkBadgeUnlocks(userId, activityType, metadata);
     
@@ -259,12 +259,13 @@ class PointsSystem {
     const badgeInfo = BADGES[badgeId as keyof typeof BADGES];
     if(!badgeInfo) return;
 
-    const newBadge: Omit<UserBadge, 'id' | 'earnedAt'> = {
+    const newBadge: Omit<UserBadge, 'id' | 'awardedAt'> = {
         userId,
         badgeId,
         name: badgeInfo.name,
         description: badgeInfo.description,
         icon: badgeInfo.icon,
+        awardedAt: new Date(),
     }
     await storage.createUserBadge(newBadge);
 
@@ -273,6 +274,7 @@ class PointsSystem {
       points: 25, // Badge unlock bonus
       type: 'BADGE_EARNED',
       description: `Earned badge: ${badgeInfo.name}`,
+      createdAt: new Date(),
     });
   }
 
@@ -320,7 +322,7 @@ class PointsSystem {
     const recentActivities = await storage.getRecentPointActivities(userId, 10);
     const badges = await storage.getUserBadges(userId);
     const today = new Date();
-    const dailyActivity = await storage.getDailyActivity(userId, today);
+    const dailyActivity = await storage.getDailyActivity(userId, today.toISOString().split('T')[0]);
     const nextTierPoints = this.getNextTierThreshold(user.totalPoints);
 
     return {
@@ -347,8 +349,8 @@ class PointsSystem {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     
-    const yesterdayActivity = await storage.getDailyActivity(userId, yesterday);
-    const todayActivity = await storage.getDailyActivity(userId, new Date());
+    const yesterdayActivity = await storage.getDailyActivity(userId, yesterday.toISOString().split('T')[0]);
+    const todayActivity = await storage.getDailyActivity(userId, new Date().toISOString().split('T')[0]);
 
     let newStreakDays = user.streakDays || 0;
 

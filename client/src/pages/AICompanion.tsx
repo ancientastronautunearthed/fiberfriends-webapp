@@ -63,7 +63,7 @@ export default function AICompanion() {
   });
 
   // Load conversation history from Firebase
-  const { data: conversationHistory, isLoading: historyLoading } = useQuery({
+  const { data: conversationHistory, isLoading: historyLoading } = useQuery<any[]>({
     queryKey: ["conversation-history", user?.uid],
     queryFn: () => getConversationHistoryForUser(user?.uid),
     enabled: isAuthenticated && !!user?.uid,
