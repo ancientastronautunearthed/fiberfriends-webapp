@@ -15,9 +15,9 @@ const getEnvVar = (key: string) => {
 
 const firebaseConfig = {
   apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
-  authDomain: "fiber-friends.firebaseapp.com",
+  authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN') || "fiber-friends-9b614.firebaseapp.com",
   projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID'),
-  storageBucket: "fiber-friends.firebasestorage.app",
+  storageBucket: getEnvVar('VITE_FIREBASE_STORAGE_BUCKET') || "fiber-friends.firebasestorage.app",
   messagingSenderId: "202818399028",
   appId: getEnvVar('VITE_FIREBASE_APP_ID'),
   measurementId: "G-6E6V9BVQ0E"
