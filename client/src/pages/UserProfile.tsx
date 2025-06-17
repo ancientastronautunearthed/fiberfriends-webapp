@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Star, Trophy, Medal, Leaf, MessageCircle } from "lucide-react";
 
 export default function UserProfile() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useFirebaseAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -90,113 +90,100 @@ export default function UserProfile() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate({
+  const handleSubmit = () => {
+    const updatedData = {
       ...profileData,
-      age: profileData.age ? parseInt(profileData.age) : null,
-    });
+      age: profileData.age ? parseInt(profileData.age) : undefined,
+    };
+    updateProfile.mutate(updatedData);
   };
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
-  const trophies = [
-    {
-      id: 1,
-      name: "Consistency Champion",
-      description: "7 days of complete logs",
-      earned: "3 days ago",
-      icon: Medal,
-      bgColor: "from-yellow-50 to-orange-50",
-      borderColor: "border-yellow-200",
-      iconColor: "bg-yellow-500"
-    },
-    {
-      id: 2,
-      name: "Nutrition Expert",
-      description: "Perfect nutrition week",
-      earned: "1 week ago",
-      icon: Leaf,
-      bgColor: "from-green-50 to-emerald-50",
-      borderColor: "border-green-200",
-      iconColor: "bg-green-500"
-    },
-    {
-      id: 3,
-      name: "Community Helper",
-      description: "10 helpful forum replies",
-      earned: "2 weeks ago",
-      icon: MessageCircle,
-      bgColor: "from-purple-50 to-indigo-50",
-      borderColor: "border-purple-200",
-      iconColor: "bg-purple-500"
-    },
-  ];
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const mockStats = {
+    level: user?.level || 1,
+    points: user?.totalPoints || 150,
+    tier: user?.currentTier || "Newcomer",
+    streak: user?.streakDays || 7,
+    longestStreak: user?.longestStreak || 14,
+    badges: [
+      { name: "Early Bird", icon: "🌅", description: "Logged symptoms for 7 consecutive days" },
+      { name: "Community Helper", icon: "🤝", description: "Helped 5 community members" },
+      { name: "Wellness Warrior", icon: "💪", description: "Completed 30 daily check-ins" },
+    ],
+    achievements: [
+      { name: "First Log", date: "2024-01-15", description: "Completed your first symptom log" },
+      { name: "Week Warrior", date: "2024-01-22", description: "Logged symptoms for 7 consecutive days" },
+      { name: "Community Contributor", date: "2024-02-01", description: "Made your first community post" },
+    ]
+  };
 
   return (
-    <div className="space-y-8">
-      <Card className="p-8">
-        <div className="flex items-center gap-6 mb-8">
-          <div className="w-24 h-24 bg-slate-300 rounded-full flex items-center justify-center">
-            <User className="w-12 h-12 text-slate-600" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              {user?.firstName && user?.lastName 
-                ? `${user.firstName} ${user.lastName}` 
-                : user?.email || "User Profile"}
-            </h2>
-            <p className="text-slate-600">{user?.email}</p>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                <span className="font-semibold text-slate-800">{user?.points || 0} points</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-600" />
-                <span className="text-slate-600">{trophies.length} trophies</span>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="container max-w-4xl mx-auto p-6 space-y-6">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-slate-900">User Profile</h1>
+        <p className="text-slate-600">
+          Manage your personal information and view your progress
+        </p>
+      </div>
 
-        <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="personal">Personal Info</TabsTrigger>
-            <TabsTrigger value="health">Health Data</TabsTrigger>
-            <TabsTrigger value="trophies">Trophy Case</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="profile">Profile Info</TabsTrigger>
+          <TabsTrigger value="progress">Progress & Stats</TabsTrigger>
+          <TabsTrigger value="achievements">Achievements</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="personal" className="mt-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+        <TabsContent value="profile">
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-slate-600" />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    {user?.firstName} {user?.lastName}
+                  </h2>
+                  <p className="text-slate-600">{user?.email}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-medium">Level {mockStats.level} • {mockStats.tier}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">First Name</label>
                   <Input
                     value={profileData.firstName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
                     placeholder="Enter your first name"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Last Name</label>
                   <Input
                     value={profileData.lastName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
                     placeholder="Enter your last name"
                   />
                 </div>
-              </div>
 
-              <div className="grid md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Age</label>
                   <Input
                     type="number"
                     value={profileData.age}
@@ -204,129 +191,151 @@ export default function UserProfile() {
                     placeholder="Enter your age"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Height</label>
-                  <Input
-                    value={profileData.height}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, height: e.target.value }))}
-                    placeholder="e.g., 5'6&quot;"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Weight</label>
-                  <Input
-                    value={profileData.weight}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, weight: e.target.value }))}
-                    placeholder="e.g., 140 lbs"
-                  />
-                </div>
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Location</label>
                   <Input
                     value={profileData.location}
                     onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="City, State"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Diagnosis Status</label>
-                  <Select value={profileData.diagnosisStatus} onValueChange={(value) => setProfileData(prev => ({ ...prev, diagnosisStatus: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="suspected">Suspected</SelectItem>
-                      <SelectItem value="diagnosed">Diagnosed</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Height</label>
+                  <Input
+                    value={profileData.height}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, height: e.target.value }))}
+                    placeholder="e.g. 5'6\""
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Weight</label>
+                  <Input
+                    value={profileData.weight}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, weight: e.target.value }))}
+                    placeholder="e.g. 150 lbs"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Hobbies & Interests</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Diagnosis Status</label>
+                <Select
+                  value={profileData.diagnosisStatus}
+                  onValueChange={(value) => setProfileData(prev => ({ ...prev, diagnosisStatus: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your diagnosis status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="diagnosed">Formally Diagnosed</SelectItem>
+                    <SelectItem value="self-diagnosed">Self-Diagnosed</SelectItem>
+                    <SelectItem value="suspected">Suspected</SelectItem>
+                    <SelectItem value="exploring">Still Exploring</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Hobbies & Interests</label>
                 <Textarea
                   value={profileData.hobbies}
                   onChange={(e) => setProfileData(prev => ({ ...prev, hobbies: e.target.value }))}
-                  placeholder="Tell us about your interests..."
-                  className="h-24 resize-none"
+                  placeholder="Tell us about your hobbies, interests, or anything that brings you joy..."
+                  rows={3}
                 />
               </div>
 
-              <div className="flex gap-4">
-                <Button type="submit" disabled={updateProfile.isPending} className="px-8 py-3">
-                  {updateProfile.isPending ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button type="button" variant="outline" className="px-8 py-3">
-                  Cancel
-                </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={updateProfile.isPending}
+                className="w-full"
+              >
+                {updateProfile.isPending ? "Updating..." : "Update Profile"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="progress">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">{mockStats.points}</div>
+                <div className="text-sm text-slate-600">Total Points</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Trophy className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">Level {mockStats.level}</div>
+                <div className="text-sm text-slate-600">{mockStats.tier}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Leaf className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">{mockStats.streak}</div>
+                <div className="text-sm text-slate-600">Day Streak</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Medal className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">{mockStats.badges.length}</div>
+                <div className="text-sm text-slate-600">Badges Earned</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Badges</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {mockStats.badges.map((badge, index) => (
+                  <div key={index} className="flex items-center gap-3 p-4 border rounded-lg">
+                    <div className="text-2xl">{badge.icon}</div>
+                    <div>
+                      <div className="font-medium text-slate-900">{badge.name}</div>
+                      <div className="text-sm text-slate-600">{badge.description}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </form>
-          </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="health" className="mt-8">
-            <div className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <Card className="p-6">
-                  <h4 className="font-semibold text-slate-800 mb-4">Health Summary</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Diagnosis Status:</span>
-                      <span className="font-medium">{user?.diagnosisStatus || "Not specified"}</span>
+        <TabsContent value="achievements">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Achievement History</h3>
+              <div className="space-y-4">
+                {mockStats.achievements.map((achievement, index) => (
+                  <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                      <Trophy className="w-6 h-6 text-white" />
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Total Logs:</span>
-                      <span className="font-medium">47</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Streak:</span>
-                      <span className="font-medium">7 days</span>
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900">{achievement.name}</div>
+                      <div className="text-sm text-slate-600">{achievement.description}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Earned on {new Date(achievement.date).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </Card>
-
-                <Card className="p-6">
-                  <h4 className="font-semibold text-slate-800 mb-4">Recent Trends</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Average Mood:</span>
-                      <span className="font-medium text-green-600">Good</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Sleep Quality:</span>
-                      <span className="font-medium text-blue-600">Improving</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Symptom Level:</span>
-                      <span className="font-medium text-green-600">Stable</span>
-                    </div>
-                  </div>
-                </Card>
+                ))}
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="trophies" className="mt-8">
-            <div className="grid md:grid-cols-3 gap-6">
-              {trophies.map((trophy) => {
-                const Icon = trophy.icon;
-                return (
-                  <div key={trophy.id} className={`text-center p-6 bg-gradient-to-b ${trophy.bgColor} rounded-lg border ${trophy.borderColor}`}>
-                    <div className={`w-16 h-16 ${trophy.iconColor} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                      <Icon className="w-8 h-8 text-white" />
-                    </div>
-                    <h4 className="font-semibold text-slate-800 mb-2">{trophy.name}</h4>
-                    <p className="text-sm text-slate-600 mb-1">{trophy.description}</p>
-                    <span className="text-xs text-slate-500">Earned {trophy.earned}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

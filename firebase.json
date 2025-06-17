@@ -10,11 +10,11 @@
       "rewrites": [
         {
           "source": "/api/**",
-          "appHosting": "fiberfriends-webapp"
+          "function": "api"
         },
         {
           "source": "/ws/**",
-          "appHosting": "fiberfriends-webapp"
+          "function": "api"
         },
         {
           "source": "**",
@@ -23,14 +23,8 @@
       ]
     }
   ],
-  "apphosting": {
-    "backendId": "fiberfriends-webapp",
-    "source": ".",
-    "env": [
-      {
-        "variable": "NODE_ENV",
-        "value": "production"
-      }
-    ]
+  "functions": {
+    "source": "server",
+    "runtime": "nodejs20"
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
@@ -35,7 +35,7 @@ interface Post {
 }
 
 export default function CommunityForum() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useFirebaseAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -170,6 +170,26 @@ export default function CommunityForum() {
       createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
       timeToRead: "2 min read",
     },
+    {
+      id: "4",
+      title: "Question about diet restrictions",
+      content: "I've been reading about elimination diets and how they might help with symptoms. Has anyone tried cutting out gluten, dairy, or sugar? What were your results?",
+      category: "question",
+      authorId: "user_4",
+      authorName: "Mike R.",
+      authorLevel: "Explorer",
+      authorBadges: ["Curious Learner"],
+      likes: 8,
+      replies: 15,
+      views: 67,
+      shares: 2,
+      bookmarks: 7,
+      trending: false,
+      quality: "normal",
+      aiAnalysis: "Elimination diets can help identify food triggers for various conditions. Working with a nutritionist ensures proper nutrition while testing for sensitivities.",
+      createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+      timeToRead: "1 min read",
+    }
   ];
 
   // Interaction handlers
@@ -236,8 +256,33 @@ export default function CommunityForum() {
     }
   };
 
+  const handleSubmitPost = () => {
+    if (!newPost.title.trim() || !newPost.content.trim()) {
+      toast({
+        title: "Please fill all fields",
+        description: "Title and content are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createPost.mutate(newPost);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="container max-w-4xl mx-auto p-6 space-y-8">
       {/* Engagement Tips Banner */}
       {showEngagementTips && (
         <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
@@ -263,13 +308,16 @@ export default function CommunityForum() {
         </Card>
       )}
 
-      {/* Create Post Button */}
+      {/* Header and Create Post Button */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-800">Community Forum</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">Community Forum</h1>
+          <p className="text-slate-600 mt-2">Connect with others, share experiences, and find support</p>
+        </div>
         <Dialog open={isCreatePostOpen} onOpenChange={setIsCreatePostOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
               Create Post
             </Button>
           </DialogTrigger>
@@ -314,7 +362,7 @@ export default function CommunityForum() {
               </div>
               <div className="flex justify-end gap-2">
                 <Button
-                  onClick={() => createPost.mutate(newPost)}
+                  onClick={handleSubmitPost}
                   disabled={!newPost.title || !newPost.content || createPost.isPending}
                 >
                   {createPost.isPending ? "Posting..." : "Post"}
@@ -415,7 +463,14 @@ export default function CommunityForum() {
           </div>
         ) : sortedPosts.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="text-slate-600">No posts found in this category.</p>
+            <MessageCircle className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 mb-2">No posts found</h3>
+            <p className="text-slate-600 mb-4">
+              {selectedCategory ? `No posts in the ${selectedCategory} category.` : "No posts available."}
+            </p>
+            <Button onClick={() => setIsCreatePostOpen(true)}>
+              Create First Post
+            </Button>
           </Card>
         ) : (
           sortedPosts.map((post) => (

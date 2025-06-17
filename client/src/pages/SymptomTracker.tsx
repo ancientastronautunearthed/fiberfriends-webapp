@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+]import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { useLocation } from "wouter";
 
 export default function SymptomTracker() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useFirebaseAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,12 +79,16 @@ export default function SymptomTracker() {
       // Mock AI insight
       setAiInsight("Your symptoms appear to be stable compared to last week. Consider maintaining your current routine and tracking any patterns you notice. Your improved sleep quality may be contributing to better overall well-being.");
       
-      queryClient.invalidateQueries({ queryKey: ["/api/daily-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard-stats"] });
+      // Reset form
+      setFormData({
+        overallFeeling: 3,
+        symptoms: [],
+        notes: "",
+        sleepQuality: "",
+        sunExposure: "",
+      });
       
-      setTimeout(() => {
-        setLocation("/");
-      }, 3000);
+      queryClient.invalidateQueries({ queryKey: ["/api/daily-logs"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -116,150 +120,156 @@ export default function SymptomTracker() {
   };
 
   const handleSubmit = () => {
+    if (formData.symptoms.length === 0) {
+      toast({
+        title: "Please select symptoms",
+        description: "You must select at least one symptom to track.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     submitSymptomLog.mutate(formData);
   };
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="space-y-8">
-      <Card className="p-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-            <ClipboardCheck className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">Morning Symptom Log</h2>
-            <p className="text-slate-600">Track how you're feeling today</p>
+    <div className="container max-w-2xl mx-auto p-6 space-y-6">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-slate-900">Symptom Tracker</h1>
+        <p className="text-slate-600">
+          Log your daily symptoms to help identify patterns and track progress
+        </p>
+      </div>
+
+      <Card className="p-6 space-y-6">
+        {/* Overall Feeling */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-slate-900">How are you feeling overall today?</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {moodLevels.map((level) => (
+              <button
+                key={level.value}
+                onClick={() => setFormData(prev => ({ ...prev, overallFeeling: level.value }))}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  formData.overallFeeling === level.value
+                    ? "border-primary bg-primary/10"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className="text-3xl mb-2">{level.emoji}</div>
+                <div className="text-sm font-medium">{level.label}</div>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-8">
-          {/* Overall Feeling */}
-          <div>
-            <label className="block text-lg font-medium text-slate-800 mb-4">How are you feeling overall?</label>
-            <div className="flex items-center gap-4">
-              {moodLevels.map((level) => (
-                <button
-                  key={level.value}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, overallFeeling: level.value }))}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
-                    formData.overallFeeling === level.value
-                      ? "border-primary bg-primary-50"
-                      : "border-slate-200 hover:border-primary"
-                  }`}
+        {/* Symptoms */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-slate-900">Which symptoms are you experiencing?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {commonSymptoms.map((symptom) => (
+              <div key={symptom} className="flex items-center space-x-2">
+                <Checkbox
+                  id={symptom}
+                  checked={formData.symptoms.includes(symptom)}
+                  onCheckedChange={() => handleSymptomToggle(symptom)}
+                />
+                <label
+                  htmlFor={symptom}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  <div className="text-2xl">{level.emoji}</div>
-                  <span className={`text-sm ${
-                    formData.overallFeeling === level.value ? "text-primary font-medium" : "text-slate-600"
-                  }`}>
-                    {level.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Common Symptoms */}
-          <div>
-            <label className="block text-lg font-medium text-slate-800 mb-4">Check any symptoms you're experiencing:</label>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {commonSymptoms.map((symptom) => (
-                <label key={symptom} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                  <Checkbox
-                    checked={formData.symptoms.includes(symptom)}
-                    onCheckedChange={() => handleSymptomToggle(symptom)}
-                  />
-                  <span className="text-slate-700">{symptom}</span>
+                  {symptom}
                 </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Additional Notes */}
-          <div>
-            <label className="block text-lg font-medium text-slate-800 mb-4">Additional notes (optional):</label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Describe any other symptoms or how you're feeling..."
-              className="h-32 resize-none"
-            />
-          </div>
-
-          {/* Sleep & Environmental */}
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <label className="block text-lg font-medium text-slate-800 mb-4">Sleep quality last night:</label>
-              <Select value={formData.sleepQuality} onValueChange={(value) => setFormData(prev => ({ ...prev, sleepQuality: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select rating..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Very poor</SelectItem>
-                  <SelectItem value="2">2 - Poor</SelectItem>
-                  <SelectItem value="3">3 - Fair</SelectItem>
-                  <SelectItem value="4">4 - Good</SelectItem>
-                  <SelectItem value="5">5 - Excellent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-lg font-medium text-slate-800 mb-4">Sun exposure yesterday:</label>
-              <Select value={formData.sunExposure} onValueChange={(value) => setFormData(prev => ({ ...prev, sunExposure: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select amount..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="minimal">Minimal (&lt; 30 min)</SelectItem>
-                  <SelectItem value="moderate">Moderate (30-60 min)</SelectItem>
-                  <SelectItem value="high">High (&gt; 60 min)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex gap-4">
-            <Button 
-              onClick={handleSubmit}
-              disabled={submitSymptomLog.isPending}
-              className="px-8 py-3"
-            >
-              {submitSymptomLog.isPending ? "Saving..." : "Save Log"}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation("/")}
-              className="px-8 py-3"
-            >
-              Cancel
-            </Button>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* AI Analysis */}
-        {aiInsight && (
-          <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h4 className="font-medium text-blue-800 mb-2">AI Insight</h4>
-                <p className="text-blue-700 text-sm">{aiInsight}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Sleep Quality */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-slate-900">How was your sleep quality?</h3>
+          <Select value={formData.sleepQuality} onValueChange={(value) => setFormData(prev => ({ ...prev, sleepQuality: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select sleep quality" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="excellent">Excellent - Refreshed and energized</SelectItem>
+              <SelectItem value="good">Good - Fairly rested</SelectItem>
+              <SelectItem value="fair">Fair - Some rest but not ideal</SelectItem>
+              <SelectItem value="poor">Poor - Restless or insufficient</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sun Exposure */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-slate-900">Sun exposure today</h3>
+          <Select value={formData.sunExposure} onValueChange={(value) => setFormData(prev => ({ ...prev, sunExposure: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select sun exposure" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None - Stayed indoors</SelectItem>
+              <SelectItem value="minimal">Minimal - Brief outdoor time</SelectItem>
+              <SelectItem value="moderate">Moderate - Several hours outside</SelectItem>
+              <SelectItem value="high">High - Most of the day outdoors</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-slate-900">Additional notes</h3>
+          <Textarea
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Any additional observations, triggers, or patterns you noticed today..."
+            rows={4}
+          />
+        </div>
+
+        <Button 
+          onClick={handleSubmit}
+          disabled={submitSymptomLog.isPending}
+          className="w-full"
+        >
+          <ClipboardCheck className="w-4 h-4 mr-2" />
+          {submitSymptomLog.isPending ? "Saving..." : "Log Symptoms"}
+        </Button>
       </Card>
+
+      {/* AI Insight */}
+      {aiInsight && (
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg font-semibold text-slate-900">AI Health Insight</h3>
+          </div>
+          <p className="text-slate-700 leading-relaxed">{aiInsight}</p>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => setLocation("/patterns")} className="flex-1">
+          View Patterns
+        </Button>
+        <Button variant="outline" onClick={() => setLocation("/food-logger")} className="flex-1">
+          Log Food
+        </Button>
+      </div>
     </div>
   );
 }
