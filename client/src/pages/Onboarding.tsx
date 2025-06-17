@@ -28,6 +28,18 @@ const onboardingSchema = z.object({
   weight: z.string().min(1, "Weight is required"),
   location: z.string().min(1, "Location is required"),
   
+supportCircle: z.array(z.object({
+    name: z.string().min(1, "Name is required"),
+    relationship: z.string().min(1, "Relationship is required"),
+    email: z.string().email("Invalid email").optional().or(z.literal('')),
+  })).optional(),
+
+ importantDates: z.string().optional(),
+
+  aiCompanionPersonality: z.string().optional(),
+  aiCompanionName: z.string().optional(),
+});
+
   // Employment Information
   isEmployed: z.boolean(),
   workHours: z.string().optional(), // e.g., "9am-5pm", "Night shift", "Part-time"

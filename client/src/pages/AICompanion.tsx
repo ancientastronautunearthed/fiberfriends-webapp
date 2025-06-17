@@ -66,7 +66,8 @@ export default function AICompanion() {
   const { data: conversationHistory, isLoading: historyLoading } = useQuery({
     queryKey: ["conversation-history", user?.uid],
     queryFn: () => getConversationHistoryForUser(user?.uid),
-    enabled: isAuthenticated && !!user?.uid
+    enabled: isAuthenticated && !!user?.uid,
+    initialData: [],
   });
 
   // Initialize companion and conversation history
@@ -77,9 +78,9 @@ export default function AICompanion() {
     if (conversationHistory && Array.isArray(conversationHistory)) {
       const formattedMessages = conversationHistory.map((msg, index) => ({
         id: index + 1,
-        type: msg.messageType,
+        type: msg.type,
         content: msg.content,
-        timestamp: msg.createdAt || new Date().toISOString(),
+        timestamp: msg.timestamp || new Date().toISOString(),
         metadata: msg.metadata
       }));
       setMessages(formattedMessages);
