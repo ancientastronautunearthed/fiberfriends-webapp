@@ -1,31 +1,36 @@
 {
-  "hosting": {
-    "public": "dist/public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "appHosting": "fiberfriends-webapp"
-      },
-      {
-        "source": "/ws/**",
-        "appHosting": "fiberfriends-webapp"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "public": "dist/public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "appHosting": "fiberfriends-webapp"
+        },
+        {
+          "source": "/ws/**",
+          "appHosting": "fiberfriends-webapp"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ],
   "apphosting": {
     "backendId": "fiberfriends-webapp",
     "source": ".",
     "env": [
-      { "variable": "NODE_ENV", "value": "production" }
+      {
+        "variable": "NODE_ENV",
+        "value": "production"
+      }
     ]
   }
 }
