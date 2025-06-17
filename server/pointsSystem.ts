@@ -259,7 +259,7 @@ class PointsSystem {
     const badgeInfo = BADGES[badgeId as keyof typeof BADGES];
     if(!badgeInfo) return;
 
-    const newBadge: Omit<UserBadge, 'id' | 'awardedAt'> = {
+    const newBadge: Omit<UserBadge, 'id'> = {
         userId,
         badgeId,
         name: badgeInfo.name,
@@ -322,7 +322,8 @@ class PointsSystem {
     const recentActivities = await storage.getRecentPointActivities(userId, 10);
     const badges = await storage.getUserBadges(userId);
     const today = new Date();
-    const dailyActivity = await storage.getDailyActivity(userId, today.toISOString().split('T')[0]);
+    const todayDateString = today.toISOString().split('T')[0];
+    const dailyActivity = await storage.getDailyActivity(userId, todayDateString);
     const nextTierPoints = this.getNextTierThreshold(user.totalPoints);
 
     return {
@@ -348,9 +349,11 @@ class PointsSystem {
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayDateString = yesterday.toISOString().split('T')[0];
     
-    const yesterdayActivity = await storage.getDailyActivity(userId, yesterday.toISOString().split('T')[0]);
-    const todayActivity = await storage.getDailyActivity(userId, new Date().toISOString().split('T')[0]);
+    const yesterdayActivity = await storage.getDailyActivity(userId, yesterdayDateString);
+    const todayDateString = new Date().toISOString().split('T')[0];
+    const todayActivity = await storage.getDailyActivity(userId, todayDateString);
 
     let newStreakDays = user.streakDays || 0;
 
