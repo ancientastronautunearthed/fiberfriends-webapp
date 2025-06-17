@@ -206,7 +206,7 @@ export default function UserProfile() {
                   <Input
                     value={profileData.height}
                     onChange={(e) => setProfileData(prev => ({ ...prev, height: e.target.value }))}
-                    placeholder="e.g. 5'6\""
+                    placeholder="e.g. 5'6&quot;"
                   />
                 </div>
 
