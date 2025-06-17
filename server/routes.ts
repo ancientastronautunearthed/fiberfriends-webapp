@@ -3,7 +3,7 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
-import { insertDailyLogSchema, insertCommunityPostSchema, insertAiCompanionSchema, insertChatRoomSchema, insertChallengeSchema, insertUserChallengeSchema, insertSymptomWheelEntrySchema, insertConversationHistorySchema, insertAiHealthInsightSchema } from "@shared/schema";
+import { InsertDailyLog, InsertCommunityPost, InsertAiCompanion, InsertChatRoom, InsertChallenge, InsertUserChallenge, InsertSymptomWheelEntry, InsertConversationHistory, InsertAiHealthInsight } from "@shared/schema";
 import { 
   generateNutritionalAnalysis, 
   generateSymptomInsight, 
