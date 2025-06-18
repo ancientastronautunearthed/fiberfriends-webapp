@@ -2,7 +2,8 @@
 
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { setupVite, serveStatic, log } from "./vite.firebase";
+// Make sure vite.firebase.ts exists in the same directory, or update the path below if it's located elsewhere.
+import { setupVite, serveStatic, log } from "./server/vite.firebase";
 import { registerRoutes } from "./routes";
 
 const app = express();
