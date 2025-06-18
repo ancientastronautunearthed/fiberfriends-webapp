@@ -5,6 +5,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -25,9 +26,10 @@
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]
     },
-    "types": []
+    "types": ["vite/client"],
+    "typeRoots": []
   },
   "include": ["client/src", "shared"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "exclude": ["vite/client"]
 }
 
