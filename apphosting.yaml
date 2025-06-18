@@ -6,7 +6,7 @@ run: npm run start
 build:
   run: |
     npm install
-    npm run build
+    GOOGLE_NODE_RUN_SCRIPTS="" npm run build
 runConfig:
   minInstances: 0
 env:
