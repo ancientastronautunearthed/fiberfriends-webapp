@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "build": "tsc --noEmit --skipLibCheck && vite build",
+    {
+  "scripts": {
+    "build": "tsc --noEmit --skipLibCheck && npx vite build"
+  }
+}
+
     "start": "node dist/server/index.js",
     "preview": "vite preview"
   },
