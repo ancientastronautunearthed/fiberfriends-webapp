@@ -1,24 +1,25 @@
 {
+  "extends": "./tsconfig.json",
   "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/**/*"],
   "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
-    "noEmit": false,
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
+    "outDir": "./dist",
+    "rootDir": ".",
     "module": "ESNext",
-    "target": "ES2020",
+    "target": "ES2022",
     "strict": true,
-    "lib": ["esnext"],
+    "lib": ["ES2022"],
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true,
     "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
-    "outDir": "dist/server",
     "types": ["node"],
     "paths": {
       "@shared/*": ["./shared/*"]
     }
   }
 }
-
