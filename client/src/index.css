@@ -70,32 +70,8 @@
 
 @layer base {
   * {
-<<<<<<< HEAD
     @apply border-border;
   }
-=======
-    @apply border-border;j
-  }
-  @@ -87,9 +87,11 @@
-   
-   @layer base {
-     * {
-  -    @apply border-border;
-  +    border-color: var(--border);
-     }
-     body {
-  -    @apply bg-background text-foreground;
-  
-  +    background-color: var(--background);
-  +    color: var(--foreground);
-     }
-   }
-
-  
-  
-
-
->>>>>>> 1aebcf7 (feat: your original commit message)
   body {
     @apply bg-background text-foreground;
   }
