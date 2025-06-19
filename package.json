@@ -5,16 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server/index.ts",
-<<<<<<< HEAD
-    {
-  "scripts": {
-    "build": "tsc --noEmit --skipLibCheck && npx vite build"
-  }
-}
-
-=======
     "build": "tsc && vite build",
->>>>>>> 1aebcf7 (feat: your original commit message)
     "start": "node dist/server/index.js",
     "preview": "vite preview"
   },
@@ -76,11 +67,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.6",
     "@types/react": "^18.2.43",
-<<<<<<< HEAD
-    "@types/react-dom": "^18.2.17",
-=======
     "@types/react-dom": "^18.3.7",
->>>>>>> 1aebcf7 (feat: your original commit message)
     "@types/ws": "^8.5.11",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",

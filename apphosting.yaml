@@ -6,23 +6,33 @@ run: npm run start
 build:
   run: |
     npm install
-<<<<<<< HEAD
-    GOOGLE_NODE_RUN_SCRIPTS="" npm run build
-=======
     npm run build
->>>>>>> 1aebcf7 (feat: your original commit message)
 runConfig:
   minInstances: 0
+  maxInstances: 100
+  cpu: 1
+  memory: 1Gi
+  concurrency: 100
 env:
   - variable: NODE_ENV
     value: "production"
-  # Non-secret variables can stay as they are
   - variable: FIREBASE_PROJECT_ID
     value: "fiber-friends"
   - variable: FIREBASE_CLIENT_EMAIL
     value: "firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com"
-    
-  # --- Reference your new secrets ---
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyC3AhSg8eAklY-Df6PcDkWqO3OMmTjzhEg"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "fiber-friends-9b614.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "fiber-friends"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "fiber-friends.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "202818399028"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:202818399028:web:225a88b017a6b584cfd361"
+  # Reference secrets from Google Cloud Secret Manager
   - variable: VITE_GEMINI_API_KEY
     secret: VITE_GEMINI_API_KEY
   - variable: FIREBASE_PRIVATE_KEY
