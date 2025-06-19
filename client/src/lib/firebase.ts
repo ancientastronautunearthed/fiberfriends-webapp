@@ -14,12 +14,12 @@ const getEnvVar = (key: string) => {
 };
 
 const firebaseConfig = {
-  apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
+  apiKey: getEnvVar('VITE_FIREBASE_API_KEY') || "AIzaSyC3AhSg8eAklY-Df6PcDkWqO3OMmTjzhEg",
   authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN') || "fiber-friends-9b614.firebaseapp.com",
-  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID'),
+  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID') || "fiber-friends",
   storageBucket: getEnvVar('VITE_FIREBASE_STORAGE_BUCKET') || "fiber-friends.firebasestorage.app",
   messagingSenderId: "202818399028",
-  appId: getEnvVar('VITE_FIREBASE_APP_ID'),
+  appId: getEnvVar('VITE_FIREBASE_APP_ID') || "1:202818399028:web:225a88b017a6b584cfd361",
   measurementId: "G-6E6V9BVQ0E"
 };
 

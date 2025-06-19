@@ -1,5 +1,3 @@
-// server/index.ts
-
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupVite, serveStatic, log } from "./vite.firebase";
@@ -27,7 +25,7 @@ app.use((req, res, next) => {
 });
 
 async function startServer() {
-  log("Starting Fiber Friends server...");
+  log("Starting Fiber Friends server for Firebase App Hosting...");
   const server = createServer(app);
 
   try {
@@ -38,7 +36,7 @@ async function startServer() {
       // Development-only setup
       await setupVite(app, server);
     } else {
-      // Production-only setup
+      // Production setup for Firebase App Hosting
       serveStatic(app);
     }
 
@@ -51,27 +49,15 @@ async function startServer() {
       res.status(status).json({ message });
     });
 
-    // Use PORT from environment variable (default to 5000 for development)
-    const port = parseInt(process.env.PORT || "5000", 10);
-    const host = process.env.HOST || "0.0.0.0";
+    // Use PORT from environment variable (Firebase App Hosting sets this automatically)
+    const port = parseInt(process.env.PORT || "8080", 10);
+    const host = "0.0.0.0";
 
     server.listen(port, host, () => {
-      log(`Server listening on ${host}:${port}`);
+      log(`Server running on ${host}:${port}`);
       log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      log(`Health check available at http://${host}:${port}/health`);
+      log(`Firebase Project: ${process.env.FIREBASE_PROJECT_ID || 'fiber-friends'}`);
     });
-
-    // Graceful shutdown handling
-    const shutdown = () => {
-      log("Shutting down server...");
-      server.close(() => {
-        log("Server closed");
-        process.exit(0);
-      });
-    };
-
-    process.on("SIGTERM", shutdown);
-    process.on("SIGINT", shutdown);
 
   } catch (error) {
     log(`Failed to start server: ${error}`);
@@ -80,6 +66,6 @@ async function startServer() {
 }
 
 startServer().catch((error) => {
-  log(`Fatal error: ${error}`);
+  log(`Server startup error: ${error}`);
   process.exit(1);
 });
