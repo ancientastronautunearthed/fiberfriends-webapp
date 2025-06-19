@@ -205,139 +205,41 @@ class FirestoreService {
     }
   }
 
-  async createUserProfile(uid: string, email: string, displayName?: string | null): Promise<void> {
+  async createUserProfile(uid: string, email: string, displayName?: string): Promise<UserProfile> {
     try {
       const docRef = this.getDocument('users', uid);
       const now = Timestamp.now();
       
-      const profileData: any = {
+      const profileData: UserProfile = {
+        uid,
         email,
-        points: 0,
-        tier: 'NONE',
+        displayName,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        points: 0,
+        tier: 'NONE'
       };
-      
-      if (displayName !== undefined && displayName !== null) {
-        profileData.displayName = displayName;
-      }
-      
+
       await setDoc(docRef, profileData);
+      return profileData;
     } catch (error) {
       console.error('Error creating user profile:', error);
       throw error;
     }
   }
 
-  async updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
+  async updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<UserProfile> {
     try {
       const docRef = this.getDocument('users', uid);
       await updateDoc(docRef, {
         ...updates,
         updatedAt: Timestamp.now()
       });
+      
+      const updatedDoc = await getDoc(docRef);
+      return { uid, ...updatedDoc.data() } as UserProfile;
     } catch (error) {
       console.error('Error updating user profile:', error);
-      throw error;
-    }
-  }
-
-  async addPoints(uid: string, points: number): Promise<void> {
-    try {
-      const profile = await this.getUserProfile(uid);
-      if (profile) {
-        const newPoints = profile.points + points;
-        await this.updateUserProfile(uid, { points: newPoints });
-      }
-    } catch (error) {
-      console.error('Error adding points:', error);
-      throw error;
-    }
-  }
-
-  // AI Companion methods
-  async getAiCompanion(userId: string): Promise<AiCompanion | null> {
-    try {
-      const docRef = this.getDocument('aiCompanions', userId);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        return { id: userId, ...docSnap.data() } as AiCompanion;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting AI companion:', error);
-      throw error;
-    }
-  }
-
-  async createAiCompanion(userId: string, companionData: Omit<AiCompanion, 'id' | 'userId' | 'createdAt'>): Promise<void> {
-    try {
-      const docRef = this.getDocument('aiCompanions', userId);
-      const now = Timestamp.now();
-      
-      await setDoc(docRef, {
-        userId,
-        ...companionData,
-        createdAt: now
-      });
-    } catch (error) {
-      console.error('Error creating AI companion:', error);
-      throw error;
-    }
-  }
-
-  async updateAiCompanion(userId: string, updates: Partial<AiCompanion>): Promise<void> {
-    try {
-      const docRef = this.getDocument('aiCompanions', userId);
-      await updateDoc(docRef, updates);
-    } catch (error) {
-      console.error('Error updating AI companion:', error);
-      throw error;
-    }
-  }
-
-  // Conversation History methods
-  async getConversationHistory(userId: string): Promise<ConversationHistory | null> {
-    try {
-      const docRef = this.getDocument('conversationHistory', userId);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        return { id: userId, ...docSnap.data() } as ConversationHistory;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting conversation history:', error);
-      throw error;
-    }
-  }
-
-  async saveConversationMessage(userId: string, companionId: string, message: ConversationMessage): Promise<void> {
-    try {
-      const docRef = this.getDocument('conversationHistory', userId);
-      const existingHistory = await this.getConversationHistory(userId);
-      
-      if (existingHistory) {
-        // Update existing conversation
-        const updatedMessages = [...existingHistory.messages, message];
-        await updateDoc(docRef, {
-          messages: updatedMessages,
-          updatedAt: Timestamp.now()
-        });
-      } else {
-        // Create new conversation history
-        const now = Timestamp.now();
-        await setDoc(docRef, {
-          companionId,
-          userId,
-          messages: [message],
-          createdAt: now,
-          updatedAt: now
-        });
-      }
-    } catch (error) {
-      console.error('Error saving conversation message:', error);
       throw error;
     }
   }
@@ -345,11 +247,13 @@ class FirestoreService {
   // Monster methods
   async getMonsterData(uid: string): Promise<MonsterData | null> {
     try {
-      const docRef = this.getDocument('monsters', uid);
-      const docSnap = await getDoc(docRef);
+      const collectionRef = this.getCollection('monsters');
+      const q = query(collectionRef, where('uid', '==', uid), limit(1));
+      const querySnapshot = await getDocs(q);
       
-      if (docSnap.exists()) {
-        return { uid, ...docSnap.data() } as MonsterData;
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        return { uid, ...doc.data() } as MonsterData;
       }
       return null;
     } catch (error) {
@@ -358,41 +262,33 @@ class FirestoreService {
     }
   }
 
-  async createMonster(uid: string, monsterData: Omit<MonsterData, 'uid' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async saveMonsterData(uid: string, monsterData: Omit<MonsterData, 'uid' | 'createdAt' | 'updatedAt'>): Promise<MonsterData> {
     try {
-      const docRef = this.getDocument('monsters', uid);
-      const now = Timestamp.now();
+      const collectionRef = this.getCollection('monsters');
+      const q = query(collectionRef, where('uid', '==', uid));
+      const existingDocs = await getDocs(q);
       
-      await setDoc(docRef, {
+      const now = Timestamp.now();
+      const fullMonsterData: MonsterData = {
+        uid,
         ...monsterData,
         createdAt: now,
         updatedAt: now
-      });
-    } catch (error) {
-      console.error('Error creating monster:', error);
-      throw error;
-    }
-  }
+      };
 
-  async updateMonsterData(uid: string, updates: Partial<MonsterData>): Promise<void> {
-    try {
-      const docRef = this.getDocument('monsters', uid);
-      await updateDoc(docRef, {
-        ...updates,
-        updatedAt: Timestamp.now()
-      });
+      if (existingDocs.empty) {
+        await addDoc(collectionRef, fullMonsterData);
+      } else {
+        const docRef = existingDocs.docs[0].ref;
+        await updateDoc(docRef, {
+          ...monsterData,
+          updatedAt: now
+        });
+      }
+      
+      return fullMonsterData;
     } catch (error) {
-      console.error('Error updating monster data:', error);
-      throw error;
-    }
-  }
-
-  async deleteMonster(uid: string): Promise<void> {
-    try {
-      const docRef = this.getDocument('monsters', uid);
-      await deleteDoc(docRef);
-    } catch (error) {
-      console.error('Error deleting monster:', error);
+      console.error('Error saving monster data:', error);
       throw error;
     }
   }
@@ -784,21 +680,20 @@ class FirestoreService {
       const collectionRef = this.getCollection('completions');
       const docId = `${uid}_${type}_${date}`;
       const docRef = doc(collectionRef, docId);
-      const docSnap = await getDoc(docRef);
       
+      const docSnap = await getDoc(docRef);
       return docSnap.exists();
     } catch (error) {
       console.error('Error checking completion:', error);
-      throw error;
+      return false;
     }
   }
 
   // Tomb methods
-  async addToTomb(uid: string, tombData: TombEntry): Promise<void> {
+  async addToTomb(tombData: TombEntry): Promise<void> {
     try {
       const collectionRef = this.getCollection('tomb');
       await addDoc(collectionRef, {
-        uid,
         ...tombData,
         diedAt: Timestamp.now()
       });
@@ -825,37 +720,196 @@ class FirestoreService {
       throw error;
     }
   }
+
+  // AI Companion methods
+  async getAiCompanion(userId: string): Promise<AiCompanion | null> {
+    try {
+      const collectionRef = this.getCollection('AiCompanions');
+      const q = query(
+        collectionRef,
+        where('userId', '==', userId),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        return {
+          id: doc.id,
+          ...doc.data()
+        } as AiCompanion;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting AI companion:', error);
+      throw error;
+    }
+  }
+
+  async createAiCompanion(companionData: Omit<AiCompanion, 'id' | 'createdAt'>): Promise<string> {
+    try {
+      const collectionRef = this.getCollection('AiCompanions');
+      const now = Timestamp.now();
+      
+      const docRef = await addDoc(collectionRef, {
+        ...companionData,
+        createdAt: now
+      });
+      
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating AI companion:', error);
+      throw error;
+    }
+  }
+
+  async updateAiCompanion(companionId: string, updates: Partial<AiCompanion>): Promise<void> {
+    try {
+      const docRef = this.getDocument('AiCompanions', companionId);
+      await updateDoc(docRef, updates);
+    } catch (error) {
+      console.error('Error updating AI companion:', error);
+      throw error;
+    }
+  }
+
+  // Conversation History methods
+  async getConversationHistory(companionId: string, userId: string): Promise<ConversationHistory | null> {
+    try {
+      const collectionRef = this.getCollection('conversationHistory');
+      const q = query(
+        collectionRef,
+        where('companionId', '==', companionId),
+        where('userId', '==', userId),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        return {
+          id: doc.id,
+          ...doc.data()
+        } as ConversationHistory;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting conversation history:', error);
+      throw error;
+    }
+  }
+
+  async saveConversationHistory(history: Omit<ConversationHistory, 'id'>): Promise<void> {
+    try {
+      const collectionRef = this.getCollection('conversationHistory');
+      
+      // Check if conversation history already exists
+      const q = query(
+        collectionRef,
+        where('companionId', '==', history.companionId),
+        where('userId', '==', history.userId),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const now = Timestamp.now();
+      
+      if (!querySnapshot.empty) {
+        // Update existing conversation
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          messages: history.messages,
+          updatedAt: now
+        });
+      } else {
+        // Create new conversation
+        await addDoc(collectionRef, {
+          ...history,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+    } catch (error) {
+      console.error('Error saving conversation history:', error);
+      throw error;
+    }
+  }
 }
 
-// Export the service instance
 export const firestoreService = new FirestoreService();
 
-// Export individual functions for backward compatibility
-export const getAiCompanion = (userId: string) => firestoreService.getAiCompanion(userId);
-export const createAiCompanion = (userId: string, companionData: Omit<AiCompanion, 'id' | 'userId' | 'createdAt'>) => 
-  firestoreService.createAiCompanion(userId, companionData);
-export const updateAiCompanion = (userId: string, updates: Partial<AiCompanion>) => 
-  firestoreService.updateAiCompanion(userId, updates);
-export const saveConversationMessage = (userId: string, companionId: string, message: ConversationMessage) => 
-  firestoreService.saveConversationMessage(userId, companionId, message);
-export const getConversationHistory = (userId: string) => 
-  firestoreService.getConversationHistory(userId);
+// Daily Symptom Log Check Function
+export async function checkDailySymptomLog(userId: string): Promise<{
+  needsSymptomLog: boolean;
+  lastSubmission: string | null;
+  today: string;
+}> {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    if (!db) {
+      throw new Error('Firestore database not initialized');
+    }
 
-// Re-export common Firestore functions for convenience
-export {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  addDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  Timestamp,
-  serverTimestamp
-};
+    // Check symptom_logs collection first (from symptom journal actions)
+    const symptomLogsRef = collection(db, 'symptom_logs');
+    const symptomLogsQuery = query(
+      symptomLogsRef,
+      where('userId', '==', userId),
+      where('date', '==', today),
+      limit(1)
+    );
+    
+    const symptomLogsSnapshot = await getDocs(symptomLogsQuery);
+    
+    if (!symptomLogsSnapshot.empty) {
+      return {
+        needsSymptomLog: false,
+        lastSubmission: today,
+        today
+      };
+    }
+
+    // Check dailyLogs collection as fallback
+    const dailyLogsRef = collection(db, 'dailyLogs');
+    const dailyLogsQuery = query(
+      dailyLogsRef,
+      where('userId', '==', userId),
+      orderBy('date', 'desc'),
+      limit(1)
+    );
+    
+    const dailyLogsSnapshot = await getDocs(dailyLogsQuery);
+    
+    let lastSubmission: string | null = null;
+    if (!dailyLogsSnapshot.empty) {
+      const lastLog = dailyLogsSnapshot.docs[0].data();
+      if (lastLog.date) {
+        // Handle both Timestamp and string dates
+        if (lastLog.date.toDate) {
+          lastSubmission = lastLog.date.toDate().toISOString().split('T')[0];
+        } else {
+          lastSubmission = lastLog.date;
+        }
+      }
+    }
+
+    // Check if last submission was today
+    const needsSymptomLog = lastSubmission !== today;
+    
+    return {
+      needsSymptomLog,
+      lastSubmission,
+      today
+    };
+    
+  } catch (error) {
+    console.error('Error checking daily symptom log:', error);
+    // Return safe defaults on error
+    return {
+      needsSymptomLog: true,
+      lastSubmission: null,
+      today: new Date().toISOString().split('T')[0]
+    };
+  }
+}
