@@ -33,6 +33,9 @@ export function useFirebaseAuth() {
       }
     }
 
+    // Check for Replit Auth first
+    checkReplitAuth();
+
     // Check if Firebase auth is available
     if (!auth) {
       console.log('Firebase auth not available, enabling test mode');
@@ -92,6 +95,7 @@ export function useFirebaseAuth() {
       console.error('Error setting up auth listener:', error);
       setIsLoading(false);
     }
+  };
 
     return () => {
       if (unsubscribe) {
@@ -99,6 +103,39 @@ export function useFirebaseAuth() {
       }
     };
   }, []);
+
+  const checkReplitAuth = async () => {
+    try {
+      const response = await fetch('/__replauthuser');
+      if (response.ok) {
+        const replitUser = await response.json();
+        const user = {
+          id: replitUser.id,
+          email: `${replitUser.name}@replit.user`,
+          firstName: replitUser.name.split(' ')[0] || replitUser.name,
+          lastName: replitUser.name.split(' ')[1] || '',
+          profileImageUrl: replitUser.profileImage,
+          onboardingCompleted: true,
+          points: 100,
+          totalPoints: 100,
+          currentTier: 'Newcomer',
+          streakDays: 3,
+          longestStreak: 7
+        };
+        setUser(user);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.log('Replit auth not available:', error);
+    }
+    
+    // Continue with Firebase auth check
+    setupFirebaseAuth();
+  };
+
+  const setupFirebaseAuth = () => {
 
   const handleUserLogin = async (firebaseUser: User) => {
     try {
