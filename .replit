@@ -33,5 +33,9 @@ task = "shell.exec"
 args = "npm run dev"
 
 [[ports]]
+localPort = 5173
+externalPort = 5173
+
+[[ports]]
 localPort = 8080
 externalPort = 80
