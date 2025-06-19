@@ -8,32 +8,26 @@ build:
     npm install
     npm run build
 runConfig:
-  minInstances: 0
-  maxInstances: 100
+  concurrency: 1000
   cpu: 1
-  memory: 1Gi
-  concurrency: 100
+  memoryGiB: 4
+  maxInstances: 100
+  minInstances: 0
+
 env:
   - variable: NODE_ENV
-    value: "production"
-  - variable: FIREBASE_PROJECT_ID
-    value: "fiber-friends"
-  - variable: FIREBASE_CLIENT_EMAIL
-    value: "firebase-adminsdk-fbsvc@fiber-friends.iam.gserviceaccount.com"
-  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: "AIzaSyC3AhSg8eAklY-Df6PcDkWqO3OMmTjzhEg"
-  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: "fiber-friends-9b614.firebaseapp.com"
-  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: "fiber-friends"
-  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: "fiber-friends.firebasestorage.app"
-  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "202818399028"
-  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: "1:202818399028:web:225a88b017a6b584cfd361"
-  # Reference secrets from Google Cloud Secret Manager
+    value: production
+  - variable: VITE_FIREBASE_API_KEY
+    value: AIzaSyC3AhSg8eAklY-Df6PcDkWqO3OMmTjzhEg
+  - variable: VITE_FIREBASE_PROJECT_ID
+    value: fiber-friends
+  - variable: VITE_FIREBASE_APP_ID
+    value: 1:202818399028:web:87d26200830078f8cfd361
+  - variable: VITE_FIREBASE_AUTH_DOMAIN
+    value: fiber-friends-9b614.firebaseapp.com
+  - variable: VITE_FIREBASE_STORAGE_BUCKET
+    value: fiber-friends.firebasestorage.app
   - variable: VITE_GEMINI_API_KEY
-    secret: VITE_GEMINI_API_KEY
+    secret: GEMINI_API_KEY
   - variable: FIREBASE_PRIVATE_KEY
     secret: FIREBASE_PRIVATE_KEY

@@ -1,30 +1,26 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
-// This is a corrected configuration that removes the top-level await
-// which was causing the build to fail in a CommonJS environment.
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
 export default defineConfig({
-  plugins: [
-    react(),
-    // The runtimeErrorOverlay is fine to keep.
-  
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared"),
-      "@assets": path.resolve(__dirname, "attached_assets"),
+      "@": path.resolve(__dirname, "./client/src"),
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: './client',
   build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir: '../dist',
     emptyOutDir: true,
   },
   server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
+    host: '0.0.0.0',
+    port: 5173,
   },
-});
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+  },
+})
