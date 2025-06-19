@@ -165,33 +165,35 @@ const ImportantBirthdaysManager = ({ onUpdate }: { onUpdate: (birthdays: any[]) 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Important Birthdays (Optional)</Label>
-        <Button type="button" variant="outline" size="sm" onClick={() => setIsOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <Plus className="w-4 h-4" />
           Add Birthday
         </Button>
       </div>
-      
-      <p className="text-sm text-slate-600">
-        Add important birthdays so Luna can remind you and suggest personalized gifts
-      </p>
 
       {birthdays.length > 0 && (
         <div className="space-y-2">
           {birthdays.map((birthday) => (
-            <div key={birthday.id} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+            <div key={birthday.id} className="flex items-center justify-between bg-purple-50 p-3 rounded-lg">
               <div>
                 <span className="font-medium">{birthday.name}</span>
                 <span className="text-slate-600 ml-2">({birthday.relationship})</span>
-                <span className="text-slate-500 ml-2">{birthday.dateOfBirth}</span>
+                <span className="text-slate-500 ml-2 text-sm">{birthday.dateOfBirth}</span>
               </div>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                type="button"
                 onClick={() => handleRemove(birthday.id)}
+                variant="ghost"
+                size="sm"
                 className="text-red-600 hover:text-red-800"
               >
                 <X className="w-4 h-4" />
@@ -203,9 +205,8 @@ const ImportantBirthdaysManager = ({ onUpdate }: { onUpdate: (birthdays: any[]) 
 
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Add Important Birthday</h3>
-            
             <div className="space-y-4">
               <div>
                 <Label className="text-sm font-medium">Relationship</Label>
@@ -367,7 +368,7 @@ export default function Onboarding() {
         onboardingCompleted: true,
       };
 
-      return await apiRequest("POST", "/api/auth/complete-onboarding", profileData);
+      return await apiRequest("PUT", "/api/profile/complete-onboarding", profileData);
     },
     onSuccess: () => {
       toast({
@@ -524,66 +525,51 @@ export default function Onboarding() {
 
                   <div>
                     <Label htmlFor="dateOfBirth">Date of Birth (for birthday bonus points!)</Label>
-                    <Input 
-                      type="date" 
-                      {...form.register("dateOfBirth")} 
-                    />
+                    <Input type="date" {...form.register("dateOfBirth")} />
                     {form.formState.errors.dateOfBirth && (
                       <p className="text-red-500 text-sm">{form.formState.errors.dateOfBirth.message}</p>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="age">Age</Label>
-                      <Input 
-                        type="number" 
-                        {...form.register("age", { valueAsNumber: true })} 
-                      />
+                      <Input type="number" {...form.register("age", { valueAsNumber: true })} />
                       {form.formState.errors.age && (
                         <p className="text-red-500 text-sm">{form.formState.errors.age.message}</p>
                       )}
                     </div>
                     <div>
-                      <Label htmlFor="height">Height</Label>
-                      <Input 
-                        placeholder="e.g., 5'8&quot;" 
-                        {...form.register("height")} 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="weight">Weight</Label>
-                      <Input 
-                        placeholder="e.g., 150 lbs" 
-                        {...form.register("weight")} 
-                      />
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select onValueChange={(value) => form.setValue("gender", value as any)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="non-binary">Non-binary</SelectItem>
+                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <div>
-                    <Label>Gender</Label>
-                    <RadioGroup 
-                      value={form.watch("gender") || "prefer-not-to-say"} 
-                      onValueChange={(value) => form.setValue("gender", value as any)}
-                      className="flex flex-wrap gap-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="male" id="male" />
-                        <Label htmlFor="male">Male</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="female" id="female" />
-                        <Label htmlFor="female">Female</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="non-binary" id="non-binary" />
-                        <Label htmlFor="non-binary">Non-binary</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="prefer-not-to-say" id="prefer-not-to-say" />
-                        <Label htmlFor="prefer-not-to-say">Prefer not to say</Label>
-                      </div>
-                    </RadioGroup>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="height">Height</Label>
+                      <Input placeholder="e.g., 5'6&quot; or 168cm" {...form.register("height")} />
+                      {form.formState.errors.height && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.height.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="weight">Weight</Label>
+                      <Input placeholder="e.g., 150lbs or 68kg" {...form.register("weight")} />
+                      {form.formState.errors.weight && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.weight.message}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -592,67 +578,26 @@ export default function Onboarding() {
               {currentStep === 2 && (
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="location">Location (City, State)</Label>
-                    <Input 
-                      placeholder="e.g., Austin, TX" 
-                      {...form.register("location")} 
-                    />
+                    <Label htmlFor="location">Location (City, State/Province)</Label>
+                    <Input placeholder="e.g., Los Angeles, CA" {...form.register("location")} />
                     {form.formState.errors.location && (
                       <p className="text-red-500 text-sm">{form.formState.errors.location.message}</p>
                     )}
                   </div>
 
-                  <div>
-                    <Label>Diagnosis Status</Label>
-                    <RadioGroup 
-                      value={form.watch("diagnosisStatus") || "suspected"} 
-                      onValueChange={(value) => form.setValue("diagnosisStatus", value as any)}
-                      className="mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="diagnosed" id="diagnosed" />
-                        <Label htmlFor="diagnosed">Officially diagnosed with Morgellons</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="suspected" id="suspected" />
-                        <Label htmlFor="suspected">Suspected Morgellons (self-diagnosed)</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="diagnosisTimeline">Diagnosis Timeline (Optional)</Label>
-                    <Textarea 
-                      placeholder="Tell us about your journey to diagnosis..."
-                      {...form.register("diagnosisTimeline")}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="hasFibers"
-                      checked={form.watch("hasFibers")}
-                      onCheckedChange={(checked) => form.setValue("hasFibers", checked as boolean)}
-                    />
-                    <Label htmlFor="hasFibers">I have experienced fiber-like symptoms</Label>
-                  </div>
-
                   {/* Employment Information */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-lg font-semibold">Employment Information</h3>
-                    
+                  <div className="space-y-4">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
+                      <Checkbox
                         id="isEmployed"
                         checked={form.watch("isEmployed")}
-                        onCheckedChange={(checked) => form.setValue("isEmployed", checked as boolean)}
+                        onCheckedChange={(checked) => form.setValue("isEmployed", checked === true)}
                       />
-                      <Label htmlFor="isEmployed">I am currently employed</Label>
+                      <Label htmlFor="isEmployed">Currently employed</Label>
                     </div>
 
                     {form.watch("isEmployed") && (
-                      <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
+                      <div className="bg-blue-50 p-4 rounded-lg space-y-3">
                         <div>
                           <Label htmlFor="workHours">Work Schedule</Label>
                           <Input 
@@ -684,6 +629,41 @@ export default function Onboarding() {
               {/* Step 3: Medical History */}
               {currentStep === 3 && (
                 <div className="space-y-6">
+                  <div>
+                    <Label className="text-base font-semibold">Diagnosis Status</Label>
+                    <RadioGroup
+                      value={form.watch("diagnosisStatus")}
+                      onValueChange={(value) => form.setValue("diagnosisStatus", value as any)}
+                      className="mt-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="diagnosed" id="diagnosed" />
+                        <Label htmlFor="diagnosed">Officially diagnosed with Morgellons Disease</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="suspected" id="suspected" />
+                        <Label htmlFor="suspected">Self-diagnosed or suspected Morgellons Disease</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="diagnosisTimeline">Diagnosis Timeline (Optional)</Label>
+                    <Input 
+                      placeholder="e.g., Diagnosed 2 years ago, symptoms for 5 years"
+                      {...form.register("diagnosisTimeline")}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hasFibers"
+                      checked={form.watch("hasFibers")}
+                      onCheckedChange={(checked) => form.setValue("hasFibers", checked === true)}
+                    />
+                    <Label htmlFor="hasFibers">I have observed fibers emerging from my skin</Label>
+                  </div>
+
                   {/* Previous Misdiagnoses */}
                   <div>
                     <Label className="text-base font-semibold">Previous Misdiagnoses (Optional)</Label>
@@ -706,45 +686,12 @@ export default function Onboarding() {
                         </Button>
                       ))}
                     </div>
-                    <div className="flex gap-2">
-                      <Input placeholder="Add custom misdiagnosis" />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={(e) => {
-                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                          addMisdiagnosis(input.value);
-                          input.value = '';
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                    {commonMisdiagnoses.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {commonMisdiagnoses.map((diagnosis) => (
-                          <span 
-                            key={diagnosis}
-                            className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                          >
-                            {diagnosis}
-                            <button 
-                              type="button"
-                              onClick={() => removeMisdiagnosis(diagnosis)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Other Current Diseases */}
+                  {/* Other Diseases */}
                   <div>
-                    <Label className="text-base font-semibold">Other Current Conditions (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-3">Any other medical conditions you currently have:</p>
+                    <Label className="text-base font-semibold">Other Health Conditions (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-3">Select any other health conditions you have:</p>
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {OTHER_DISEASES_OPTIONS.map((disease) => (
                         <Button
@@ -763,45 +710,12 @@ export default function Onboarding() {
                         </Button>
                       ))}
                     </div>
-                    <div className="flex gap-2">
-                      <Input placeholder="Add custom condition" />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={(e) => {
-                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                          addDisease(input.value);
-                          input.value = '';
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                    {commonDiseases.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {commonDiseases.map((disease) => (
-                          <span 
-                            key={disease}
-                            className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                          >
-                            {disease}
-                            <button 
-                              type="button"
-                              onClick={() => removeDisease(disease)}
-                              className="text-orange-600 hover:text-orange-800"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Current Medications */}
                   <div>
                     <Label className="text-base font-semibold">Current Medications (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-3">Medications you're currently taking:</p>
+                    <p className="text-sm text-slate-600 mb-3">Select medications you're currently taking:</p>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {MEDICATIONS_OPTIONS.map((medication) => (
                         <Button
@@ -893,18 +807,12 @@ export default function Onboarding() {
                         Add
                       </Button>
                     </div>
-                    <Textarea 
-                      {...form.register("customFoodDislikes")}
-                      placeholder="Or describe your food dislikes in detail..."
-                      rows={2}
-                      className="mt-2"
-                    />
                   </div>
 
                   {/* Food Favorites */}
                   <div>
-                    <Label className="text-base font-semibold">Favorite Foods (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-3">Select foods you particularly enjoy:</p>
+                    <Label className="text-base font-semibold">Food Favorites (Optional)</Label>
+                    <p className="text-sm text-slate-600 mb-3">Select foods you enjoy eating:</p>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {FOOD_FAVORITES_OPTIONS.map((food) => (
                         <Button
@@ -924,7 +832,7 @@ export default function Onboarding() {
                       ))}
                     </div>
                     <div className="flex gap-2">
-                      <Input placeholder="Add custom favorite food" />
+                      <Input placeholder="Add custom food favorite" />
                       <Button 
                         type="button" 
                         variant="outline"
@@ -937,12 +845,6 @@ export default function Onboarding() {
                         Add
                       </Button>
                     </div>
-                    <Textarea 
-                      {...form.register("customFoodFavorites")}
-                      placeholder="Or describe your favorite foods in detail..."
-                      rows={2}
-                      className="mt-2"
-                    />
                   </div>
 
                   {/* Food Allergies */}
@@ -1060,9 +962,9 @@ export default function Onboarding() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Several times a week</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
                               <SelectItem value="occasionally">Occasionally</SelectItem>
-                              <SelectItem value="rarely">Rarely</SelectItem>
+                              <SelectItem value="socially">Socially only</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1098,11 +1000,9 @@ export default function Onboarding() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Several times a week</SelectItem>
-                              <SelectItem value="weekends">Weekends only</SelectItem>
-                              <SelectItem value="monthly">A few times a month</SelectItem>
-                              <SelectItem value="occasionally">Occasionally</SelectItem>
-                              <SelectItem value="rarely">Rarely</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="socially">Socially only</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1110,17 +1010,15 @@ export default function Onboarding() {
                     </div>
                   )}
 
-                  {/* Relationship Status */}
                   <div>
                     <Label htmlFor="relationshipStatus">Relationship Status (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-2">Helps Luna understand your support network</p>
                     <Select onValueChange={(value) => form.setValue("relationshipStatus", value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your relationship status" />
+                        <SelectValue placeholder="Select relationship status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="single">Single</SelectItem>
-                        <SelectItem value="in-relationship">In a relationship</SelectItem>
+                        <SelectItem value="dating">Dating</SelectItem>
                         <SelectItem value="married">Married</SelectItem>
                         <SelectItem value="divorced">Divorced</SelectItem>
                         <SelectItem value="widowed">Widowed</SelectItem>
@@ -1129,47 +1027,43 @@ export default function Onboarding() {
                     </Select>
                   </div>
 
-                  {/* Children Information */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="hasChildren" 
+                      <Checkbox
+                        id="hasChildren"
                         checked={form.watch("hasChildren")}
-                        onCheckedChange={(checked) => form.setValue("hasChildren", checked as boolean)}
+                        onCheckedChange={(checked) => form.setValue("hasChildren", checked === true)}
                       />
                       <Label htmlFor="hasChildren">I have children</Label>
                     </div>
 
                     {form.watch("hasChildren") && (
-                      <div className="bg-green-50 p-4 rounded-lg space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="childrenCount">Number of children</Label>
-                            <Input 
-                              type="number"
-                              {...form.register("childrenCount", { valueAsNumber: true })}
-                              placeholder="e.g., 2"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="childrenAges">Children's ages</Label>
-                            <Input 
-                              {...form.register("childrenAges")}
-                              placeholder="e.g., 8, 12, 16"
-                            />
-                          </div>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div>
+                          <Label htmlFor="childrenCount">Number of children</Label>
+                          <Input 
+                            type="number"
+                            {...form.register("childrenCount", { valueAsNumber: true })}
+                            placeholder="e.g., 2"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <Label htmlFor="childrenAges">Ages of children (Optional)</Label>
+                          <Input 
+                            {...form.register("childrenAges")}
+                            placeholder="e.g., 5, 8, 12"
+                          />
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Siblings Information */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="hasSiblings" 
+                      <Checkbox
+                        id="hasSiblings"
                         checked={form.watch("hasSiblings")}
-                        onCheckedChange={(checked) => form.setValue("hasSiblings", checked as boolean)}
+                        onCheckedChange={(checked) => form.setValue("hasSiblings", checked === true)}
                       />
                       <Label htmlFor="hasSiblings">I have siblings</Label>
                     </div>
@@ -1219,52 +1113,35 @@ export default function Onboarding() {
 
                   <div>
                     <Label htmlFor="hobbies">Hobbies & Interests (Optional)</Label>
-                    <p className="text-sm text-slate-600 mb-2">What do you enjoy doing? What are you passionate about?</p>
+                    <p className="text-sm text-slate-600 mb-2">What do you enjoy doing?</p>
                     <Textarea 
                       {...form.register("hobbies")}
-                      placeholder="Tell Luna about your interests so she can have more personalized conversations with you"
-                      rows={6}
+                      placeholder="e.g., reading, gardening, painting, hiking, cooking, photography, music, crafts, gaming..."
+                      rows={4}
                     />
-                  </div>
-
-                  <div className="bg-blue-50 p-6 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">You're all set!</h4>
-                    <p className="text-sm text-blue-800">
-                      Luna will use this comprehensive information to provide personalized health insights, nutrition 
-                      recommendations, birthday reminders, gift suggestions, and supportive conversations tailored 
-                      specifically to your journey with Morgellons.
-                    </p>
                   </div>
                 </div>
               )}
 
               {/* Navigation */}
-              <div className="flex justify-between pt-6">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </Button>
-
+              <div className="flex justify-between mt-8">
+                {currentStep > 1 && (
+                  <Button type="button" onClick={prevStep} variant="outline">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Previous
+                  </Button>
+                )}
+                
                 {currentStep < steps.length ? (
-                  <Button 
-                    type="button" 
-                    onClick={nextStep}
-                    className="flex items-center gap-2"
-                  >
+                  <Button type="button" onClick={nextStep} className="ml-auto">
                     Next
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 ) : (
                   <Button 
-                    type="submit"
+                    type="submit" 
+                    className="ml-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                     disabled={onboardingMutation.isPending}
-                    className="flex items-center gap-2"
                   >
                     {onboardingMutation.isPending ? "Completing..." : "Complete Profile"}
                   </Button>
