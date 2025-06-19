@@ -18,7 +18,7 @@ export function useFirebaseAuth() {
     // Check for test mode first
     const testMode = localStorage.getItem('test-mode');
     const testUserData = localStorage.getItem('test-user');
-    
+
     if (testMode === 'true' && testUserData) {
       try {
         const testUser = JSON.parse(testUserData);
@@ -58,12 +58,12 @@ export function useFirebaseAuth() {
 
     // Listen for auth state changes with proper error handling
     let unsubscribe: (() => void) | null = null;
-    
+
     try {
       unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         try {
           setFirebaseUser(firebaseUser);
-          
+
           if (firebaseUser) {
             await handleUserLogin(firebaseUser).catch((error) => {
               console.error('User login error:', error);
@@ -74,7 +74,7 @@ export function useFirebaseAuth() {
             setUser(null);
             setIsAuthenticated(false);
           }
-          
+
           setIsLoading(false);
         } catch (error) {
           console.error('Auth state handler error:', error);
@@ -104,7 +104,7 @@ export function useFirebaseAuth() {
     try {
       // Check if user exists in Firestore
       let userData = await getUser(firebaseUser.uid);
-      
+
       if (!userData) {
         // Create new user in Firestore
         const newUserData = {
@@ -122,7 +122,7 @@ export function useFirebaseAuth() {
           communityInsightsAccess: false,
           anonymizedDataContributed: false
         };
-        
+
         await createUser(firebaseUser.uid, newUserData);
         userData = { id: firebaseUser.uid, ...newUserData };
       }
@@ -161,13 +161,19 @@ export function useFirebaseAuth() {
 
     try {
       console.log("Starting Google sign-in...");
-      
+
+      // Check if we're in development and domain is not authorized
+      if (process.env.NODE_ENV === 'development' && window.location.hostname.includes('repl.co')) {
+        console.warn('Development mode: Please add this domain to Firebase Auth authorized domains');
+        console.warn('Current domain:', window.location.origin);
+      }
+
       // Clear any existing popup blockers
       if (googleProvider) {
         googleProvider.setCustomParameters({
           prompt: 'select_account'
         });
-        
+
         const result = await signInWithPopup(auth, googleProvider);
         if (result.user) {
           console.log("Sign-in successful:", result.user.email);
@@ -176,17 +182,21 @@ export function useFirebaseAuth() {
       }
     } catch (error: any) {
       console.error("Sign-in error:", error);
-      
+
       if (error.code === 'auth/popup-closed-by-user') {
         console.log("User closed the popup");
         return;
       }
-      
+
       if (error.code === 'auth/popup-blocked') {
         console.log("Popup was blocked by browser");
         throw new Error("Please allow popups for this site and try again");
       }
-      
+
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error('Please add this domain to Firebase Auth authorized domains:', window.location.origin);
+      }
+
       throw error;
     }
   };
@@ -202,7 +212,7 @@ export function useFirebaseAuth() {
         window.location.reload();
         return;
       }
-      
+
       if (auth) {
         await firebaseSignOut(auth);
       }
