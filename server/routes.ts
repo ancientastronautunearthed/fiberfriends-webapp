@@ -3,15 +3,15 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupFirebaseAuth, isAuthenticated } from "./firebaseAuth";
 import { SimpleChatServer } from "./simpleWebSocket";
-import { 
-  InsertDailyLog, 
-  InsertCommunityPost, 
-  InsertAiCompanion, 
-  InsertChatRoom, 
-  InsertChallenge, 
-  InsertUserChallenge, 
-  InsertSymptomWheelEntry, 
-  InsertConversationHistory, 
+import {
+  InsertDailyLog,
+  InsertCommunityPost,
+  InsertAiCompanion,
+  InsertChatRoom,
+  InsertChallenge,
+  InsertUserChallenge,
+  InsertSymptomWheelEntry,
+  InsertConversationHistory,
   InsertAiHealthInsight,
   ConversationMessage
 } from "@shared/schema";
@@ -66,7 +66,8 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.put('/api/profile/complete-onboarding', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const updatedUser = await storage.updateUser(userId, { ...req.body, onboardingCompleted: true });
+      // FIX: Use upsertUser to prevent error if user document doesn't exist yet.
+      const updatedUser = await storage.upsertUser({ id: userId, ...req.body, onboardingCompleted: true });
       res.json({ user: updatedUser });
     } catch (error) {
       console.error("Error completing onboarding:", error);
@@ -77,7 +78,8 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   app.put('/api/profile/update', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const updatedUser = await storage.updateUser(userId, req.body);
+      // FIX: Use upsertUser here as well for safety.
+      const updatedUser = await storage.upsertUser({ id: userId, ...req.body });
       res.json({ user: updatedUser });
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -142,9 +144,9 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
 
       const aiAnalysis = await generateCommunityPostAnalysis(postData.content, postData.category);
       await storage.updateCommunityPost(post.id, { aiAnalysis });
-      
+
       await pointsSystem.awardPoints(userId, 'COMMUNITY_POST_CREATE');
-      
+
       res.json({ post: { ...post, aiAnalysis } });
     } catch (error) {
       console.error("Error creating community post:", error);
@@ -171,7 +173,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
         ...req.body,
         userId,
       };
-      
+
       const companion = await storage.createAiCompanion(companionData);
       res.json({ companion });
     } catch (error) {
@@ -195,16 +197,16 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
     try {
       const userId = req.user.claims.sub;
       const { message } = req.body;
-      
+
       const companion = await storage.getAiCompanion(userId);
       if (!companion) {
         return res.status(404).json({ error: "No AI companion found" });
       }
 
       const history = await storage.getConversationHistory(companion.id, userId);
-      
+
       const response = await generateAICompanionResponse(message, history?.messages || []);
-      
+
       const newMessages = [
           { role: 'user' as const, content: message, timestamp: new Date() },
           { role: 'assistant' as const, content: response, timestamp: new Date() }
@@ -219,9 +221,9 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
               messages: newMessages as ConversationMessage[],
           });
       }
-      
+
       await pointsSystem.awardPoints(userId, 'AI_CONVERSATION_MESSAGE');
-      
+
       res.json({ response });
     } catch (error) {
       console.error("Error in AI chat:", error);
@@ -238,11 +240,11 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
         userId,
         date: new Date(req.body.date),
       };
-      
+
       const entry = await storage.createSymptomWheelEntry(entryData);
-      
+
       await pointsSystem.awardPoints(userId, 'SYMPTOM_WHEEL_ENTRY');
-      
+
       res.json({ entry });
     } catch (error) {
       console.error("Error creating symptom wheel entry:", error);
@@ -311,7 +313,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
     try {
       const userId = req.user.claims.sub;
       const { challengeId } = req.body;
-      
+
       const userChallengeData: InsertUserChallenge = {
         userId,
         challengeId,
@@ -321,7 +323,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       };
 
       const userChallenge = await storage.createUserChallenge(userChallengeData);
-      
+
       res.json({ userChallenge });
     } catch (error) {
       console.error("Error joining challenge:", error);
@@ -333,21 +335,21 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
     try {
       const userId = req.user.claims.sub;
       const { challengeId, progress } = req.body;
-      
+
       const userChallenge = await storage.getUserChallenge(userId, challengeId);
       if (!userChallenge) {
         return res.status(404).json({ error: "Challenge not found" });
       }
-      
+
       const updated = await storage.updateUserChallenge(userChallenge.id, {
         progress,
         completedAt: progress >= 100 ? new Date() : undefined,
       });
-      
+
       if (progress >= 100) {
         await pointsSystem.awardPoints(userId, 'CHALLENGE_COMPLETE');
       }
-      
+
       res.json({ userChallenge: updated });
     } catch (error) {
       console.error("Error updating challenge progress:", error);
@@ -372,8 +374,8 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       const userId = req.user.claims.sub;
       const userAchievements = await storage.getUserAchievements(userId);
       const allAchievements = await storage.getAchievements();
-      
-      res.json({ 
+
+      res.json({
         userAchievements,
         allAchievements,
       });
@@ -413,7 +415,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
       if (!lat || !lon) {
         return res.status(400).json({ error: "Latitude and longitude required" });
       }
-      
+
       const location = `${lat},${lon}`;
       const weather = await weatherService.getCurrentWeather(location);
       res.json({ weather });
@@ -428,7 +430,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
     try {
       const userId = req.user.claims.sub;
       const { choices } = req.body;
-      
+
       const personality = await generateLunaPersonality(choices);
       res.json({ personality });
     } catch (error) {

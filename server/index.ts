@@ -34,7 +34,8 @@ async function startServer() {
 
     // FORCE DEVELOPMENT MODE - change this when deploying to production
     const isDevelopment = true; // process.env.NODE_ENV?.trim() !== 'production';
-    log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
+    const nodeEnv = isDevelopment ? 'development' : 'production';
+    log(`Running in ${nodeEnv} mode`);
 
     if (isDevelopment) {
       // Development-only setup
