@@ -32,11 +32,17 @@ async function startServer() {
     // Register all API and WebSocket routes
     await registerRoutes(app, server);
 
-    if (process.env.NODE_ENV === "development") {
+    // FORCE DEVELOPMENT MODE - change this when deploying to production
+    const isDevelopment = true; // process.env.NODE_ENV?.trim() !== 'production';
+    log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
+
+    if (isDevelopment) {
       // Development-only setup
+      log("Setting up Vite middleware for development...");
       await setupVite(app, server);
     } else {
       // Production setup for Firebase App Hosting
+      log("Serving static files for production...");
       serveStatic(app);
     }
 
@@ -55,7 +61,7 @@ async function startServer() {
 
     server.listen(port, host, () => {
       log(`Server running on ${host}:${port}`);
-      log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      log(`Environment: ${nodeEnv}`);
       log(`Firebase Project: ${process.env.FIREBASE_PROJECT_ID || 'fiber-friends'}`);
     });
 
