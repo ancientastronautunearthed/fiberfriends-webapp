@@ -27,7 +27,6 @@ import TestLuna from "@/pages/TestLuna";
 import CommunityInsights from "@/pages/CommunityInsights";
 import EnvironmentalTriggers from "@/pages/EnvironmentalTriggers";
 import Layout from "@/components/Layout";
-import NotFound from "@/pages/NotFound";
 
 function Router() {
   const authData = useFirebaseAuth();
@@ -64,7 +63,19 @@ function Router() {
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/ai-companion" component={AICompanion} />
-            <Route path="/luna-creation" component={LunaCreation} />
+            <Route
+              path="/luna-creation"
+              component={() => (
+                <LunaCreation
+                  onComplete={() => {
+                    // handle completion, e.g., redirect or update state
+                  }}
+                  onBack={() => {
+                    // handle back navigation, e.g., history.back() or similar
+                  }}
+                />
+              )}
+            />
             <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
             <Route path="/symptom-tracker" component={SymptomTracker} />
             <Route path="/symptom-wheel" component={SymptomWheel} />
@@ -81,7 +92,7 @@ function Router() {
             <Route path="/test-luna" component={TestLuna} />
             <Route path="/community-insights" component={CommunityInsights} />
             <Route path="/environmental-triggers" component={EnvironmentalTriggers} />
-            <Route component={NotFound} />
+          
         </Switch>
       </Layout>
   );
