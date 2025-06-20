@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { useDailySymptomCheck } from "@/hooks/useDailySymptomCheck";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
@@ -28,15 +27,13 @@ import TestLuna from "@/pages/TestLuna";
 import CommunityInsights from "@/pages/CommunityInsights";
 import EnvironmentalTriggers from "@/pages/EnvironmentalTriggers";
 import Layout from "@/components/Layout";
-import NotFound from "@/pages/not-found";
+import NotFound from "@/pages/NotFound";
 
 function Router() {
   const authData = useFirebaseAuth();
   const { user, isLoading, isAuthenticated } = authData || { user: null, isLoading: true, isAuthenticated: false };
-  const symptomCheck = useDailySymptomCheck();
-  const { needsSymptomLog, isLoading: isCheckingSymptomLog } = symptomCheck || { needsSymptomLog: false, isLoading: true };
 
-  if (isLoading || isCheckingSymptomLog) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -59,40 +56,31 @@ function Router() {
     return <Onboarding />;
   }
 
-  // Show daily symptom prompt for users who have not logged symptoms today
-  if (user && user.onboardingCompleted && needsSymptomLog) {
-    return (
-      <Switch>
-        <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
-        <Route component={DailySymptomPrompt} />
-      </Switch>
-    );
-  }
-
-  // Show main app for authenticated users with completed profiles who have logged symptoms today
+  // Show main app for authenticated users - directly go to dashboard/main app
+  // Removed the symptom log requirement that was blocking access
   return (
       <Layout>
         <Switch>
-            <Route path="/" component={AICompanion} />
-            <Route path="/ai-companion" component={AICompanion} />
+            <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
-            <Route path="/tracking" component={SymptomTracker} />
+            <Route path="/ai-companion" component={AICompanion} />
+            <Route path="/luna-creation" component={LunaCreation} />
+            <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
+            <Route path="/symptom-tracker" component={SymptomTracker} />
             <Route path="/symptom-wheel" component={SymptomWheel} />
-            <Route path="/patterns" component={SymptomPatterns} />
-            <Route path="/food" component={FoodLogger} />
+            <Route path="/symptom-patterns" component={SymptomPatterns} />
+            <Route path="/food-logger" component={FoodLogger} />
             <Route path="/community" component={CommunityForum} />
-            <Route path="/chat" component={SimplifiedChat} />
+            <Route path="/simplified-chat" component={SimplifiedChat} />
+            <Route path="/profile" component={UserProfile} />
             <Route path="/test-chat" component={TestChat} />
-            <Route path="/companion" component={AICompanion} />
             <Route path="/challenges" component={Challenges} />
             <Route path="/achievements" component={Achievements} />
             <Route path="/recommendations" component={Recommendations} />
-            <Route path="/activities" component={HealthyActivities} />
-            <Route path="/environmental-triggers" component={EnvironmentalTriggers} />
-            <Route path="/community-insights" component={CommunityInsights} />
-            <Route path="/profile" component={UserProfile} />
+            <Route path="/healthy-activities" component={HealthyActivities} />
             <Route path="/test-luna" component={TestLuna} />
-            <Route path="/daily-symptom-prompt" component={DailySymptomPrompt} />
+            <Route path="/community-insights" component={CommunityInsights} />
+            <Route path="/environmental-triggers" component={EnvironmentalTriggers} />
             <Route component={NotFound} />
         </Switch>
       </Layout>
@@ -101,14 +89,14 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ErrorBoundary>
           <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+          <Toaster />
+        </ErrorBoundary>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 
