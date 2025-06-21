@@ -5,7 +5,7 @@ import {
   generateWeeklyChallenge,
   generateMilestoneChallenge
 } from "./genkit";
-import { Challenge, UserChallenge } from "@shared/schema";
+import { Challenge, UserChallenge, CommunityPost, UserAchievement } from "./schema";
 
 interface UserHealthProfile {
   userId: string;
@@ -28,6 +28,50 @@ interface ChallengeRecommendation {
   adaptedDifficulty: string;
   estimatedCompletionTime: number;
   personalizedMessage: string;
+}
+
+// UserContext interface to match genkit expectations
+interface UserContext {
+  firstName?: string;
+  lastName?: string;
+  age?: number;
+  gender?: string;
+  height?: string;
+  weight?: string;
+  location?: string;
+  diagnosisStatus?: string;
+  hasFibers?: boolean;
+  diagnosisTimeline?: string;
+  misdiagnoses?: string[];
+  otherDiseases?: string[];
+  foodPreferences?: {
+    dislikes?: string[];
+    favorites?: string[];
+  };
+  habits?: {
+    smoking?: boolean;
+    alcohol?: boolean;
+    exercise?: string;
+  };
+  hobbies?: string;
+  relationshipStatus?: string;
+  hasChildren?: boolean;
+  childrenCount?: number;
+  childrenAges?: string;
+  hasSiblings?: boolean;
+  siblingsCount?: number;
+  closeFriends?: string;
+  familySupport?: string;
+  socialPreferences?: string;
+  dateOfBirth?: string;
+  partnerBirthday?: string;
+  childrenBirthdays?: string;
+  familyBirthdays?: string;
+  importantDates?: string;
+  smokingDuration?: string;
+  smokingFrequency?: string;
+  alcoholDuration?: string;
+  alcoholFrequency?: string;
 }
 
 export class RecommendationEngine {
@@ -256,6 +300,23 @@ export class RecommendationEngine {
     return message;
   }
 
+  // Convert UserHealthProfile to UserContext for genkit
+  private async profileToUserContext(profile: UserHealthProfile): Promise<UserContext> {
+    const user = await storage.getUser(profile.userId);
+    const userProfile = user?.profile;
+    
+    return {
+      firstName: user?.displayName?.split(' ')[0],
+      lastName: user?.displayName?.split(' ')[1],
+      age: userProfile?.age,
+      location: userProfile?.location,
+      // Add other relevant mappings based on available data
+      habits: {
+        exercise: 'moderate' // Default value, could be derived from daily logs
+      }
+    };
+  }
+
   public async generateRecommendations(
     userId: string,
     requestedType?: string,
@@ -274,18 +335,20 @@ export class RecommendationEngine {
         
         switch (type) {
           case 'personalized':
+            const userContext = await this.profileToUserContext(profile);
             challenge = await generatePersonalizedChallenge(
-              profile,
+              userContext,
               profile.recentActivity
             );
             break;
           case 'weekly':
-            const communityData = await storage.getCommunityPosts();
+            const communityData: CommunityPost[] = await storage.getCommunityPosts();
             challenge = await generateWeeklyChallenge(communityData);
             break;
           case 'milestone':
-            const achievements = await storage.getUserAchievements(userId);
-            challenge = await generateMilestoneChallenge(achievements, profile);
+            const achievements: UserAchievement[] = await storage.getUserAchievements(userId);
+            const userContextForMilestone = await this.profileToUserContext(profile);
+            challenge = await generateMilestoneChallenge(achievements, userContextForMilestone);
             break;
           default:
             challenge = await generateDailyChallenge();
