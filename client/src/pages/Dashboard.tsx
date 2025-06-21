@@ -5,133 +5,95 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
-import { CheckCircle, Circle, Trophy, Sun, CloudSun, Moon, CookingPot, ClipboardCheck, MessageCircle, Star, Target, Heart, Users, Brain, Play, AlertCircle } from "lucide-react";
+import { CheckCircle, Circle, Trophy, Sun, CookingPot, ClipboardCheck, MessageCircle, Star, Target, Heart, Users, Brain, Play, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getUserDashboard } from "@/lib/api"; // You would create this function to fetch all dashboard data
+import { Skeleton } from "@/components/ui/skeleton"; // For the loading state
+
+// Define the shape of the data you expect from your API
+interface DashboardData {
+  user: {
+    displayName: string;
+    currentTier: string;
+    totalPoints: number;
+    streakDays: number;
+  };
+  dailyTasks: { id: number; name: string; completed: boolean; icon: React.ElementType }[];
+  activeChallenges: {
+    id: number;
+    progress: number;
+    challenge: {
+      title: string;
+      category: string;
+      pointReward: number;
+    };
+  }[];
+  healthOverview: {
+    symptomLevel: 'Low' | 'Medium' | 'High';
+    mood: 'Good' | 'Neutral' | 'Bad';
+    sleepQuality: number; // e.g., 7
+  };
+  recentActivities: {
+    id: number;
+    type: string;
+    title: string;
+    description: string;
+    time: string;
+    icon: React.ElementType;
+    bgColor: string;
+  }[];
+}
+
 
 export default function Dashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showDailyPrompt, setShowDailyPrompt] = useState(false);
 
-  // Check if user has logged symptoms today
+  // Fetch all dashboard data with one query
+  const { data, isLoading, isError, error } = useQuery<DashboardData>({
+    queryKey: ['dashboardData'],
+    queryFn: getUserDashboard, // Assumes this API function exists in `lib/api.ts`
+  });
+
+  // Check if user has logged symptoms today (client-side logic is fine for this)
   useEffect(() => {
     const lastLogDate = localStorage.getItem('last-symptom-log-date');
     const today = new Date().toISOString().split('T')[0];
-    
     if (lastLogDate !== today) {
       setShowDailyPrompt(true);
     }
   }, []);
 
-  // Use direct demo data to bypass API routing issues
-  const dashboardStats = {
-    totalLogs: 14,
-    streak: 7,
-    recentLogs: [
-      { id: 1, date: '2024-01-15', mood: 8, energy: 7, pain: 3 },
-      { id: 2, date: '2024-01-14', mood: 7, energy: 6, pain: 4 },
-      { id: 3, date: '2024-01-13', mood: 9, energy: 8, pain: 2 },
-      { id: 4, date: '2024-01-12', mood: 6, energy: 5, pain: 5 },
-      { id: 5, date: '2024-01-11', mood: 8, energy: 7, pain: 3 }
-    ],
-    activeChallenges: [
-      { id: 1, title: "Daily Symptom Tracking", progress: 70, category: "health" },
-      { id: 2, title: "Mindful Moments", progress: 45, category: "mindfulness" },
-      { id: 3, title: "Anti-Inflammatory Diet", progress: 85, category: "nutrition" }
-    ],
-    totalActiveChallenges: 3,
-    totalCompletedChallenges: 8,
-    totalAchievements: 12
-  };
+  // Show a skeleton loader while data is being fetched
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
-  const recentLogs = [
-    {
-      id: 1,
-      date: '2024-01-15',
-      symptoms: ['Skin crawling sensations', 'Fatigue', 'Joint pain'],
-      mood: 8,
-      energy: 7,
-      pain: 3,
-      sleep: 8,
-      notes: 'Feeling better today after trying the anti-inflammatory diet suggestions.',
-      timestamp: '2024-01-15T08:30:00Z'
-    },
-    {
-      id: 2,
-      date: '2024-01-14',
-      symptoms: ['Fiber-like material on skin', 'Brain fog', 'Itching'],
-      mood: 7,
-      energy: 6,
-      pain: 4,
-      sleep: 6,
-      notes: 'Documented new fiber samples under microscope. Stress levels moderate.',
-      timestamp: '2024-01-14T09:15:00Z'
-    },
-    {
-      id: 3,
-      date: '2024-01-13',
-      symptoms: ['Burning sensations', 'Skin lesions'],
-      mood: 9,
-      energy: 8,
-      pain: 2,
-      sleep: 9,
-      notes: 'Great day! New skincare routine seems to be helping significantly.',
-      timestamp: '2024-01-13T07:45:00Z'
-    }
-  ];
+  // Show a user-friendly error message if fetching fails
+  if (isError) {
+    return (
+        <div className="flex flex-col items-center justify-center h-[80vh]">
+            <AlertCircle className="w-12 h-12 text-red-500" />
+            <h2 className="mt-4 text-xl font-semibold">Could not load dashboard</h2>
+            <p className="text-muted-foreground">There was a problem fetching your data. Please try again later.</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">Reload Page</Button>
+        </div>
+    );
+  }
 
-  const activeChallenges = dashboardStats.activeChallenges;
-  const totalActiveChallenges = dashboardStats.totalActiveChallenges;
-
-  const dailyTasks = [
-    { id: 1, name: "Morning Symptom Log", completed: true, icon: ClipboardCheck },
-    { id: 2, name: "Log Breakfast", completed: true, icon: Sun },
-    { id: 3, name: "Take Supplements", completed: true, icon: Circle },
-    { id: 4, name: "Log Lunch", completed: false, icon: CloudSun },
-    { id: 5, name: "Evening Log", completed: false, icon: Moon },
-  ];
-
+  const { user, dailyTasks, activeChallenges, healthOverview, recentActivities } = data;
   const completedTasks = dailyTasks.filter(task => task.completed).length;
   const progressPercentage = (completedTasks / dailyTasks.length) * 100;
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: "food",
-      title: "Breakfast Logged",
-      description: "Oatmeal with berries - 320 calories",
-      time: "2 hours ago",
-      icon: CookingPot,
-      bgColor: "bg-blue-500"
-    },
-    {
-      id: 2,
-      type: "symptoms",
-      title: "Morning Symptoms Tracked",
-      description: "Overall feeling: Good (8/10)",
-      time: "3 hours ago",
-      icon: ClipboardCheck,
-      bgColor: "bg-green-500"
-    },
-    {
-      id: 3,
-      type: "community",
-      title: "Community Post",
-      description: "Shared your success story in the forum",
-      time: "Yesterday",
-      icon: MessageCircle,
-      bgColor: "bg-purple-500"
-    },
-  ];
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 md:p-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-8 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              Good morning, Friend!
+              Good morning, {user.displayName}!
             </h1>
             <p className="text-primary-100 text-lg">Let's track your health journey today</p>
           </div>
@@ -148,31 +110,13 @@ export default function Dashboard() {
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-amber-600" />
-              </div>
+              <div className="flex-shrink-0"><AlertCircle className="h-6 w-6 text-amber-600" /></div>
               <div className="flex-1">
-                <h3 className="font-semibold text-amber-900 mb-2">
-                  Start Your Day Right - Log Your Symptoms
-                </h3>
-                <p className="text-amber-700 mb-4">
-                  You haven't recorded your daily symptom check-in yet. Taking a few minutes to track how you're feeling helps Luna provide better personalized support throughout your day.
-                </p>
+                <h3 className="font-semibold text-amber-900 mb-2">Start Your Day Right - Log Your Symptoms</h3>
+                <p className="text-amber-700 mb-4">You haven't recorded your daily symptom check-in yet. Tracking helps Luna provide better support.</p>
                 <div className="flex gap-3">
-                  <Button 
-                    onClick={() => setLocation('/daily-symptom-prompt')}
-                    className="bg-amber-600 hover:bg-amber-700 text-white"
-                  >
-                    <ClipboardCheck className="h-4 w-4 mr-2" />
-                    Log Symptoms Now
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setShowDailyPrompt(false)}
-                    className="text-amber-700 hover:text-amber-900"
-                  >
-                    Remind me later
-                  </Button>
+                  <Button onClick={() => setLocation('/daily-symptom-prompt')} className="bg-amber-600 hover:bg-amber-700 text-white"><ClipboardCheck className="h-4 w-4 mr-2" />Log Symptoms Now</Button>
+                  <Button variant="ghost" onClick={() => setShowDailyPrompt(false)} className="text-amber-700 hover:text-amber-900">Remind me later</Button>
                 </div>
               </div>
             </div>
@@ -187,30 +131,14 @@ export default function Dashboard() {
             <h3 className="font-semibold text-slate-800">Today's Tasks</h3>
             <span className="text-sm text-slate-500">{completedTasks} of {dailyTasks.length} complete</span>
           </div>
-          
-          <div className="mb-4">
-            <Progress value={progressPercentage} className="w-full" />
-          </div>
-          
+          <Progress value={progressPercentage} className="w-full mb-4" />
           <div className="space-y-3">
-            {dailyTasks.map((task) => {
-              const Icon = task.icon;
-              return (
-                <div
-                  key={task.id}
-                  className={`flex items-center gap-3 p-2 rounded-lg ${
-                    task.completed ? "bg-green-50" : "hover:bg-slate-50 cursor-pointer"
-                  }`}
-                >
-                  {task.completed ? (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-slate-300" />
-                  )}
-                  <span className="text-slate-700">{task.name}</span>
-                </div>
-              );
-            })}
+            {dailyTasks.map((task) => (
+              <div key={task.id} className={`flex items-center gap-3 p-2 rounded-lg ${task.completed ? "bg-green-50" : "hover:bg-slate-50"}`}>
+                {task.completed ? <CheckCircle className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-slate-300" />}
+                <span className="text-slate-700">{task.name}</span>
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -218,60 +146,31 @@ export default function Dashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-slate-800">Active Challenges</h3>
-            <Badge variant="secondary">{totalActiveChallenges}/3</Badge>
+            <Badge variant="secondary">{activeChallenges.length}/3</Badge>
           </div>
-          
-          {activeChallenges && activeChallenges.length > 0 ? (
+          {activeChallenges.length > 0 ? (
             <div className="space-y-3">
-              {activeChallenges.map((userChallenge: any) => {
-                const getCategoryIcon = (category: string) => {
-                  switch (category) {
-                    case "health": return <Heart className="h-4 w-4" />;
-                    case "nutrition": return <Target className="h-4 w-4" />;
-                    case "social": return <Users className="h-4 w-4" />;
-                    case "mindfulness": return <Brain className="h-4 w-4" />;
-                    default: return <Star className="h-4 w-4" />;
-                  }
-                };
-
-                return (
-                  <div key={userChallenge.id} className="border rounded-lg p-3 hover:bg-slate-50">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getCategoryIcon(userChallenge.challenge?.category)}
-                        <span className="font-medium text-sm">{userChallenge.challenge?.title}</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {userChallenge.challenge?.pointReward || userChallenge.challenge?.points || 0} pts
-                      </Badge>
+              {activeChallenges.map((userChallenge) => (
+                <div key={userChallenge.id} className="border rounded-lg p-3 hover:bg-slate-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{userChallenge.challenge.title}</span>
                     </div>
-                    <div className="mb-2">
-                      <Progress value={userChallenge.progress?.completion_percentage || 0} className="h-2" />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-500">
-                        {userChallenge.progress?.completion_percentage || 0}% complete
-                      </span>
-                      <Link to="/challenges">
-                        <Button size="sm" variant="outline" className="text-xs h-7">
-                          <Play className="w-3 h-3 mr-1" />
-                          Continue
-                        </Button>
-                      </Link>
-                    </div>
+                    <Badge variant="outline" className="text-xs">{userChallenge.challenge.pointReward} pts</Badge>
                   </div>
-                );
-              })}
+                  <Progress value={userChallenge.progress} className="h-2 mb-2" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">{userChallenge.progress}% complete</span>
+                    <Link to="/challenges"><Button size="sm" variant="outline" className="text-xs h-7"><Play className="w-3 h-3 mr-1" />Continue</Button></Link>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-6">
               <Target className="h-8 w-8 text-slate-300 mx-auto mb-2" />
               <p className="text-slate-500 text-sm mb-3">No active challenges</p>
-              <Link to="/challenges">
-                <Button size="sm" variant="outline">
-                  Browse Challenges
-                </Button>
-              </Link>
+              <Link to="/challenges"><Button size="sm" variant="outline">Browse Challenges</Button></Link>
             </div>
           )}
         </Card>
@@ -281,94 +180,28 @@ export default function Dashboard() {
           <h3 className="font-semibold text-slate-800 mb-4">Health Overview</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-slate-700">Symptom Level</span>
-              </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-600">Low</Badge>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full"></div><span className="text-slate-700">Symptom Level</span></div>
+              <Badge variant="secondary" className="bg-green-100 text-green-600">{healthOverview.symptomLevel}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <span className="text-slate-700">Mood</span>
-              </div>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-600">Good</Badge>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded-full"></div><span className="text-slate-700">Mood</span></div>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-600">{healthOverview.mood}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                <span className="text-slate-700">Sleep Quality</span>
-              </div>
-              <Badge variant="secondary" className="bg-purple-100 text-purple-600">7/10</Badge>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 bg-purple-500 rounded-full"></div><span className="text-slate-700">Sleep Quality</span></div>
+              <Badge variant="secondary" className="bg-purple-100 text-purple-600">{healthOverview.sleepQuality}/10</Badge>
             </div>
           </div>
         </Card>
-
-        {/* Daily Challenge */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy className="w-5 h-5 text-yellow-500" />
-            <h3 className="font-semibold text-slate-800">Daily Challenge</h3>
-          </div>
-          <p className="text-slate-600 mb-4">Complete today's nutrition quiz to earn 50 points!</p>
-          <Button className="w-full bg-accent hover:bg-accent/90" onClick={() => {
-            toast({
-              title: "Challenge Started!",
-              description: "Answer nutrition questions to earn points.",
-            });
-          }}>
-            Start Challenge
-          </Button>
-        </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <Link href="/tracking">
-          <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-0 text-center">
-              <ClipboardCheck className="w-8 h-8 text-primary mx-auto mb-2" />
-              <h4 className="font-medium text-slate-800">Log Symptoms</h4>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/food">
-          <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-0 text-center">
-              <CookingPot className="w-8 h-8 text-secondary mx-auto mb-2" />
-              <h4 className="font-medium text-slate-800">Log Food</h4>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/community">
-          <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-0 text-center">
-              <MessageCircle className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-              <h4 className="font-medium text-slate-800">Community</h4>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/companion">
-          <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-0 text-center">
-              <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <h4 className="font-medium text-slate-800">AI Companion</h4>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Recent Activity */}
+       {/* Recent Activity */}
       <Card className="p-6">
         <h3 className="font-semibold text-slate-800 mb-6">Recent Activity</h3>
-        
         <div className="space-y-4">
           {recentActivities.map((activity) => {
-            const Icon = activity.icon;
-            return (
+             const Icon = activity.icon;
+             return (
               <div key={activity.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
                 <div className={`w-10 h-10 ${activity.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
                   <Icon className="w-5 h-5 text-white" />
@@ -386,3 +219,16 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// Skeleton component for a better loading experience
+const DashboardSkeleton = () => (
+    <div className="space-y-8 p-4 md:p-6 animate-pulse">
+        <Skeleton className="h-40 w-full rounded-xl" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-64 w-full rounded-lg" />
+            <Skeleton className="h-64 w-full rounded-lg" />
+            <Skeleton className="h-64 w-full rounded-lg" />
+        </div>
+        <Skeleton className="h-80 w-full rounded-lg" />
+    </div>
+);

@@ -1,10 +1,37 @@
-import { 
-  getAiCompanion, 
-  createAiCompanion, 
+import {
+  getAiCompanion,
+  createAiCompanion,
   updateAiCompanion,
-  saveConversationMessage, 
-  getConversationHistory as getFirestoreConversationHistory 
+  saveConversationMessage,
+  getConversationHistory as getFirestoreConversationHistory
 } from "./firestore";
+
+// NEW - Function to fetch all dashboard data
+export async function getUserDashboard() {
+  const response = await fetch('/api/dashboard');
+  if (!response.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return response.json();
+}
+
+// This is the function you had before for completing onboarding
+export async function completeOnboarding(data: { username: string }) {
+    const response = await fetch('/api/profile/complete-onboarding', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to complete onboarding');
+    }
+    return response.json();
+}
+
 
 // Firebase-based AI Companion functions
 export async function generateAICompanionResponse(userMessage: string, context: any, userId: string) {
@@ -17,7 +44,7 @@ export async function generateAICompanionResponse(userMessage: string, context: 
         name: "Luna",
         personality: {
           tone: "warm",
-          style: "supportive", 
+          style: "supportive",
           personality: "nurturing"
         },
         greeting: "Hello! I'm Luna, your health companion specialized in Morgellons disease support. How are you feeling today?",
@@ -26,18 +53,18 @@ export async function generateAICompanionResponse(userMessage: string, context: 
       });
       companion = await getAiCompanion(userId);
     }
-    
+
     // Save user message to conversation history
     await saveConversationMessage(userId, userId, {
       type: 'user',
       content: userMessage,
       timestamp: new Date().toISOString()
     });
-    
+
     // Generate context-aware AI response with Morgellons expertise
     const messageLower = userMessage.toLowerCase();
     let aiResponse = "";
-    
+
     if (messageLower.includes('fiber') || messageLower.includes('filament') || messageLower.includes('thread')) {
       aiResponse = "I understand you're experiencing fibers or filaments - this is one of the hallmark symptoms of Morgellons Disease. Document these carefully with macro photography under natural lighting, and collect samples in clean glass containers. The fibers often contain cellulose, keratin, and collagen components. Use sterile tweezers for gentle removal and avoid aggressive picking which can create secondary infections. Many patients find that fibers increase during inflammatory flares. Have you noticed any patterns in when the fibers appear more frequently?";
     } else if (messageLower.includes('itch') || messageLower.includes('crawl') || messageLower.includes('sensation') || messageLower.includes('burning') || messageLower.includes('stinging')) {
@@ -57,15 +84,15 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     } else {
       aiResponse = `Hello! I'm Luna, your AI companion specialized in Morgellons disease support. I understand you said: "${userMessage}". This complex condition affects multiple body systems, and your symptoms are real and valid. Many find improvement through comprehensive approaches including inflammation reduction, detoxification support, and immune system optimization. How can I best support you on your health journey today?`;
     }
-    
+
     // Save AI response to conversation history
     await saveConversationMessage(userId, userId, {
       type: 'assistant',
       content: aiResponse,
       timestamp: new Date().toISOString()
     });
-    
-    return { 
+
+    return {
       content: aiResponse,
       response: aiResponse,
       responseType: "supportive",
@@ -74,11 +101,11 @@ export async function generateAICompanionResponse(userMessage: string, context: 
     };
   } catch (error) {
     console.error('Error generating AI companion response:', error);
-    
+
     // Fallback response for any errors
     const fallbackResponse = "I understand you're reaching out for support with your health journey. While I'm experiencing some technical difficulties right now, I want you to know that your symptoms are real and valid. Morgellons is a complex condition that requires comprehensive care. Please continue tracking your symptoms and seeking knowledgeable healthcare providers. How can I help you today?";
-    
-    return { 
+
+    return {
       content: fallbackResponse,
       response: fallbackResponse,
       responseType: "supportive",

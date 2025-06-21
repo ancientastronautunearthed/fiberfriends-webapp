@@ -63,17 +63,35 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   });
 
   // Profile routes
-  app.put('/api/profile/complete-onboarding', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      // FIX: Use upsertUser to prevent error if user document doesn't exist yet.
-      const updatedUser = await storage.upsertUser({ id: userId, ...req.body, onboardingCompleted: true });
-      res.json({ user: updatedUser });
-    } catch (error) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ error: "Failed to complete onboarding" });
+  // In server/routes.ts
+
+app.put('/api/profile/complete-onboarding', isAuthenticated, async (req: any, res) => {
+  try {
+    // Defensive check to ensure user is properly authenticated
+    if (!req.user || !req.user.uid) {
+      console.error("Authentication error: User object not found on request.");
+      // Send a 401 Unauthorized status if the user isn't identified
+      return res.status(401).json({ error: "User not authenticated. Please log in again." });
     }
-  });
+
+    const userId = req.user.uid; // Use uid which is safer and more common
+
+    // Using upsertUser to create the document if it doesn't exist, or update it if it does.
+    // The data object is explicitly constructed to avoid any unexpected properties from req.body
+    const updatedUser = await storage.upsertUser({
+      id: userId,
+      username: req.body.username,
+      favoriteColor: req.body.favoriteColor, // Add any other fields from your form
+      onboardingCompleted: true,
+    });
+
+    res.json({ user: updatedUser });
+
+  } catch (error) {
+    console.error("Error completing onboarding:", error);
+    res.status(500).json({ error: "A server error occurred while completing onboarding." });
+  }
+});
 
   app.put('/api/profile/update', isAuthenticated, async (req: any, res) => {
     try {
@@ -127,7 +145,7 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
     } catch (error) {
       console.error("Error fetching daily logs:", error);
       res.status(500).json({ error: "Failed to fetch daily logs" });
-    }
+    }complete-onboarding
   });
 
   // Community Post routes
