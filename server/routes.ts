@@ -65,31 +65,43 @@ export async function registerRoutes(app: Express, server: Server): Promise<void
   // Profile routes
   // In server/routes.ts
 
+// In server/routes.ts
+
 app.put('/api/profile/complete-onboarding', isAuthenticated, async (req: any, res) => {
   try {
-    // Defensive check to ensure user is properly authenticated
+    // Check for authenticated user ID
     if (!req.user || !req.user.uid) {
-      console.error("Authentication error: User object not found on request.");
-      // Send a 401 Unauthorized status if the user isn't identified
-      return res.status(401).json({ error: "User not authenticated. Please log in again." });
+      console.error("Authentication error: User ID not found on request.");
+      return res.status(401).json({ error: "User is not properly authenticated." });
+    }
+    const userId = req.user.uid;
+
+    // Check for necessary data from the form
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ error: "Username is required." });
     }
 
-    const userId = req.user.uid; // Use uid which is safer and more common
-
-    // Using upsertUser to create the document if it doesn't exist, or update it if it does.
-    // The data object is explicitly constructed to avoid any unexpected properties from req.body
-    const updatedUser = await storage.upsertUser({
+    // Prepare the data for the database
+    const userData = {
       id: userId,
-      username: req.body.username,
-      favoriteColor: req.body.favoriteColor, // Add any other fields from your form
+      username: username,
       onboardingCompleted: true,
-    });
+      // Add any other fields from your onboarding form here
+      // e.g., favoriteColor: req.body.favoriteColor
+    };
 
-    res.json({ user: updatedUser });
+    // --- THIS IS THE FIX ---
+    // Call the correct 'upsertUser' function from storage.ts
+    const updatedUser = await storage.upsertUser(userData);
+    // --- END FIX ---
+
+    res.status(200).json({ user: updatedUser });
 
   } catch (error) {
-    console.error("Error completing onboarding:", error);
-    res.status(500).json({ error: "A server error occurred while completing onboarding." });
+    console.error("Server error during onboarding completion:", error);
+    // Provide a generic but helpful server error message
+    res.status(500).json({ error: "An unexpected error occurred on the server." });
   }
 });
 
