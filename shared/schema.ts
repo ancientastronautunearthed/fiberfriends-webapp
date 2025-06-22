@@ -328,3 +328,8 @@ export type InsertUserBadge = Omit<UserBadge, 'id' | 'awardedAt'>; // Corrected:
 
 // Update types
 export type UpsertUser = Partial<InsertUser> & { id?: string };
+
+// Achievement milestone title extraction
+const milestone = achievements.length > 0
+  ? (achievements[0] as any).title || achievements[0].name || "a milestone"
+  : "a milestone";
